@@ -96,6 +96,7 @@ export function useMediaSession() {
 		if (meterFrameRef.current !== null) cancelAnimationFrame(meterFrameRef.current);
 		meterFrameRef.current = null;
 		micMeterRef.current?.style.setProperty("--level", "0");
+		micMeterRef.current?.style.setProperty("--peak", "0");
 		setMicState("idle");
 	}, []);
 
@@ -117,21 +118,44 @@ export function useMediaSession() {
 			const audioContext = new AudioContext();
 			const analyser = audioContext.createAnalyser();
 			const source = audioContext.createMediaStreamSource(stream);
-			const frequencyData = new Uint8Array(analyser.frequencyBinCount);
 
-			analyser.fftSize = 256;
-			analyser.smoothingTimeConstant = 0.76;
+			analyser.fftSize = 1024;
+			const waveform = new Float32Array(analyser.fftSize);
 			source.connect(analyser);
 			void audioContext.resume();
 			audioContextRef.current = audioContext;
 			audioSourceRef.current = source;
 
+			let displayedLevel = 0;
+			let peakLevel = 0;
+			let peakHoldUntil = 0;
+
 			const paintMeter = () => {
-				analyser.getByteFrequencyData(frequencyData);
-				let total = 0;
-				for (const value of frequencyData) total += value;
-				const level = Math.min(1, total / frequencyData.length / 72);
-				micMeterRef.current?.style.setProperty("--level", level.toFixed(3));
+				analyser.getFloatTimeDomainData(waveform);
+				let sumOfSquares = 0;
+				for (const sample of waveform) sumOfSquares += sample * sample;
+
+				const rootMeanSquare = Math.sqrt(sumOfSquares / waveform.length);
+				const decibels = 20 * Math.log10(Math.max(rootMeanSquare, 0.00001));
+				const normalizedLevel = Math.min(1, Math.max(0, (decibels + 58) / 46));
+				const responsiveLevel = normalizedLevel ** 0.72;
+
+				// React quickly to speech, then fall away smoothly so the meter stays readable.
+				const smoothing = responsiveLevel > displayedLevel ? 0.58 : 0.12;
+				displayedLevel += (responsiveLevel - displayedLevel) * smoothing;
+
+				const now = performance.now();
+				if (displayedLevel >= peakLevel) {
+					peakLevel = displayedLevel;
+					peakHoldUntil = now + 450;
+				} else if (now > peakHoldUntil) {
+					peakLevel = Math.max(displayedLevel, peakLevel - 0.018);
+				}
+
+				const meter = micMeterRef.current;
+				meter?.style.setProperty("--level", displayedLevel.toFixed(3));
+				meter?.style.setProperty("--peak", peakLevel.toFixed(3));
+				meter?.setAttribute("aria-valuenow", Math.round(displayedLevel * 100).toString());
 				meterFrameRef.current = requestAnimationFrame(paintMeter);
 			};
 
