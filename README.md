@@ -1,47 +1,72 @@
-# OpenNext Starter
+# Meera Support Prototype
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+This prototype currently includes:
 
-## Getting Started
+- Screen sharing with a live preview
+- Microphone access with a responsive input meter
+- An Electron desktop mode with transparent, click-through overlays
+- Reusable overlay commands for cursors, arrows, highlights, and chat bubbles
+- A simulator that exercises the same API a future AI agent will call
 
-Read the documentation at https://opennext.js.org/cloudflare.
+## Desktop Overlay
 
-## Develop
+The desktop overlay requires Electron because browser-only Next.js pages cannot draw over unrelated applications.
 
-Run the Next.js development server:
-
-```bash
-npm run dev
-# or similar package manager command
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-## Preview
-
-Preview the application locally on the Cloudflare runtime:
+Start the complete desktop app:
 
 ```bash
-npm run preview
-# or similar package manager command
+pnpm desktop:dev
 ```
 
-## Deploy
+### Windows Setup
 
-Deploy the application to Cloudflare:
+Windows is the primary target for the desktop overlay. After cloning or moving the repository onto Windows, install fresh platform-specific dependencies instead of copying WSL `node_modules`:
+
+```powershell
+corepack enable
+pnpm install
+pnpm desktop:smoke
+pnpm desktop:dev
+```
+
+The scripts avoid POSIX-only environment syntax and run through Node-based launchers so they work from PowerShell and Windows Terminal. The Windows overlay is frameless, transparent, always on top, multi-monitor aware, and click-through.
+
+WSL2 can run the automated desktop smoke test, but WSLg sometimes reports native window sizing and focus behavior differently. Use the normal Windows setup above for the authoritative visual test.
+
+Inside Meera, use the **Desktop overlay simulator** to move the cursor, display arrows and bubbles, highlight an area, or run the complete demonstration.
+
+The transparent overlay is always on top and click-through, so it will not block the application underneath it. Share the entire screen, rather than one window, if you want the overlay to appear in the live screen-share preview.
+
+### Overlay API
+
+The future AI agent can use the same typed command API:
+
+```ts
+await sendOverlayCommand({
+	type: "bubble.show",
+	id: "open-settings",
+	target: { x: 0.72, y: 0.34 },
+	message: "Open Network settings here.",
+	placement: "left",
+	ttlMs: 5000,
+});
+```
+
+Coordinates are normalized from `0` to `1`, so commands work across different display resolutions.
+
+## Verification
 
 ```bash
-npm run deploy
-# or similar package manager command
+pnpm lint
+pnpm exec tsc --noEmit
+pnpm test
+pnpm build
+pnpm desktop:build
+pnpm desktop:smoke
 ```
 
-## Learn More
+`desktop:smoke` launches the actual Electron overlay windows, sends all primary overlay command types, confirms the overlay renderer applied them, and then exits.
 
-To learn more about Next.js, take a look at the following resources:
+## Web And Cloudflare
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The browser-only app remains available through `pnpm dev`, and the existing OpenNext Cloudflare scripts remain unchanged. Desktop-wide overlays are disabled in browser-only mode.

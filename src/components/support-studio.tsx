@@ -5,6 +5,7 @@ import { MediaControls } from "@/components/media-controls";
 import { PermissionStatus } from "@/components/permission-status";
 import { ScreenPreview } from "@/components/screen-preview";
 import { SharingBadge } from "@/components/sharing-badge";
+import { OverlaySimulator } from "@/features/overlay/overlay-simulator";
 import { useMediaSession } from "@/hooks/use-media-session";
 
 export function SupportStudio() {
@@ -61,7 +62,7 @@ export function SupportStudio() {
 					</div>
 				</div>
 
-				<div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_280px]">
+				<div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
 					<ScreenPreview
 						isSharing={isSharing}
 						isCompanionOpen={session.isCompanionOpen}
@@ -71,11 +72,14 @@ export function SupportStudio() {
 						onStopSharing={session.stopScreenShare}
 						onOpenCompanion={session.openCompanion}
 					/>
-					<PermissionStatus
-						screenState={session.screenState}
-						micState={session.micState}
-						micMeterRef={session.micMeterRef}
-					/>
+					<div className="grid content-start gap-3">
+						<PermissionStatus
+							screenState={session.screenState}
+							micState={session.micState}
+							micMeterRef={session.micMeterRef}
+						/>
+						<OverlaySimulator />
+					</div>
 				</div>
 			</section>
 
