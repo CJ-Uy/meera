@@ -1,22 +1,31 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import electronPath from "electron";
 
 const port = 3010;
 const appUrl = `http://localhost:${port}`;
-const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 const electronArgs = ["."];
 if (process.platform === "linux") electronArgs.push("--no-sandbox");
 
-const web = spawn(pnpmCommand, ["exec", "next", "dev", "-p", port.toString()], {
-	stdio: ["ignore", "pipe", "pipe"],
-	env: process.env,
-});
+function spawnPnpm(args, options) {
+	if (process.platform === "win32") {
+		return spawn("cmd.exe", ["/d", "/s", "/c", "pnpm.cmd", ...args], options);
+	}
+	return spawn("pnpm", args, options);
+}
 
 let electronProcess;
 let settled = false;
 
 function stopProcess(processToStop) {
-	if (processToStop && !processToStop.killed) processToStop.kill("SIGTERM");
+	if (!processToStop || processToStop.killed) return;
+	if (process.platform === "win32" && processToStop.pid) {
+		spawnSync("taskkill.exe", ["/pid", processToStop.pid.toString(), "/t", "/f"], {
+			stdio: "ignore",
+			windowsHide: true,
+		});
+		return;
+	}
+	processToStop.kill("SIGTERM");
 }
 
 function finish(code, message) {
@@ -27,6 +36,12 @@ function finish(code, message) {
 	if (message) console[code === 0 ? "log" : "error"](message);
 	setTimeout(() => process.exit(code), 150);
 }
+
+const web = spawnPnpm(["exec", "next", "dev", "-p", port.toString()], {
+	stdio: ["ignore", "pipe", "pipe"],
+	env: process.env,
+	windowsHide: true,
+});
 
 async function waitForServer() {
 	const deadline = Date.now() + 30_000;
@@ -43,6 +58,7 @@ async function waitForServer() {
 }
 
 web.stderr.on("data", (chunk) => process.stderr.write(chunk));
+web.on("error", (error) => finish(1, `Next.js smoke server failed to launch: ${error.message}`));
 web.on("exit", (code) => {
 	if (!settled && code !== 0) finish(1, `Next.js smoke server exited early with code ${code}.`);
 });
@@ -58,6 +74,7 @@ try {
 	electronProcess = spawn(electronPath, electronArgs, {
 		stdio: ["ignore", "pipe", "pipe"],
 		env: electronEnv,
+		windowsHide: true,
 	});
 
 	let output = "";
@@ -78,6 +95,7 @@ try {
 			finish(code ?? 1, "Desktop overlay smoke test failed.");
 		}
 	});
+	electronProcess.on("error", (error) => finish(1, `Electron smoke process failed to launch: ${error.message}`));
 } catch (error) {
 	finish(1, error instanceof Error ? error.message : "Desktop overlay smoke test failed.");
 }

@@ -31,6 +31,8 @@ pnpm desktop:dev
 
 The scripts avoid POSIX-only environment syntax and run through Node-based launchers so they work from PowerShell and Windows Terminal. The Windows overlay is frameless, transparent, always on top, multi-monitor aware, and click-through.
 
+The repository includes `pnpm-workspace.yaml` to approve the native build scripts required by Electron/Next/Cloudflare dependencies on pnpm 11 (`esbuild`, `sharp`, `unrs-resolver`, and `workerd`). The desktop smoke script also launches `pnpm` through `cmd.exe` on Windows and tears down the spawned process tree, which avoids `.cmd` shim launch failures and stale dev servers on port `3010`.
+
 WSL2 can run the automated desktop smoke test, but WSLg sometimes reports native window sizing and focus behavior differently. Use the normal Windows setup above for the authoritative visual test.
 
 Inside Meera, use the **Desktop overlay simulator** to move the cursor, display arrows and bubbles, highlight an area, or run the complete demonstration.
