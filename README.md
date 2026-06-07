@@ -35,6 +35,40 @@ The repository includes `pnpm-workspace.yaml` to approve the native build script
 
 WSL2 can run the automated desktop smoke test, but WSLg sometimes reports native window sizing and focus behavior differently. Use the normal Windows setup above for the authoritative visual test.
 
+### How To Open And Test It
+
+For a quick automated check, run:
+
+```powershell
+pnpm desktop:smoke
+```
+
+To open the real desktop app, run:
+
+```powershell
+pnpm desktop:dev
+```
+
+That command starts the Next.js dev server and opens the Electron app. Keep the terminal open while testing. Press `Ctrl+C` in the terminal to stop it.
+
+Once Meera opens:
+
+1. Open another app beside or behind Meera, such as Settings, Notepad, or VS Code.
+2. In Meera, find **Desktop overlay simulator**.
+3. Click **Move cursor** and confirm the Meera cursor appears over the other app.
+4. Test **Cursor tour**, **Show arrow**, **Show chat bubble**, **Highlight area**, and **Run full demo**.
+5. Confirm the overlay does not block clicks on the app underneath it.
+6. Click **Clear desktop overlay** and confirm the overlay disappears.
+7. Click **Share your screen**, choose the entire display, and confirm the overlay appears inside the live preview.
+8. Click **Stop sharing** and confirm the preview clears.
+9. Click **Use microphone**, speak, confirm the input meter responds, then click **Mute microphone**.
+
+For a production-style local run, use:
+
+```powershell
+pnpm desktop:start
+```
+
 Inside Meera, use the **Desktop overlay simulator** to move the cursor, display arrows and bubbles, highlight an area, or run the complete demonstration.
 
 The transparent overlay is always on top and click-through, so it will not block the application underneath it. Share the entire screen, rather than one window, if you want the overlay to appear in the live screen-share preview.
