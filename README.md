@@ -51,6 +51,14 @@ pnpm desktop:dev
 
 That command starts the Next.js dev server and opens the Electron app. Keep the terminal open while testing. Press `Ctrl+C` in the terminal to stop it.
 
+If Next.js says `Another next dev server is already running`, stop the PID it prints and run `pnpm desktop:dev` again:
+
+```powershell
+taskkill /PID 3296 /F
+```
+
+Replace `3296` with the PID shown in your terminal. This usually means a previous smoke test or desktop dev run was closed without stopping its dev server.
+
 Once Meera opens:
 
 1. Open another app beside or behind Meera, such as Settings, Notepad, or VS Code.
@@ -72,6 +80,17 @@ pnpm desktop:start
 Inside Meera, use the **Desktop overlay simulator** to move the cursor, display arrows and bubbles, highlight an area, or run the complete demonstration.
 
 The transparent overlay is always on top and click-through, so it will not block the application underneath it. Share the entire screen, rather than one window, if you want the overlay to appear in the live screen-share preview.
+
+### Ollama AI Assistant
+
+The main page includes a basic Ollama chatbot for testing text, images, shared-screen frames, and AI-controlled desktop overlays.
+
+- Text-only requests use `qwen3.5:9b`.
+- Requests with an uploaded image or captured shared-screen frame use `qwen3-vl:8b`.
+- Ollama calls stay behind the server-side `/api/ai/chat` route.
+- AI overlay tool calls are converted into the same validated overlay commands used by the simulator.
+
+See [docs/OLLAMA.md](docs/OLLAMA.md) for setup, test prompts, architecture, and extension guidance.
 
 ### Overlay API
 

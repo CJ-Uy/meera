@@ -1,0 +1,80 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { chatWithOllama, getOllamaStatus } from "@/features/ai/ollama-client";
+
+const image = {
+	id: "image-1",
+	name: "screen.jpg",
+	mimeType: "image/jpeg" as const,
+	dataUrl: "data:image/jpeg;base64,YWJj",
+	source: "screen" as const,
+};
+
+describe("Ollama client", () => {
+	beforeEach(() => {
+		process.env.OLLAMA_BASE_URL = "https://ollama.test";
+		process.env.OLLAMA_CHAT_MODEL = "text-model";
+		process.env.OLLAMA_VISION_MODEL = "vision-model";
+		process.env.OLLAMA_CHAT_CONTEXT = "8192";
+		process.env.OLLAMA_VISION_CONTEXT = "4096";
+	});
+
+	afterEach(() => {
+		vi.unstubAllGlobals();
+		delete process.env.OLLAMA_BASE_URL;
+		delete process.env.OLLAMA_CHAT_MODEL;
+		delete process.env.OLLAMA_VISION_MODEL;
+		delete process.env.OLLAMA_CHAT_CONTEXT;
+		delete process.env.OLLAMA_VISION_CONTEXT;
+	});
+
+	it("uses the text model for text-only chat and preserves tool calls", async () => {
+		const fetchMock = vi.fn().mockResolvedValue(
+			new Response(
+				JSON.stringify({
+					message: {
+						content: "",
+						tool_calls: [{ function: { name: "overlay_clear", arguments: {} } }],
+					},
+				}),
+				{ status: 200 },
+			),
+		);
+		vi.stubGlobal("fetch", fetchMock);
+
+		const result = await chatWithOllama({ messages: [{ role: "user", content: "Clear the overlay." }] });
+		const request = JSON.parse(fetchMock.mock.calls[0][1].body as string) as Record<string, unknown>;
+
+		expect(fetchMock.mock.calls[0][0]).toBe("https://ollama.test/api/chat");
+		expect(request.model).toBe("text-model");
+		expect(request.options).toMatchObject({ num_ctx: 8192 });
+		expect(result.toolCalls[0]?.function?.name).toBe("overlay_clear");
+	});
+
+	it("uses the vision model and sends base64 image data when an image is attached", async () => {
+		const fetchMock = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify({ message: { content: "I can see the screen." } }), { status: 200 }),
+		);
+		vi.stubGlobal("fetch", fetchMock);
+
+		await chatWithOllama({ messages: [{ role: "user", content: "What is this?", images: [image] }] });
+		const request = JSON.parse(fetchMock.mock.calls[0][1].body as string) as {
+			model: string;
+			options: { num_ctx: number };
+			messages: Array<{ images?: string[] }>;
+		};
+
+		expect(request.model).toBe("vision-model");
+		expect(request.options.num_ctx).toBe(4096);
+		expect(request.messages.at(-1)?.images).toEqual(["YWJj"]);
+	});
+
+	it("reports whether both configured models are available", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValue(
+				new Response(JSON.stringify({ models: [{ name: "text-model" }, { name: "vision-model" }] }), { status: 200 }),
+			),
+		);
+		await expect(getOllamaStatus()).resolves.toMatchObject({ available: true, chatModel: "text-model", visionModel: "vision-model" });
+	});
+});
