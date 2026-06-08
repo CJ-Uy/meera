@@ -198,7 +198,12 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 	};
 
 	const canCaptureScreen = isDesktopScreenFrameCaptureAvailable();
-	const statusLabel = chat.status?.available ? "Ollama connected" : chat.status ? "Ollama unavailable" : "Checking Ollama";
+	const providerLabel = chat.status?.providerLabel ?? "AI provider";
+	const statusLabel = chat.status?.available
+		? `${providerLabel}${chat.status.fallbackActive ? " fallback" : ""} connected`
+		: chat.status
+			? `${providerLabel} unavailable`
+			: "Checking AI provider";
 
 	if (!isOpen) {
 		return (
@@ -382,7 +387,7 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 					))}
 				</div>
 				<div className="flex items-center justify-between gap-3 text-[10px] font-extrabold text-[#7A5036]/70">
-					<span>{chat.status?.visionModel ?? "qwen3-vl:8b"} for images</span>
+					<span>{chat.status?.visionModel ?? "meta-llama/llama-4-scout-17b-16e-instruct"} for images</span>
 					<span>{overlayAvailable ? "Desktop overlays ready" : "Electron overlays unavailable"}</span>
 				</div>
 			</footer>

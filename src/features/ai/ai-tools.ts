@@ -1,7 +1,7 @@
 import { isOverlayCommand, type OverlayCommand, type OverlayDisplayTarget, type OverlayPlacement } from "@/features/overlay/overlay-protocol";
 import type { AiToolCall } from "@/features/ai/ai-types";
 
-type OllamaTool = {
+export type AiToolDefinition = {
 	type: "function";
 	function: {
 		name: string;
@@ -30,15 +30,15 @@ const coordinateSpaceProperty = {
 	type: "string",
 	enum: ["normalized", "percent", "image_pixels", "relative_1000"],
 	description:
-		"Use relative_1000 for Qwen visual-grounding coordinates from 0-1000, normalized for 0-1, percent for 0-100, or image_pixels for pixels in the attached screen image.",
+		"Use normalized for 0-1 coordinates, percent for 0-100, image_pixels for pixels in the attached screen image, or relative_1000 only when instructed.",
 };
 const imageSizeProperties = {
 	imageWidth: { type: "number", description: "Width in pixels of the attached screen image when using image_pixels." },
 	imageHeight: { type: "number", description: "Height in pixels of the attached screen image when using image_pixels." },
 };
 const pointProperties = {
-	x: { type: "number", description: "Target horizontal coordinate. Prefer Qwen's relative 0-1000 visual-grounding coordinate." },
-	y: { type: "number", description: "Target vertical coordinate. Prefer Qwen's relative 0-1000 visual-grounding coordinate." },
+	x: { type: "number", description: "Target horizontal coordinate using coordinateSpace." },
+	y: { type: "number", description: "Target vertical coordinate using coordinateSpace." },
 	coordinateSpace: coordinateSpaceProperty,
 	gridCell: { type: "string", description: "Optional visible calibration grid cell label, such as A1 or J3." },
 	gridColumn: { type: "string", description: "Optional visible calibration grid column label, such as A or J." },
@@ -49,7 +49,7 @@ const pointProperties = {
 };
 const placementProperty = { type: "string", enum: ["top", "right", "bottom", "left"] };
 
-export const OLLAMA_OVERLAY_TOOLS: OllamaTool[] = [
+export const AI_OVERLAY_TOOLS: AiToolDefinition[] = [
 	{
 		type: "function",
 		function: {
@@ -519,7 +519,11 @@ function wantsTextOverlay(text: string) {
 }
 
 function wantsHighlight(text: string) {
-	return /\b(highlight|box|rectangle|rect|outline|circle)\b/i.test(text);
+	return (
+		/\b(highlight|box|outline)\b/i.test(text) ||
+		/\b(show|draw|add|put|place|display)\b[^.?!\n]{0,80}\b(rectangle|rect|circle)\b/i.test(text) ||
+		/\b(rectangle|rect|circle)\b[^.?!\n]{0,80}\b(around|over|on)\b/i.test(text)
+	);
 }
 
 function wantsCursor(text: string) {

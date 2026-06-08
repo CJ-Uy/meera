@@ -63,10 +63,10 @@ Once Meera opens:
 
 1. Open another app beside or behind Meera, such as Settings, Notepad, or VS Code.
 2. Click the Meera logo button floating at the bottom-right of the desktop to open the AI chat panel.
-3. Ask `What can you help me with?` to confirm Ollama text chat responds.
+3. Ask `What can you help me with?` to confirm Groq text chat responds.
 4. Upload an image in the chat panel, then ask `Describe this image.`
 5. Ask `Analyze my screen and point at the most important control.`
-6. Confirm the chat says it attached a fresh screen frame and the model response uses `qwen3-vl:8b`.
+6. Confirm the chat says it attached a fresh screen frame and the model response uses `meta-llama/llama-4-scout-17b-16e-instruct`.
 7. In Electron, ask `Show every overlay type so I can test them.` and confirm the cursor, arrow, highlight, and chat bubble appear.
 8. Open the support demo at `/demo`, then find **Desktop overlay simulator**.
 9. Click **Move cursor** and confirm the Meera cursor appears over the other app.
@@ -86,21 +86,21 @@ Inside Meera, use the **Desktop overlay simulator** to move the cursor, display 
 
 The transparent overlay is always on top and click-through, so it will not block the application underneath it. Share the entire screen, rather than one window, if you want the overlay to appear in the live screen-share preview.
 
-### Ollama AI Assistant
+### AI Assistant
 
-The Ollama assistant runs from Electron's dedicated always-on-top assistant window. Browser-only Next.js pages do not mount a second in-app assistant.
+The AI assistant runs from Electron's dedicated always-on-top assistant window. Groq is the default provider, while Ollama remains available through configuration. Browser-only Next.js pages do not mount a second in-app assistant.
 
-- Text-only requests use `qwen3.5:9b`.
-- Requests with an uploaded image or captured desktop frame use `qwen3-vl:8b`.
+- Text-only Groq requests use `llama-3.1-8b-instant`.
+- Groq requests with an uploaded image or captured desktop frame use `meta-llama/llama-4-scout-17b-16e-instruct`.
 - In Electron, the assistant opens from a Meera logo button in its own always-on-top desktop overlay window.
 - In Electron, Meera can automatically attach a fresh desktop screen frame for visual or overlay prompts.
-- Ollama calls stay behind the server-side `/api/ai/chat` route.
+- Provider calls and credentials stay behind the server-side `/api/ai/chat` route.
 - AI overlay tool calls are converted into the same validated overlay commands used by the simulator.
 - Captured desktop frames carry image dimensions and display metadata, so overlay coordinates are calibrated against the screenshot the model saw.
-- For overlay prompts, Meera sends a temporary labeled grid version of the screenshot to Ollama and converts grid cells back into desktop overlay coordinates.
+- For overlay prompts, Meera sends a temporary labeled grid version of the screenshot to the active provider and converts grid cells back into desktop overlay coordinates.
 - If a model writes coordinate-style overlay instructions instead of native tool calls, Meera recovers those guarded overlay requests into validated overlay commands.
 
-See [docs/OLLAMA.md](docs/OLLAMA.md) for setup, test prompts, architecture, and extension guidance.
+See [docs/AI_PROVIDERS.md](docs/AI_PROVIDERS.md) for setup, provider switching, test prompts, architecture, and extension guidance.
 
 ### Overlay API
 

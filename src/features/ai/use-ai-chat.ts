@@ -7,8 +7,8 @@ import type {
 	AiChatMessage,
 	AiChatResponse,
 	AiImageAttachment,
+	AiProviderStatus,
 	AiToolCall,
-	OllamaStatus,
 } from "@/features/ai/ai-types";
 
 const initialMessages: AiChatMessage[] = [
@@ -33,7 +33,7 @@ function requestHistory(messages: AiChatMessage[]): AiChatInputMessage[] {
 
 export function useAiChat(executeToolCalls: (toolCalls: AiToolCall[]) => Promise<AiActionResult[]>) {
 	const [messages, setMessages] = useState<AiChatMessage[]>(initialMessages);
-	const [status, setStatus] = useState<OllamaStatus | null>(null);
+	const [status, setStatus] = useState<AiProviderStatus | null>(null);
 	const [isSending, setIsSending] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -41,8 +41,8 @@ export function useAiChat(executeToolCalls: (toolCalls: AiToolCall[]) => Promise
 		let active = true;
 		void fetch("/api/ai/chat")
 			.then(async (response) => {
-				if (!response.ok) throw new Error("Could not check Ollama status.");
-				return (await response.json()) as OllamaStatus;
+				if (!response.ok) throw new Error("Could not check AI provider status.");
+				return (await response.json()) as AiProviderStatus;
 			})
 			.then((nextStatus) => {
 				if (active) setStatus(nextStatus);
@@ -51,10 +51,12 @@ export function useAiChat(executeToolCalls: (toolCalls: AiToolCall[]) => Promise
 				if (active) {
 					setStatus({
 						available: false,
-						chatModel: "qwen3.5:9b",
-						visionModel: "qwen3-vl:8b",
+						provider: "groq",
+						providerLabel: "Groq",
+						chatModel: "llama-3.1-8b-instant",
+						visionModel: "meta-llama/llama-4-scout-17b-16e-instruct",
 						models: [],
-						error: statusError instanceof Error ? statusError.message : "Could not check Ollama status.",
+						error: statusError instanceof Error ? statusError.message : "Could not check AI provider status.",
 					});
 				}
 			});
@@ -87,7 +89,7 @@ export function useAiChat(executeToolCalls: (toolCalls: AiToolCall[]) => Promise
 					body: JSON.stringify({ messages: requestMessages }),
 				});
 				const body = (await response.json()) as AiChatResponse & { error?: string };
-				if (!response.ok) throw new Error(body.error || "Ollama chat request failed.");
+				if (!response.ok) throw new Error(body.error || "AI chat request failed.");
 				const actionResults = await executeToolCalls(body.toolCalls ?? []);
 				setMessages((current) => [
 					...current,
@@ -102,7 +104,7 @@ export function useAiChat(executeToolCalls: (toolCalls: AiToolCall[]) => Promise
 				return true;
 			} catch (sendError) {
 				setMessages((current) => current.filter((message) => message.id !== userMessage.id));
-				setError(sendError instanceof Error ? sendError.message : "Meera could not reach Ollama.");
+				setError(sendError instanceof Error ? sendError.message : "Meera could not reach the AI provider.");
 				return false;
 			} finally {
 				setIsSending(false);

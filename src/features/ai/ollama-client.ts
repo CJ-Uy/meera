@@ -1,18 +1,18 @@
 import { MEERA_AI_SYSTEM_PROMPT } from "@/features/ai/ai-prompt";
 import {
-	normalizeOverlayToolCalls,
-	OLLAMA_OVERLAY_TOOLS,
-	reconcileOverlayToolCalls,
-	recoverOverlayToolCallsFromText,
-	type OverlayCoordinateContext,
-} from "@/features/ai/ai-tools";
+	coordinateCalibration,
+	immediateOverlayResponse,
+	isVisionRequest,
+	messagesForProvider,
+	resolveProviderResponse,
+} from "@/features/ai/ai-provider-utils";
+import { AI_OVERLAY_TOOLS } from "@/features/ai/ai-tools";
 import {
 	imageDataUrlToBase64,
 	type AiChatRequest,
 	type AiChatResponse,
-	type AiImageAttachment,
+	type AiProviderStatus,
 	type AiToolCall,
-	type OllamaStatus,
 } from "@/features/ai/ai-types";
 
 type OllamaMessage = {
@@ -98,54 +98,6 @@ async function ollamaFetch(path: string, init: RequestInit = {}, timeoutMs = con
 	}
 }
 
-function latestScreenFrameContext(request: AiChatRequest): OverlayCoordinateContext | undefined {
-	for (const message of [...request.messages].reverse()) {
-		for (const image of [...(message.images ?? [])].reverse()) {
-			if (image.source === "screen" && image.width && image.height) {
-				return {
-					imageWidth: image.width,
-					imageHeight: image.height,
-					displayId: image.screen?.displayId,
-					gridColumns: image.screen?.calibrationGrid?.columns,
-					gridRows: image.screen?.calibrationGrid?.rows,
-				};
-			}
-		}
-	}
-	return undefined;
-}
-
-function coordinateCalibration(images: AiImageAttachment[] | undefined) {
-	const screenFrames = images?.filter((image) => image.source === "screen" && image.width && image.height) ?? [];
-	if (screenFrames.length === 0) return "";
-
-	return screenFrames
-		.map((image, index) => {
-			const label = image.screen?.displayLabel ? ` on ${image.screen.displayLabel}` : "";
-			const grid = image.screen?.calibrationGrid;
-			const gridText = grid
-				? `
-- The screenshot has a visible ${grid.columns} column x ${grid.rows} row calibration grid. Columns are letters from A, rows are numbers from 1.
-- If exact pixels are hard, choose the nearest grid cell and pass gridCell, gridColumn/gridRow, or the cell center as coordinates.
-`
-				: "";
-			return `
-
-[Screen frame ${index + 1} coordinate calibration${label}]
-- The attached desktop screenshot image is exactly ${image.width}x${image.height} pixels.
-- For arrow, cursor, and bubble tools, target the CENTER of the visible thing.
-- For highlight tools, x/y must be the TOP-LEFT of the rectangle and width/height must cover the visible thing.
-- Preferred normalized formula: x = pixel_x / ${image.width}; y = pixel_y / ${image.height}; width = pixel_width / ${image.width}; height = pixel_height / ${image.height}.
-- Qwen3-VL visual grounding uses relative coordinates from 0 to 1000. Prefer those values with coordinateSpace "relative_1000".
-- You may also pass pixel values directly by setting coordinateSpace to "image_pixels".
-- Never use the center of the image as a placeholder. Use the actual visible target.
-- Do not compensate for the Meera chat window; it is hidden during capture.
-${gridText}
-`.trim();
-		})
-		.join("\n\n");
-}
-
 async function ollamaErrorMessage(response: Response) {
 	const body = await response.text().catch(() => "");
 	let providerError = "";
@@ -171,20 +123,12 @@ async function ollamaErrorMessage(response: Response) {
 	return `Ollama HTTP ${response.status}: ${(plainText || response.statusText).slice(0, 240)}`;
 }
 
-function messagesForOllama(request: AiChatRequest, usesVision: boolean) {
-	if (!usesVision) return request.messages;
-	const latestIndex = request.messages.length - 1;
-	return request.messages.map((message, index) =>
-		index === latestIndex ? message : { role: message.role, content: message.content },
-	);
-}
-
 function toOllamaMessages(request: AiChatRequest, usesVision: boolean): OllamaMessage[] {
 	return [
 		{ role: "system", content: MEERA_AI_SYSTEM_PROMPT },
-		...messagesForOllama(request, usesVision).map((message) => {
+		...messagesForProvider(request, usesVision).map((message) => {
 			const images = message.images?.map((image) => imageDataUrlToBase64(image.dataUrl)).filter((image): image is string => Boolean(image));
-			const calibration = coordinateCalibration(message.images);
+			const calibration = coordinateCalibration(message.images, { preferRelative1000: true });
 			return {
 				role: message.role,
 				content: calibration ? `${message.content}\n\n${calibration}` : message.content,
@@ -236,7 +180,7 @@ async function requestOllamaChat({
 							temperature: 0.2,
 						},
 						messages: toOllamaMessages(request, usesVision),
-						tools: OLLAMA_OVERLAY_TOOLS,
+						tools: AI_OVERLAY_TOOLS,
 					}),
 				},
 				attemptTimeouts[attempt],
@@ -266,18 +210,11 @@ async function requestOllamaChat({
 
 export async function chatWithOllama(request: AiChatRequest): Promise<AiChatResponse> {
 	const settings = config();
-	const usesVision = Boolean(request.messages.at(-1)?.images?.length);
+	const immediateResponse = immediateOverlayResponse(request);
+	if (immediateResponse) return immediateResponse;
+
+	const usesVision = isVisionRequest(request);
 	const model = usesVision ? settings.visionModel : settings.chatModel;
-	const coordinateContext = latestScreenFrameContext(request);
-	const prompt = request.messages.at(-1)?.content ?? "";
-	const immediateToolCalls = usesVision ? [] : recoverOverlayToolCallsFromText({ prompt, content: "", context: coordinateContext });
-	if (immediateToolCalls.length > 0) {
-		return {
-			message: "I applied that desktop guidance.",
-			model: "meera-overlay",
-			toolCalls: reconcileOverlayToolCalls({ prompt, content: "", context: coordinateContext, toolCalls: immediateToolCalls }),
-		};
-	}
 
 	// Qwen3-VL can spend hundreds of generated tokens in its hidden thinking field.
 	// Leave vision output uncapped so it can reach the actual tool call.
@@ -288,35 +225,16 @@ export async function chatWithOllama(request: AiChatRequest): Promise<AiChatResp
 		settings,
 		usesVision,
 	});
-	const nativeToolCalls = Array.isArray(data.message?.tool_calls)
-		? normalizeOverlayToolCalls(data.message.tool_calls, coordinateContext)
-		: [];
-	const content = data.message?.content?.trim();
-	const recoveredToolCalls =
-		nativeToolCalls.length === 0
-			? recoverOverlayToolCallsFromText({ prompt, content: content ?? "", context: coordinateContext })
-			: [];
-	const toolCalls = reconcileOverlayToolCalls({
-		prompt,
-		content: content ?? "",
-		context: coordinateContext,
-		toolCalls: nativeToolCalls.length ? nativeToolCalls : recoveredToolCalls,
-	});
-	if (!content && toolCalls.length === 0) {
-		if (usesVision && data.done_reason === "length") {
-			throw new Error("The vision model used its full response budget before choosing an overlay. Please try the request again.");
-		}
-		throw new Error("Ollama returned an empty response.");
-	}
-
-	return {
-		message: recoveredToolCalls.length ? "I marked that on your desktop." : content || "I sent the requested guidance to the desktop overlay.",
+	return resolveProviderResponse({
+		content: data.message?.content,
+		finishReason: data.done_reason,
 		model,
-		toolCalls,
-	};
+		request,
+		toolCalls: data.message?.tool_calls,
+	});
 }
 
-export async function getOllamaStatus(): Promise<OllamaStatus> {
+export async function getOllamaStatus(): Promise<AiProviderStatus> {
 	const settings = config();
 	try {
 		const response = await ollamaFetch("/api/tags");
@@ -325,6 +243,8 @@ export async function getOllamaStatus(): Promise<OllamaStatus> {
 		const models = data.models?.map((model) => model.name).filter((name): name is string => Boolean(name)) ?? [];
 		return {
 			available: models.includes(settings.chatModel) && models.includes(settings.visionModel),
+			provider: "ollama",
+			providerLabel: "Ollama",
 			chatModel: settings.chatModel,
 			visionModel: settings.visionModel,
 			models,
@@ -332,6 +252,8 @@ export async function getOllamaStatus(): Promise<OllamaStatus> {
 	} catch (error) {
 		return {
 			available: false,
+			provider: "ollama",
+			providerLabel: "Ollama",
 			chatModel: settings.chatModel,
 			visionModel: settings.visionModel,
 			models: [],

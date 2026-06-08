@@ -22,7 +22,7 @@ describe("AI overlay tool adapter", () => {
 		expect(highlight?.type === "highlight.show" ? highlight.rect.height : 0).toBeCloseTo(0.1);
 	});
 
-	it("supports every overlay command type exposed to Ollama", () => {
+	it("supports every overlay command type exposed to AI providers", () => {
 		const calls = [
 			{ function: { name: "overlay_move_cursor", arguments: { x: 0.5, y: 0.5 } } },
 			{ function: { name: "overlay_hide_cursor", arguments: {} } },
@@ -227,6 +227,26 @@ Arrow points directly to the thumbnail.`,
 			type: "highlight.show",
 			rect: { x: 0.59, y: 0.16999999999999998, width: 0.22, height: 0.16 },
 		});
+	});
+
+	it("does not treat target-shape descriptions as highlight requests", () => {
+		const calls = reconcileOverlayToolCalls({
+			prompt: "Move the cursor to the center of the black rectangle.",
+			content: "",
+			context: { imageWidth: 320, imageHeight: 200 },
+			toolCalls: [
+				{
+					function: {
+						name: "overlay_move_cursor",
+						arguments: { x: 250, y: 100, coordinateSpace: "image_pixels", imageWidth: 320, imageHeight: 200 },
+					},
+				},
+			],
+		});
+
+		expect(calls).toHaveLength(1);
+		expect(calls[0]?.function?.name).toBe("overlay_move_cursor");
+		expect(toolCallToOverlayCommand(calls[0])).toMatchObject({ type: "cursor.move", target: { x: 0.78125, y: 0.5 } });
 	});
 
 	it("reconciles an incorrect native arrow with explicitly requested text", () => {

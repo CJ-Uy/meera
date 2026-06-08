@@ -29,7 +29,7 @@ describe("AI chat request validation", () => {
 		expect(isAiChatRequest({ messages: [{ role: "user", content: "Read it", images: [{ ...image, width: -1 }] }] })).toBe(false);
 	});
 
-	it("strips a validated image data URL for Ollama", () => {
+	it("strips a validated image data URL for providers that require raw base64", () => {
 		expect(imageDataUrlToBase64(image.dataUrl)).toBe("YWJj");
 	});
 });

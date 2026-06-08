@@ -1,176 +1,39 @@
-# Using Ollama In Meera
+# Ollama Provider In Meera
 
-Meera uses the remote Ollama instance at `https://ollama.cjuy.dev` through a server-side Next.js API route.
+Groq is Meera's default AI provider. The Ollama adapter remains available for local use, remote Ollama hosts, or an opt-in fallback.
 
-The browser and Electron renderer never call Ollama directly. This avoids browser CORS problems, keeps future credentials server-side, and gives Meera one place to validate requests and model responses.
+See [AI_PROVIDERS.md](AI_PROVIDERS.md) for the provider-neutral architecture and Groq setup.
 
-## Models
-
-- Text-only chat: `qwen3.5:9b`
-- Any request containing an uploaded or shared-screen image: `qwen3-vl:8b`
-
-The vision model uses a `4096` token context by default. Its larger default context tried to reserve more memory than the current Ollama host has available.
-
-## Configuration
-
-Copy `.env.example` to `.env.local` when you need to override the defaults:
+## Use Ollama As The Primary Provider
 
 ```env
+AI_PROVIDER=ollama
 OLLAMA_BASE_URL=https://ollama.cjuy.dev
 OLLAMA_CHAT_MODEL=qwen3.5:9b
 OLLAMA_VISION_MODEL=qwen3-vl:8b
 OLLAMA_CHAT_CONTEXT=8192
 OLLAMA_VISION_CONTEXT=4096
-# Text-only replies. Vision output remains uncapped so Qwen3-VL can reach its final tool call.
 OLLAMA_MAX_TOKENS=256
-# Total vision request budget. Meera splits this across an initial attempt and one timeout recovery attempt.
 OLLAMA_REQUEST_TIMEOUT_MS=85000
 ```
 
 `OLLAMA_API_KEY` is optional. Keep it server-side and never create a `NEXT_PUBLIC_OLLAMA_*` variable.
 
-## Running It
+## Use Ollama As A Groq Fallback
 
-Open the browser app:
-
-```powershell
-pnpm dev
+```env
+AI_PROVIDER=groq
+AI_FALLBACK_PROVIDER=ollama
 ```
 
-Then visit `http://localhost:3000/demo`.
+Fallback is disabled by default. Enabling it means uploaded images and captured desktop frames may be sent to Ollama when Groq fails.
 
-The browser demo is only the support-session UI. Desktop overlays and the assistant launcher require Electron.
+## Ollama-Specific Behavior
 
-Open the Electron app with desktop overlays:
+- Text chat defaults to `qwen3.5:9b`.
+- Vision defaults to `qwen3-vl:8b`.
+- Qwen3-VL receives provider-specific `relative_1000` coordinate calibration.
+- Vision output is left uncapped so Qwen3-VL can finish hidden thinking and emit a tool call.
+- Transient runner, gateway, and timeout failures retry once within the configured request budget.
 
-```powershell
-pnpm desktop:dev
-```
-
-Click the Meera logo button floating at the bottom-right of the desktop to open the chat panel. The Electron launcher and chat panel are one always-on-top assistant window, separate from the main app window.
-
-Try:
-
-- `What can you help me with?`
-- Upload an image, then ask `Describe this image.`
-- In Electron, ask `What is on my screen?`
-- In Electron, ask `Analyze my screen and point at the most important control.`
-- In Electron, ask `Show every overlay type so I can test them.`
-- Use **Screen** in the chat panel when you want to manually attach a fresh desktop frame.
-
-## Architecture
-
-### Server-side provider
-
-- `src/app/api/ai/chat/route.ts`
-  - `GET` checks Ollama/model availability.
-  - `POST` validates chat input and calls Ollama.
-- `src/features/ai/ollama-client.ts`
-  - Selects the text or vision model.
-  - Handles deterministic overlay controls and explicit coordinate commands locally without an Ollama round trip.
-  - Keeps recent text context for follow-up requests while stripping stale screenshots so only the fresh screen frame is sent.
-  - Strips image data URLs to the base64 format Ollama expects.
-  - Applies a bounded total timeout, context limits, system instructions, and overlay tools.
-  - Adds screen-frame coordinate calibration to vision prompts.
-  - Normalizes native tool calls against the latest captured screen frame before returning them.
-  - Leaves Qwen3-VL output uncapped because it may use hundreds of tokens in its hidden thinking field before emitting a tool call.
-  - Retries transient Ollama runner, gateway, and vision timeout failures once within the configured total timeout budget.
-  - Surfaces remote timeout/524 failures as concise retryable errors instead of raw Cloudflare HTML.
-- `src/features/ai/ai-prompt.ts`
-  - Defines Meera's system instructions.
-
-### Validated actions
-
-- `src/features/ai/ai-tools.ts`
-	- Declares the tools Ollama can call.
-	- Converts untrusted tool arguments into the existing `OverlayCommand` contract.
-	- Accepts normalized, percent, or `image_pixels` coordinate spaces, then converts them to overlay-normalized values.
-	- Treats Qwen3-VL's native visual-grounding coordinates as relative `0..1000` values instead of screenshot pixels.
-	- Accepts visible calibration grid cells such as `J2` and converts them to overlay-normalized values.
-	- Reconciles model tool choices with an explicitly requested cursor, arrow, highlight/box, or text bubble.
-	- Clamps coordinates and rejects unknown tools.
-	- Recovers guarded coordinate-style overlay responses when a model writes text instead of native tool calls.
-- `src/features/ai/use-ai-overlay-actions.ts`
-  - Executes validated commands through the existing Electron overlay bridge.
-
-Supported AI overlay tools:
-
-- Move or hide the AI cursor
-- Show an arrow
-- Show a highlight rectangle
-- Show an overlay chat bubble
-- Remove one annotation
-- Clear the overlay
-
-To add a future AI action:
-
-1. Add a narrow tool declaration in `ai-tools.ts`.
-2. Add strict argument conversion and validation.
-3. Execute it through a dedicated client-side action hook.
-4. Add tests for valid, malformed, and unsupported arguments.
-
-Do not let model output call Electron IPC, shell commands, or browser APIs directly.
-
-### Images and desktop frames
-
-- `src/features/ai/image-input.ts`
-	- Accepts JPEG, PNG, and WebP uploads.
-	- Converts and resizes images before sending them.
-	- Preserves image dimensions and desktop display metadata on captured frames.
-	- Draws a temporary labeled calibration grid onto screen frames for overlay placement prompts.
-	- Captures a still frame from Electron's desktop capture bridge.
-	- Detects screen, visual guidance, and overlay prompts that should receive an automatic desktop frame.
-- `src/features/ai/ai-assistant.tsx`
-	- Renders the Electron assistant launcher and chat surface.
-	- Composes chat, uploads, manual desktop frame capture, automatic frame capture, and action feedback.
-- `src/app/assistant/page.tsx`
-  - Renders the Electron-only assistant overlay surface.
-- `electron/main.ts`
-  - Creates the always-on-top assistant FAB window.
-  - Resizes the window between the closed FAB size and open chat size.
-  - Captures desktop frames for the assistant through Electron.
-  - Temporarily hides Meera's assistant and overlay windows while capturing so the model sees the target app cleanly.
-
-Screen understanding is request-based. In Electron, when auto-capture is enabled in the assistant, Meera attaches one fresh desktop frame before prompts that mention the screen, pointing, highlighting, cursors, arrows, overlays, visual guidance, or common visible task requests such as finding a button or suggesting a YouTube video. For overlay placement prompts, Meera sends Ollama a temporary grid-labeled copy of the screenshot. The grid is not drawn on the desktop; it only helps the model choose a cell such as `J2`, which Meera converts back into overlay coordinates. The frame also includes real pixel dimensions, and Meera repairs Qwen-relative and pixel-style tool calls server-side. It is not a continuous autonomous screen-watching loop.
-
-## API Shape
-
-Meera sends a validated request to `POST /api/ai/chat`:
-
-```json
-{
-  "messages": [
-    {
-      "role": "user",
-      "content": "What is on my screen?",
-      "images": [
-        {
-          "id": "image-id",
-          "name": "shared-screen.jpg",
-          "mimeType": "image/jpeg",
-          "dataUrl": "data:image/jpeg;base64,...",
-          "source": "screen",
-          "width": 1920,
-          "height": 1080,
-          "screen": {
-            "displayId": 1,
-            "displayLabel": "Display 1",
-            "bounds": { "x": 0, "y": 0, "width": 1920, "height": 1080 },
-            "scaleFactor": 1,
-            "calibrationGrid": { "columns": 12, "rows": 8 }
-          }
-        }
-      ]
-    }
-  ]
-}
-```
-
-The response contains assistant text plus any requested overlay tool calls. The server normalizes native tool-call coordinates against the latest screen frame, then the client validates every tool call again before sending an overlay command. Native model tool calls are preferred; coordinate-style overlay text is only recovered for prompts that clearly ask for visual overlay actions.
-
-## Deployment Notes
-
-- The default Ollama URL is currently reachable without a token. Add authentication or an application-level access check before exposing a public production deployment.
-- Set server-side environment variables in the deployment platform. Do not ship Ollama credentials in React, Electron preload, or renderer code.
-- Keep the vision context conservative unless the Ollama host has enough free memory.
-- Uploaded and captured images are sent to the configured Ollama server for processing.
+All returned tools still pass through the same provider-neutral overlay validation used by Groq.
