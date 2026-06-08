@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import {
+	calibrateOverlayFramesForPrompt,
 	captureDesktopScreenFrame,
 	isDesktopScreenFrameCaptureAvailable,
 	prepareUploadedImage,
@@ -172,6 +173,12 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 		}
 
 		if (!draftToSend.trim() && images.length === 0) return;
+
+		try {
+			images = await calibrateOverlayFramesForPrompt(draftToSend, images);
+		} catch (error) {
+			setAttachmentError(error instanceof Error ? error.message : "Could not calibrate the desktop frame.");
+		}
 
 		setDraft("");
 		setAttachments([]);

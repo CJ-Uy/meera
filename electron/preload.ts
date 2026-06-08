@@ -1,10 +1,14 @@
 import { contextBridge, ipcRenderer } from "electron";
+import type { AiScreenFrameMetadata } from "../src/features/ai/ai-types";
 import type { OverlayCommand } from "../src/features/overlay/overlay-protocol";
 
 type AssistantScreenFrame = {
 	name: string;
 	mimeType: "image/jpeg";
 	dataUrl: string;
+	width: number;
+	height: number;
+	screen: AiScreenFrameMetadata;
 };
 
 const api = {

@@ -21,7 +21,7 @@ OLLAMA_CHAT_MODEL=qwen3.5:9b
 OLLAMA_VISION_MODEL=qwen3-vl:8b
 OLLAMA_CHAT_CONTEXT=8192
 OLLAMA_VISION_CONTEXT=4096
-OLLAMA_REQUEST_TIMEOUT_MS=180000
+OLLAMA_REQUEST_TIMEOUT_MS=85000
 ```
 
 `OLLAMA_API_KEY` is optional. Keep it server-side and never create a `NEXT_PUBLIC_OLLAMA_*` variable.
@@ -66,6 +66,9 @@ Try:
   - Selects the text or vision model.
   - Strips image data URLs to the base64 format Ollama expects.
   - Applies timeouts, context limits, system instructions, and overlay tools.
+  - Adds screen-frame coordinate calibration to vision prompts.
+  - Normalizes native tool calls against the latest captured screen frame before returning them.
+  - Surfaces remote timeout/524 failures as concise retryable errors instead of raw Cloudflare HTML.
 - `src/features/ai/ai-prompt.ts`
   - Defines Meera's system instructions.
 
@@ -74,6 +77,8 @@ Try:
 - `src/features/ai/ai-tools.ts`
 	- Declares the tools Ollama can call.
 	- Converts untrusted tool arguments into the existing `OverlayCommand` contract.
+	- Accepts normalized, percent, or `image_pixels` coordinate spaces, then converts them to overlay-normalized values.
+	- Accepts visible calibration grid cells such as `J2` and converts them to overlay-normalized values.
 	- Clamps coordinates and rejects unknown tools.
 	- Recovers guarded coordinate-style overlay responses when a model writes text instead of native tool calls.
 - `src/features/ai/use-ai-overlay-actions.ts`
@@ -102,6 +107,8 @@ Do not let model output call Electron IPC, shell commands, or browser APIs direc
 - `src/features/ai/image-input.ts`
 	- Accepts JPEG, PNG, and WebP uploads.
 	- Converts and resizes images before sending them.
+	- Preserves image dimensions and desktop display metadata on captured frames.
+	- Draws a temporary labeled calibration grid onto screen frames for overlay placement prompts.
 	- Captures a still frame from Electron's desktop capture bridge.
 	- Detects screen, visual guidance, and overlay prompts that should receive an automatic desktop frame.
 - `src/features/ai/ai-assistant.tsx`
@@ -113,8 +120,9 @@ Do not let model output call Electron IPC, shell commands, or browser APIs direc
   - Creates the always-on-top assistant FAB window.
   - Resizes the window between the closed FAB size and open chat size.
   - Captures desktop frames for the assistant through Electron.
+  - Temporarily hides Meera's assistant and overlay windows while capturing so the model sees the target app cleanly.
 
-Screen understanding is request-based. In Electron, when auto-capture is enabled in the assistant, Meera attaches one fresh desktop frame before prompts that mention the screen, pointing, highlighting, cursors, arrows, overlays, or visual guidance. It is not a continuous autonomous screen-watching loop.
+Screen understanding is request-based. In Electron, when auto-capture is enabled in the assistant, Meera attaches one fresh desktop frame before prompts that mention the screen, pointing, highlighting, cursors, arrows, overlays, or visual guidance. For overlay placement prompts, Meera sends Ollama a temporary grid-labeled copy of the screenshot. The grid is not drawn on the desktop; it only helps the model choose a cell such as `J2`, which Meera converts back into overlay coordinates. The frame also includes real pixel dimensions, and Meera repairs pixel-style tool calls server-side. It is not a continuous autonomous screen-watching loop.
 
 ## API Shape
 
@@ -132,7 +140,16 @@ Meera sends a validated request to `POST /api/ai/chat`:
           "name": "shared-screen.jpg",
           "mimeType": "image/jpeg",
           "dataUrl": "data:image/jpeg;base64,...",
-          "source": "screen"
+          "source": "screen",
+          "width": 1920,
+          "height": 1080,
+          "screen": {
+            "displayId": 1,
+            "displayLabel": "Display 1",
+            "bounds": { "x": 0, "y": 0, "width": 1920, "height": 1080 },
+            "scaleFactor": 1,
+            "calibrationGrid": { "columns": 12, "rows": 8 }
+          }
         }
       ]
     }
@@ -140,7 +157,7 @@ Meera sends a validated request to `POST /api/ai/chat`:
 }
 ```
 
-The response contains assistant text plus any requested overlay tool calls. The client validates every tool call again before sending an overlay command. Native model tool calls are preferred; coordinate-style overlay text is only recovered for prompts that clearly ask for visual overlay actions.
+The response contains assistant text plus any requested overlay tool calls. The server normalizes native tool-call coordinates against the latest screen frame, then the client validates every tool call again before sending an overlay command. Native model tool calls are preferred; coordinate-style overlay text is only recovered for prompts that clearly ask for visual overlay actions.
 
 ## Deployment Notes
 

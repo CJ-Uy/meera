@@ -7,6 +7,15 @@ const image = {
 	mimeType: "image/jpeg" as const,
 	dataUrl: "data:image/jpeg;base64,YWJj",
 	source: "screen" as const,
+	width: 1920,
+	height: 900,
+	screen: {
+		displayId: 1,
+		displayLabel: "Display 1",
+		bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+		scaleFactor: 1,
+		calibrationGrid: { columns: 12, rows: 8 },
+	},
 };
 
 describe("Ollama client", () => {
@@ -81,12 +90,56 @@ describe("Ollama client", () => {
 		const request = JSON.parse(fetchMock.mock.calls[0][1].body as string) as {
 			model: string;
 			options: { num_ctx: number };
-			messages: Array<{ images?: string[] }>;
+			messages: Array<{ content: string; images?: string[] }>;
 		};
 
 		expect(request.model).toBe("vision-model");
 		expect(request.options.num_ctx).toBe(4096);
 		expect(request.messages.at(-1)?.images).toEqual(["YWJj"]);
+		expect(request.messages.at(-1)?.content).toContain("desktop screenshot image is exactly 1920x900 pixels");
+		expect(request.messages.at(-1)?.content).toContain('coordinateSpace to "image_pixels"');
+		expect(request.messages.at(-1)?.content).toContain("visible 12 column x 8 row calibration grid");
+	});
+
+	it("normalizes native pixel tool calls against the attached screen frame", async () => {
+		const fetchMock = vi.fn().mockResolvedValue(
+			new Response(
+				JSON.stringify({
+					message: {
+						content: "",
+						tool_calls: [
+							{
+								function: {
+									name: "overlay_show_arrow",
+									arguments: { x: 1344, y: 225, coordinateSpace: "image_pixels" },
+								},
+							},
+						],
+					},
+				}),
+				{ status: 200 },
+			),
+		);
+		vi.stubGlobal("fetch", fetchMock);
+
+		const result = await chatWithOllama({
+			messages: [{ role: "user", content: "Overlay an arrow on the selected video.", images: [image] }],
+		});
+
+		expect(result.toolCalls[0]).toMatchObject({
+			function: { name: "overlay_show_arrow", arguments: { x: 0.7, y: 0.25 } },
+		});
+	});
+
+	it("returns a clean timeout message for Cloudflare 524 responses", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValue(new Response("<!DOCTYPE html><html>timeout</html>", { status: 524, statusText: "timeout" })),
+		);
+
+		await expect(chatWithOllama({ messages: [{ role: "user", content: "What is on my screen?", images: [image] }] })).rejects.toThrow(
+			"Ollama timed out before it could finish the vision request.",
+		);
 	});
 
 	it("reports whether both configured models are available", async () => {

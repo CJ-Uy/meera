@@ -1,12 +1,25 @@
 export type AiChatRole = "user" | "assistant";
 export type AiImageSource = "upload" | "screen";
 
+export type AiScreenFrameMetadata = {
+	displayId?: number;
+	displayLabel?: string;
+	bounds?: { x: number; y: number; width: number; height: number };
+	workArea?: { x: number; y: number; width: number; height: number };
+	scaleFactor?: number;
+	capturedAt?: string;
+	calibrationGrid?: { columns: number; rows: number };
+};
+
 export type AiImageAttachment = {
 	id: string;
 	name: string;
 	mimeType: "image/jpeg" | "image/png" | "image/webp";
 	dataUrl: string;
 	source: AiImageSource;
+	width?: number;
+	height?: number;
+	screen?: AiScreenFrameMetadata;
 };
 
 export type AiChatInputMessage = {
@@ -67,6 +80,48 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null;
 }
 
+function isPositiveInteger(value: unknown, maximum = 16_384): value is number {
+	return typeof value === "number" && Number.isSafeInteger(value) && value > 0 && value <= maximum;
+}
+
+function isFiniteNumber(value: unknown) {
+	return typeof value === "number" && Number.isFinite(value);
+}
+
+function isRect(value: unknown): value is NonNullable<AiScreenFrameMetadata["bounds"]> {
+	return (
+		isRecord(value) &&
+		isFiniteNumber(value.x) &&
+		isFiniteNumber(value.y) &&
+		isPositiveInteger(value.width, 100_000) &&
+		isPositiveInteger(value.height, 100_000)
+	);
+}
+
+function isScreenFrameMetadata(value: unknown): value is AiScreenFrameMetadata {
+	if (value === undefined) return true;
+	if (!isRecord(value)) return false;
+	if (value.displayId !== undefined && !(typeof value.displayId === "number" && Number.isSafeInteger(value.displayId))) return false;
+	if (value.displayLabel !== undefined && !(typeof value.displayLabel === "string" && value.displayLabel.length <= 200)) return false;
+	if (value.bounds !== undefined && !isRect(value.bounds)) return false;
+	if (value.workArea !== undefined && !isRect(value.workArea)) return false;
+	if (value.scaleFactor !== undefined && !(typeof value.scaleFactor === "number" && Number.isFinite(value.scaleFactor) && value.scaleFactor > 0)) {
+		return false;
+	}
+	if (value.capturedAt !== undefined && !(typeof value.capturedAt === "string" && value.capturedAt.length <= 80)) return false;
+	if (
+		value.calibrationGrid !== undefined &&
+		!(
+			isRecord(value.calibrationGrid) &&
+			isPositiveInteger(value.calibrationGrid.columns, 32) &&
+			isPositiveInteger(value.calibrationGrid.rows, 32)
+		)
+	) {
+		return false;
+	}
+	return true;
+}
+
 function isImageAttachment(value: unknown): value is AiImageAttachment {
 	if (!isRecord(value)) return false;
 	if (
@@ -80,6 +135,9 @@ function isImageAttachment(value: unknown): value is AiImageAttachment {
 	}
 	if (!ALLOWED_IMAGE_TYPES.has(value.mimeType as AiImageAttachment["mimeType"])) return false;
 	if (value.name.length === 0 || value.name.length > 200 || value.dataUrl.length > AI_LIMITS.maxImageDataUrlLength) return false;
+	if (value.width !== undefined && !isPositiveInteger(value.width)) return false;
+	if (value.height !== undefined && !isPositiveInteger(value.height)) return false;
+	if (!isScreenFrameMetadata(value.screen)) return false;
 	const match = DATA_URL_PATTERN.exec(value.dataUrl);
 	return Boolean(match && match[1] === value.mimeType);
 }

@@ -96,6 +96,8 @@ The Ollama assistant runs from Electron's dedicated always-on-top assistant wind
 - In Electron, Meera can automatically attach a fresh desktop screen frame for visual or overlay prompts.
 - Ollama calls stay behind the server-side `/api/ai/chat` route.
 - AI overlay tool calls are converted into the same validated overlay commands used by the simulator.
+- Captured desktop frames carry image dimensions and display metadata, so overlay coordinates are calibrated against the screenshot the model saw.
+- For overlay prompts, Meera sends a temporary labeled grid version of the screenshot to Ollama and converts grid cells back into desktop overlay coordinates.
 - If a model writes coordinate-style overlay instructions instead of native tool calls, Meera recovers those guarded overlay requests into validated overlay commands.
 
 See [docs/OLLAMA.md](docs/OLLAMA.md) for setup, test prompts, architecture, and extension guidance.

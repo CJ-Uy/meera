@@ -1,6 +1,18 @@
 import { MEERA_AI_SYSTEM_PROMPT } from "@/features/ai/ai-prompt";
-import { OLLAMA_OVERLAY_TOOLS, recoverOverlayToolCallsFromText } from "@/features/ai/ai-tools";
-import { imageDataUrlToBase64, type AiChatRequest, type AiChatResponse, type AiToolCall, type OllamaStatus } from "@/features/ai/ai-types";
+import {
+	normalizeOverlayToolCalls,
+	OLLAMA_OVERLAY_TOOLS,
+	recoverOverlayToolCallsFromText,
+	type OverlayCoordinateContext,
+} from "@/features/ai/ai-tools";
+import {
+	imageDataUrlToBase64,
+	type AiChatRequest,
+	type AiChatResponse,
+	type AiImageAttachment,
+	type AiToolCall,
+	type OllamaStatus,
+} from "@/features/ai/ai-types";
 
 type OllamaMessage = {
 	role: "system" | "user" | "assistant";
@@ -18,6 +30,7 @@ type OllamaChatResponse = {
 const DEFAULT_BASE_URL = "https://ollama.cjuy.dev";
 const DEFAULT_CHAT_MODEL = "qwen3.5:9b";
 const DEFAULT_VISION_MODEL = "qwen3-vl:8b";
+const DEFAULT_TIMEOUT_MS = 85_000;
 
 function positiveInteger(value: string | undefined, fallback: number) {
 	const parsed = Number(value);
@@ -31,7 +44,7 @@ function config() {
 		visionModel: process.env.OLLAMA_VISION_MODEL?.trim() || DEFAULT_VISION_MODEL,
 		chatContext: positiveInteger(process.env.OLLAMA_CHAT_CONTEXT, 8_192),
 		visionContext: positiveInteger(process.env.OLLAMA_VISION_CONTEXT, 4_096),
-		timeoutMs: positiveInteger(process.env.OLLAMA_REQUEST_TIMEOUT_MS, 180_000),
+		timeoutMs: positiveInteger(process.env.OLLAMA_REQUEST_TIMEOUT_MS, DEFAULT_TIMEOUT_MS),
 		apiKey: process.env.OLLAMA_API_KEY?.trim(),
 	};
 }
@@ -61,14 +74,78 @@ async function ollamaFetch(path: string, init: RequestInit = {}) {
 	}
 }
 
+function latestScreenFrameContext(request: AiChatRequest): OverlayCoordinateContext | undefined {
+	for (const message of [...request.messages].reverse()) {
+		for (const image of [...(message.images ?? [])].reverse()) {
+			if (image.source === "screen" && image.width && image.height) {
+				return {
+					imageWidth: image.width,
+					imageHeight: image.height,
+					displayId: image.screen?.displayId,
+					gridColumns: image.screen?.calibrationGrid?.columns,
+					gridRows: image.screen?.calibrationGrid?.rows,
+				};
+			}
+		}
+	}
+	return undefined;
+}
+
+function coordinateCalibration(images: AiImageAttachment[] | undefined) {
+	const screenFrames = images?.filter((image) => image.source === "screen" && image.width && image.height) ?? [];
+	if (screenFrames.length === 0) return "";
+
+	return screenFrames
+		.map((image, index) => {
+			const label = image.screen?.displayLabel ? ` on ${image.screen.displayLabel}` : "";
+			const grid = image.screen?.calibrationGrid;
+			const gridText = grid
+				? `
+- The screenshot has a visible ${grid.columns} column x ${grid.rows} row calibration grid. Columns are letters from A, rows are numbers from 1.
+- If exact pixels are hard, choose the nearest grid cell and pass gridCell, gridColumn/gridRow, or the cell center as coordinates.
+`
+				: "";
+			return `
+
+[Screen frame ${index + 1} coordinate calibration${label}]
+- The attached desktop screenshot image is exactly ${image.width}x${image.height} pixels.
+- For arrow, cursor, and bubble tools, target the CENTER of the visible thing.
+- For highlight tools, x/y must be the TOP-LEFT of the rectangle and width/height must cover the visible thing.
+- Preferred normalized formula: x = pixel_x / ${image.width}; y = pixel_y / ${image.height}; width = pixel_width / ${image.width}; height = pixel_height / ${image.height}.
+- You may also pass pixel values directly by setting coordinateSpace to "image_pixels".
+- Do not compensate for the Meera chat window; it is hidden during capture.
+${gridText}
+`.trim();
+		})
+		.join("\n\n");
+}
+
+async function ollamaErrorMessage(response: Response) {
+	if (response.status === 524) {
+		return "Ollama timed out before it could finish the vision request. Try again, or use a more specific target so the request is cheaper.";
+	}
+	if (response.status === 502 || response.status === 503 || response.status === 504) {
+		return `Ollama is temporarily unavailable or timed out (${response.status}). Try again in a moment.`;
+	}
+	const body = await response.text().catch(() => "");
+	const plainText = body
+		.replace(/<script[\s\S]*?<\/script>/gi, "")
+		.replace(/<style[\s\S]*?<\/style>/gi, "")
+		.replace(/<[^>]+>/g, " ")
+		.replace(/\s+/g, " ")
+		.trim();
+	return `Ollama HTTP ${response.status}: ${(plainText || response.statusText).slice(0, 240)}`;
+}
+
 function toOllamaMessages(request: AiChatRequest): OllamaMessage[] {
 	return [
 		{ role: "system", content: MEERA_AI_SYSTEM_PROMPT },
 		...request.messages.map((message) => {
 			const images = message.images?.map((image) => imageDataUrlToBase64(image.dataUrl)).filter((image): image is string => Boolean(image));
+			const calibration = coordinateCalibration(message.images);
 			return {
 				role: message.role,
-				content: message.content,
+				content: calibration ? `${message.content}\n\n${calibration}` : message.content,
 				...(images?.length ? { images } : {}),
 			};
 		}),
@@ -79,6 +156,7 @@ export async function chatWithOllama(request: AiChatRequest): Promise<AiChatResp
 	const settings = config();
 	const usesVision = request.messages.some((message) => Boolean(message.images?.length));
 	const model = usesVision ? settings.visionModel : settings.chatModel;
+	const coordinateContext = latestScreenFrameContext(request);
 	const response = await ollamaFetch("/api/chat", {
 		method: "POST",
 		body: JSON.stringify({
@@ -95,16 +173,17 @@ export async function chatWithOllama(request: AiChatRequest): Promise<AiChatResp
 	});
 
 	if (!response.ok) {
-		const body = await response.text().catch(() => "");
-		throw new Error(`Ollama HTTP ${response.status}: ${body.slice(0, 300) || response.statusText}`);
+		throw new Error(await ollamaErrorMessage(response));
 	}
 
 	const data = (await response.json()) as OllamaChatResponse;
-	const nativeToolCalls = Array.isArray(data.message?.tool_calls) ? data.message.tool_calls : [];
+	const nativeToolCalls = Array.isArray(data.message?.tool_calls)
+		? normalizeOverlayToolCalls(data.message.tool_calls, coordinateContext)
+		: [];
 	const content = data.message?.content?.trim();
 	const recoveredToolCalls =
 		nativeToolCalls.length === 0
-			? recoverOverlayToolCallsFromText({ prompt: request.messages.at(-1)?.content ?? "", content: content ?? "" })
+			? recoverOverlayToolCallsFromText({ prompt: request.messages.at(-1)?.content ?? "", content: content ?? "", context: coordinateContext })
 			: [];
 	const toolCalls = nativeToolCalls.length ? nativeToolCalls : recoveredToolCalls;
 	if (!content && toolCalls.length === 0) throw new Error("Ollama returned an empty response.");

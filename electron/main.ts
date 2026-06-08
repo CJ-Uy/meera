@@ -17,6 +17,8 @@ let smokeStarted = false;
 const assistantClosedSize = { width: 88, height: 88 };
 const assistantOpenSize = { width: 460, height: 650 };
 const assistantMargin = 24;
+const screenCaptureMaxEdge = 1440;
+const screenCaptureSettleMs = 120;
 
 function isTrustedUrl(url: string) {
 	try {
@@ -34,6 +36,10 @@ function overlayUrlForDisplay(displayId: number) {
 
 function assistantUrl() {
 	return new URL("/assistant", appUrl).toString();
+}
+
+function delay(ms: number) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function isTrustedSender(sender: Electron.WebContents) {
@@ -128,6 +134,42 @@ function assistantBounds(open: boolean) {
 function positionAssistantWindow() {
 	if (!assistantWindow || assistantWindow.isDestroyed()) return;
 	assistantWindow.setBounds(assistantBounds(assistantIsOpen), false);
+}
+
+function captureThumbnailSize(display: Display) {
+	const { width, height } = display.bounds;
+	const scale = Math.min(1, screenCaptureMaxEdge / Math.max(width, height));
+	return {
+		width: Math.max(1, Math.round(width * scale)),
+		height: Math.max(1, Math.round(height * scale)),
+	};
+}
+
+async function withMeeraWindowsHidden<T>(task: () => Promise<T>) {
+	const hiddenOverlayWindows: BrowserWindow[] = [];
+	const shouldRestoreAssistant = Boolean(assistantWindow && !assistantWindow.isDestroyed() && assistantWindow.isVisible() && !isSmokeTest);
+
+	if (shouldRestoreAssistant) assistantWindow?.hide();
+	for (const overlayWindow of overlayWindows.values()) {
+		if (!overlayWindow.isDestroyed() && overlayWindow.isVisible()) {
+			hiddenOverlayWindows.push(overlayWindow);
+			overlayWindow.hide();
+		}
+	}
+
+	if (shouldRestoreAssistant || hiddenOverlayWindows.length) await delay(screenCaptureSettleMs);
+
+	try {
+		return await task();
+	} finally {
+		for (const overlayWindow of hiddenOverlayWindows) {
+			if (!overlayWindow.isDestroyed()) overlayWindow.showInactive();
+		}
+		if (shouldRestoreAssistant && assistantWindow && !assistantWindow.isDestroyed()) {
+			positionAssistantWindow();
+			assistantWindow.showInactive();
+		}
+	}
 }
 
 function createMainWindow() {
@@ -239,19 +281,34 @@ function configureIpc() {
 
 	ipcMain.handle("assistant:capture-screen-frame", async (event) => {
 		if (event.sender !== assistantWindow?.webContents) throw new Error("Screen capture is only available to the assistant overlay.");
-		const sources = await desktopCapturer.getSources({
-			types: ["screen"],
-			thumbnailSize: { width: 1600, height: 1000 },
+		return withMeeraWindowsHidden(async () => {
+			const primaryDisplay = screen.getPrimaryDisplay();
+			const sources = await desktopCapturer.getSources({
+				types: ["screen"],
+				thumbnailSize: captureThumbnailSize(primaryDisplay),
+			});
+			const primaryDisplayId = primaryDisplay.id.toString();
+			const preferredSource = sources.find((source) => source.display_id === primaryDisplayId) ?? sources[0];
+			if (!preferredSource || preferredSource.thumbnail.isEmpty()) throw new Error("No desktop screen capture source is available.");
+			const size = preferredSource.thumbnail.getSize();
+			const capturedAt = new Date().toISOString();
+			const jpeg = preferredSource.thumbnail.toJPEG(88);
+			return {
+				name: `desktop-screen-${capturedAt}.jpg`,
+				mimeType: "image/jpeg" as const,
+				dataUrl: `data:image/jpeg;base64,${jpeg.toString("base64")}`,
+				width: size.width,
+				height: size.height,
+				screen: {
+					displayId: primaryDisplay.id,
+					displayLabel: primaryDisplay.label || `Display ${primaryDisplay.id}`,
+					bounds: primaryDisplay.bounds,
+					workArea: primaryDisplay.workArea,
+					scaleFactor: primaryDisplay.scaleFactor,
+					capturedAt,
+				},
+			};
 		});
-		const primaryDisplayId = screen.getPrimaryDisplay().id.toString();
-		const preferredSource = sources.find((source) => source.display_id === primaryDisplayId) ?? sources[0];
-		if (!preferredSource || preferredSource.thumbnail.isEmpty()) throw new Error("No desktop screen capture source is available.");
-		const jpeg = preferredSource.thumbnail.toJPEG(84);
-		return {
-			name: `desktop-screen-${new Date().toISOString()}.jpg`,
-			mimeType: "image/jpeg",
-			dataUrl: `data:image/jpeg;base64,${jpeg.toString("base64")}`,
-		};
 	});
 
 	ipcMain.on("overlay:ready", (event, displayId: number) => {

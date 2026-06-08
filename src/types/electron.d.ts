@@ -1,4 +1,5 @@
 import type { OverlayCommand } from "@/features/overlay/overlay-protocol";
+import type { AiScreenFrameMetadata } from "@/features/ai/ai-types";
 
 export type DesktopOverlayStatus = {
 	available: true;
@@ -25,6 +26,9 @@ export type DesktopAssistantScreenFrame = {
 	name: string;
 	mimeType: "image/jpeg";
 	dataUrl: string;
+	width: number;
+	height: number;
+	screen: AiScreenFrameMetadata;
 };
 
 export type DesktopAssistantBridge = {

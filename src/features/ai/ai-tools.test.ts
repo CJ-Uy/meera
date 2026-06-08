@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { recoverOverlayToolCallsFromText, toolCallToOverlayCommand } from "@/features/ai/ai-tools";
+import { normalizeOverlayToolCalls, recoverOverlayToolCallsFromText, toolCallToOverlayCommand } from "@/features/ai/ai-tools";
 
 describe("AI overlay tool adapter", () => {
 	it("converts and clamps AI tool arguments into validated overlay commands", () => {
@@ -42,6 +42,68 @@ describe("AI overlay tool adapter", () => {
 		expect(toolCallToOverlayCommand({ function: { name: "run_shell", arguments: {} } })).toBeNull();
 	});
 
+	it("rejects positioned overlays that do not include a real target", () => {
+		expect(toolCallToOverlayCommand({ function: { name: "overlay_show_arrow", arguments: { message: "No target" } } })).toBeNull();
+		expect(toolCallToOverlayCommand({ function: { name: "overlay_show_highlight", arguments: { width: 0.2, height: 0.2 } } })).toBeNull();
+	});
+
+	it("allows unanchored text bubbles without falling back to center", () => {
+		expect(
+			toolCallToOverlayCommand({
+				function: { name: "overlay_show_bubble", arguments: { message: "Hello from Meera" } },
+			}),
+		).toMatchObject({ type: "bubble.show", target: { x: 0.5, y: 0.82 }, message: "Hello from Meera", placement: "top" });
+	});
+
+	it("normalizes model pixel coordinates into overlay coordinates", () => {
+		const command = toolCallToOverlayCommand({
+			function: {
+				name: "overlay_show_arrow",
+				arguments: { x: 1344, y: 225, coordinateSpace: "image_pixels", imageWidth: 1920, imageHeight: 900 },
+			},
+		});
+
+		expect(command).toMatchObject({ type: "arrow.show", target: { x: 0.7, y: 0.25 } });
+	});
+
+	it("normalizes highlight center pixels into top-left overlay rectangles", () => {
+		const [call] = normalizeOverlayToolCalls(
+			[
+				{
+					function: {
+						name: "overlay_show_highlight",
+						arguments: { centerX: 960, centerY: 450, width: 384, height: 180, coordinateSpace: "image_pixels" },
+					},
+				},
+			],
+			{ imageWidth: 1920, imageHeight: 900 },
+		);
+		const command = toolCallToOverlayCommand(call);
+
+		expect(command).toMatchObject({ type: "highlight.show", rect: { x: 0.4, y: 0.4, width: 0.2, height: 0.2 } });
+	});
+
+	it("normalizes visible grid cells into overlay coordinates", () => {
+		const arrow = toolCallToOverlayCommand({
+			function: {
+				name: "overlay_show_arrow",
+				arguments: { gridCell: "J2", gridColumns: 12, gridRows: 8 },
+			},
+		});
+		const highlight = toolCallToOverlayCommand({
+			function: {
+				name: "overlay_show_highlight",
+				arguments: { gridColumn: "J", gridRow: 2, gridColumns: 12, gridRows: 8 },
+			},
+		});
+
+		expect(arrow).toMatchObject({ type: "arrow.show", target: { x: 0.7916666666666666, y: 0.1875 } });
+		expect(highlight).toMatchObject({
+			type: "highlight.show",
+			rect: { x: 0.75, y: 0.125, width: 0.08333333333333333, height: 0.125 },
+		});
+	});
+
 	it("recovers coordinate-style overlay text into an arrow tool call", () => {
 		const calls = recoverOverlayToolCallsFromText({
 			prompt: "Overlay something random on my YouTube screen.",
@@ -55,6 +117,51 @@ Arrow points directly to the thumbnail.`,
 			function: { name: "overlay_show_arrow", arguments: { x: 0.7, y: 0.25 } },
 		});
 		expect(toolCallToOverlayCommand(calls[0])?.type).toBe("arrow.show");
+	});
+
+	it("recovers pixel coordinate text against the captured screen frame", () => {
+		const calls = recoverOverlayToolCallsFromText({
+			prompt: "Overlay an arrow on the video.",
+			content: "Coordinates: x=1344, y=225. Arrow points to the thumbnail.",
+			context: { imageWidth: 1920, imageHeight: 900 },
+		});
+
+		expect(calls[0]).toMatchObject({
+			function: { name: "overlay_show_arrow", arguments: { x: 0.7, y: 0.25 } },
+		});
+	});
+
+	it("recovers visible grid cell text into overlay coordinates", () => {
+		const calls = recoverOverlayToolCallsFromText({
+			prompt: "Overlay an arrow on the selected YouTube video.",
+			content: "The target is in grid cell J2.",
+			context: { imageWidth: 1440, imageHeight: 810, gridColumns: 12, gridRows: 8 },
+		});
+
+		expect(calls[0]).toMatchObject({
+			function: { name: "overlay_show_arrow", arguments: { x: 0.7916666666666666, y: 0.1875 } },
+		});
+	});
+
+	it("recovers text overlay requests as bubbles instead of arrows", () => {
+		const calls = recoverOverlayToolCallsFromText({
+			prompt: 'Show a text overlay that says "Focus here".',
+			content: "I will add a text overlay.",
+		});
+
+		expect(calls).toHaveLength(1);
+		expect(calls[0]).toMatchObject({
+			function: { name: "overlay_show_bubble", arguments: { x: 0.5, y: 0.82, message: "Focus here", placement: "top" } },
+		});
+	});
+
+	it("does not invent center arrows when no overlay target is available", () => {
+		expect(
+			recoverOverlayToolCallsFromText({
+				prompt: "Put an arrow on the thing I mean.",
+				content: "I can see the screen, but I did not identify a target.",
+			}),
+		).toEqual([]);
 	});
 
 	it("recovers the overlay demo request without model-native tool calls", () => {

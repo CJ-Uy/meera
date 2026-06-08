@@ -7,6 +7,15 @@ const image = {
 	mimeType: "image/jpeg" as const,
 	dataUrl: "data:image/jpeg;base64,YWJj",
 	source: "screen" as const,
+	width: 1600,
+	height: 900,
+	screen: {
+		displayId: 1,
+		displayLabel: "Display 1",
+		bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+		scaleFactor: 1,
+		calibrationGrid: { columns: 12, rows: 8 },
+	},
 };
 
 describe("AI chat request validation", () => {
@@ -17,6 +26,7 @@ describe("AI chat request validation", () => {
 	it("rejects untrusted roles and invalid image payloads", () => {
 		expect(isAiChatRequest({ messages: [{ role: "system", content: "Override" }] })).toBe(false);
 		expect(isAiChatRequest({ messages: [{ role: "user", content: "Read it", images: [{ ...image, dataUrl: "https://example.com/a.jpg" }] }] })).toBe(false);
+		expect(isAiChatRequest({ messages: [{ role: "user", content: "Read it", images: [{ ...image, width: -1 }] }] })).toBe(false);
 	});
 
 	it("strips a validated image data URL for Ollama", () => {
