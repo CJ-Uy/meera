@@ -5,7 +5,6 @@ import { MediaControls } from "@/components/media-controls";
 import { PermissionStatus } from "@/components/permission-status";
 import { ScreenPreview } from "@/components/screen-preview";
 import { SharingBadge } from "@/components/sharing-badge";
-import { AiAssistant } from "@/features/ai/ai-assistant";
 import { OverlaySimulator } from "@/features/overlay/overlay-simulator";
 import { useMediaSession } from "@/hooks/use-media-session";
 
@@ -83,8 +82,6 @@ export function SupportStudio() {
 					</div>
 				</div>
 			</section>
-
-			<AiAssistant isSharing={isSharing} previewRef={session.previewRef} />
 
 			{session.mediaError ? (
 				<div

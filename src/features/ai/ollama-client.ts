@@ -1,5 +1,5 @@
 import { MEERA_AI_SYSTEM_PROMPT } from "@/features/ai/ai-prompt";
-import { OLLAMA_OVERLAY_TOOLS } from "@/features/ai/ai-tools";
+import { OLLAMA_OVERLAY_TOOLS, recoverOverlayToolCallsFromText } from "@/features/ai/ai-tools";
 import { imageDataUrlToBase64, type AiChatRequest, type AiChatResponse, type AiToolCall, type OllamaStatus } from "@/features/ai/ai-types";
 
 type OllamaMessage = {
@@ -100,12 +100,17 @@ export async function chatWithOllama(request: AiChatRequest): Promise<AiChatResp
 	}
 
 	const data = (await response.json()) as OllamaChatResponse;
-	const toolCalls = Array.isArray(data.message?.tool_calls) ? data.message.tool_calls : [];
+	const nativeToolCalls = Array.isArray(data.message?.tool_calls) ? data.message.tool_calls : [];
 	const content = data.message?.content?.trim();
+	const recoveredToolCalls =
+		nativeToolCalls.length === 0
+			? recoverOverlayToolCallsFromText({ prompt: request.messages.at(-1)?.content ?? "", content: content ?? "" })
+			: [];
+	const toolCalls = nativeToolCalls.length ? nativeToolCalls : recoveredToolCalls;
 	if (!content && toolCalls.length === 0) throw new Error("Ollama returned an empty response.");
 
 	return {
-		message: content || "I sent the requested guidance to the desktop overlay.",
+		message: recoveredToolCalls.length ? "I marked that on your desktop." : content || "I sent the requested guidance to the desktop overlay.",
 		model,
 		toolCalls,
 	};

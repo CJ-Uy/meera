@@ -42,7 +42,7 @@ export function OverlaySimulator() {
 				<div>
 					<h3 className="text-sm font-semibold">Desktop overlay simulator</h3>
 					<p className="mt-1 text-[10px] leading-4 text-slate-500">
-						These controls call the same overlay API the future AI agent will use.
+						These controls call the same overlay API the AI assistant uses.
 					</p>
 				</div>
 				<span

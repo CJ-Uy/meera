@@ -6,7 +6,7 @@ This prototype currently includes:
 - Microphone access with a responsive input meter
 - An Electron desktop mode with transparent, click-through overlays
 - Reusable overlay commands for cursors, arrows, highlights, and chat bubbles
-- A simulator that exercises the same API a future AI agent will call
+- A simulator and AI assistant that exercise the same desktop overlay API
 
 ## Desktop Overlay
 
@@ -62,14 +62,19 @@ Replace `3296` with the PID shown in your terminal. This usually means a previou
 Once Meera opens:
 
 1. Open another app beside or behind Meera, such as Settings, Notepad, or VS Code.
-2. In Meera, find **Desktop overlay simulator**.
-3. Click **Move cursor** and confirm the Meera cursor appears over the other app.
-4. Test **Cursor tour**, **Show arrow**, **Show chat bubble**, **Highlight area**, and **Run full demo**.
-5. Confirm the overlay does not block clicks on the app underneath it.
-6. Click **Clear desktop overlay** and confirm the overlay disappears.
-7. Click **Share your screen**, choose the entire display, and confirm the overlay appears inside the live preview.
-8. Click **Stop sharing** and confirm the preview clears.
-9. Click **Use microphone**, speak, confirm the input meter responds, then click **Mute microphone**.
+2. Click the Meera logo button floating at the bottom-right of the desktop to open the AI chat panel.
+3. Ask `What can you help me with?` to confirm Ollama text chat responds.
+4. Upload an image in the chat panel, then ask `Describe this image.`
+5. Ask `Analyze my screen and point at the most important control.`
+6. Confirm the chat says it attached a fresh screen frame and the model response uses `qwen3-vl:8b`.
+7. In Electron, ask `Show every overlay type so I can test them.` and confirm the cursor, arrow, highlight, and chat bubble appear.
+8. Open the support demo at `/demo`, then find **Desktop overlay simulator**.
+9. Click **Move cursor** and confirm the Meera cursor appears over the other app.
+10. Test **Cursor tour**, **Show arrow**, **Show chat bubble**, **Highlight area**, and **Run full demo**.
+11. Confirm the overlay does not block clicks on the app underneath it.
+12. Click **Clear desktop overlay** and confirm the overlay disappears.
+13. Click **Stop sharing** and confirm the preview clears.
+14. Click **Use microphone**, speak, confirm the input meter responds, then click **Mute microphone**.
 
 For a production-style local run, use:
 
@@ -83,18 +88,21 @@ The transparent overlay is always on top and click-through, so it will not block
 
 ### Ollama AI Assistant
 
-The main page includes a basic Ollama chatbot for testing text, images, shared-screen frames, and AI-controlled desktop overlays.
+The Ollama assistant runs from Electron's dedicated always-on-top assistant window. Browser-only Next.js pages do not mount a second in-app assistant.
 
 - Text-only requests use `qwen3.5:9b`.
-- Requests with an uploaded image or captured shared-screen frame use `qwen3-vl:8b`.
+- Requests with an uploaded image or captured desktop frame use `qwen3-vl:8b`.
+- In Electron, the assistant opens from a Meera logo button in its own always-on-top desktop overlay window.
+- In Electron, Meera can automatically attach a fresh desktop screen frame for visual or overlay prompts.
 - Ollama calls stay behind the server-side `/api/ai/chat` route.
 - AI overlay tool calls are converted into the same validated overlay commands used by the simulator.
+- If a model writes coordinate-style overlay instructions instead of native tool calls, Meera recovers those guarded overlay requests into validated overlay commands.
 
 See [docs/OLLAMA.md](docs/OLLAMA.md) for setup, test prompts, architecture, and extension guidance.
 
 ### Overlay API
 
-The future AI agent can use the same typed command API:
+The AI assistant and simulator use the same typed command API:
 
 ```ts
 await sendOverlayCommand({
@@ -124,4 +132,4 @@ pnpm desktop:smoke
 
 ## Web And Cloudflare
 
-The browser-only app remains available through `pnpm dev`, and the existing OpenNext Cloudflare scripts remain unchanged. Desktop-wide overlays are disabled in browser-only mode.
+The browser-only support demo remains available at `http://localhost:3000/demo` after running `pnpm dev`, and the existing OpenNext Cloudflare scripts remain unchanged. Desktop-wide overlays and the desktop assistant window are disabled in browser-only mode.

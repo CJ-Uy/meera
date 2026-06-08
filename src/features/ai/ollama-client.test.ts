@@ -50,6 +50,27 @@ describe("Ollama client", () => {
 		expect(result.toolCalls[0]?.function?.name).toBe("overlay_clear");
 	});
 
+	it("recovers overlay tool calls when Ollama writes coordinates instead of using tools", async () => {
+		const fetchMock = vi.fn().mockResolvedValue(
+			new Response(
+				JSON.stringify({
+					message: {
+						content: 'I picked the top-right video.\n\nCoordinates: x=0.7, y=0.25\nArrow points at the thumbnail.',
+					},
+				}),
+				{ status: 200 },
+			),
+		);
+		vi.stubGlobal("fetch", fetchMock);
+
+		const result = await chatWithOllama({ messages: [{ role: "user", content: "Overlay a random thing on my YouTube screen." }] });
+
+		expect(result.message).toBe("I marked that on your desktop.");
+		expect(result.toolCalls[0]).toMatchObject({
+			function: { name: "overlay_show_arrow", arguments: { x: 0.7, y: 0.25 } },
+		});
+	});
+
 	it("uses the vision model and sends base64 image data when an image is attached", async () => {
 		const fetchMock = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify({ message: { content: "I can see the screen." } }), { status: 200 }),

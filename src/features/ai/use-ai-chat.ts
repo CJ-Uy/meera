@@ -15,7 +15,8 @@ const initialMessages: AiChatMessage[] = [
 	{
 		id: "welcome",
 		role: "assistant",
-		content: "Ask me a question, upload an image, or attach a frame from your shared screen. In desktop mode, I can also guide you with overlays.",
+		content:
+			"Ask me to inspect your screen, point at something, highlight a control, or explain an image. In Electron, I can attach a fresh desktop frame automatically for visual overlay requests.",
 	},
 ];
 

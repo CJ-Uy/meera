@@ -75,7 +75,7 @@ export function createGuidedOverlayDemo(displayId: "primary" | "all" = "primary"
 				id: "demo-finish",
 				displayId,
 				target: { x: 0.7, y: 0.58 },
-				message: "Great. The future AI can issue these same commands.",
+				message: "Great. Meera can issue these same commands.",
 				placement: "top",
 				ttlMs: 3500,
 			},

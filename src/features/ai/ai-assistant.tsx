@@ -1,70 +1,123 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent, type RefObject } from "react";
-import { captureSharedScreenFrame, prepareUploadedImage } from "@/features/ai/image-input";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import {
+	captureDesktopScreenFrame,
+	isDesktopScreenFrameCaptureAvailable,
+	prepareUploadedImage,
+	shouldAutoCaptureSharedScreen,
+} from "@/features/ai/image-input";
 import type { AiChatMessage, AiImageAttachment } from "@/features/ai/ai-types";
 import { useAiChat } from "@/features/ai/use-ai-chat";
 import { useAiOverlayActions } from "@/features/ai/use-ai-overlay-actions";
 
 type AiAssistantProps = {
-	isSharing: boolean;
-	previewRef: RefObject<HTMLVideoElement | null>;
+	onOpenChange?: (isOpen: boolean) => void;
 };
 
 const suggestions = [
+	"Pick something visible on my screen and mark it with an arrow.",
+	"Highlight the button I should click next.",
 	"Show every overlay type so I can test them.",
-	"Describe the attached image and tell me what stands out.",
-	"Analyze my shared screen and point at the most important control.",
 ];
+
+function CloseIcon() {
+	return (
+		<svg className="size-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24" aria-hidden="true">
+			<path d="M6 6l12 12M18 6 6 18" />
+		</svg>
+	);
+}
+
+function SendIcon() {
+	return (
+		<svg className="size-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24" aria-hidden="true">
+			<path d="m5 12 14-7-5 14-3-5-6-2Z" />
+		</svg>
+	);
+}
 
 function ChatMessage({ message }: { message: AiChatMessage }) {
 	const isUser = message.role === "user";
+
 	return (
-		<article className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+		<article className={`flex ${isUser ? "justify-end" : "justify-start"}`} aria-label={`${message.role} message`}>
 			<div
-				className={`max-w-[88%] rounded-lg px-3.5 py-3 text-xs leading-5 ${
-					isUser ? "bg-emerald-950 text-white" : "border border-slate-200 bg-white text-slate-700"
+				className={`max-w-[88%] rounded-[1.25rem] px-4 py-3 text-sm leading-6 shadow-sm ${
+					isUser ? "rounded-br-md bg-[#4B2B1F] text-white" : "rounded-bl-md border border-[#F8E4C8] bg-white text-[#4B2B1F]"
 				}`}
 			>
 				<p className="m-0 whitespace-pre-wrap">{message.content}</p>
 				{message.images?.length ? (
-					<div className="mt-3 grid grid-cols-2 gap-2">
+					<div className="mt-2 grid grid-cols-2 gap-2">
 						{message.images.map((image) => (
-							<div className="overflow-hidden rounded-md border border-white/20 bg-slate-900/10" key={image.id}>
+							<div className="overflow-hidden rounded-2xl border border-white/50 bg-[#FFF8EE]" key={image.id}>
 								{/* eslint-disable-next-line @next/next/no-img-element */}
 								<img className="aspect-video w-full object-cover" src={image.dataUrl} alt={image.name} />
-								<p className="truncate px-2 py-1 text-[9px] opacity-75">{image.source === "screen" ? "Shared-screen frame" : image.name}</p>
+								<p className="truncate px-2 py-1 text-[10px] font-bold opacity-75">
+									{image.source === "screen" ? "Desktop frame" : image.name}
+								</p>
 							</div>
 						))}
 					</div>
 				) : null}
 				{message.actionResults?.length ? (
-					<div className="mt-3 grid gap-1 border-t border-slate-200/50 pt-2">
+					<div className="mt-3 flex flex-wrap gap-1.5 border-t border-[#F8E4C8]/70 pt-3">
 						{message.actionResults.map((result, index) => (
-							<p className={`m-0 text-[9px] font-semibold ${result.ok ? "text-emerald-600" : "text-amber-600"}`} key={`${result.tool}-${index}`}>
+							<p
+								className={`m-0 rounded-full px-2.5 py-1 text-[10px] font-extrabold ${
+									result.ok ? "bg-[#F3FBE8] text-[#6FA334]" : "bg-[#FFF3D6] text-[#B7791F]"
+								}`}
+								key={`${result.tool}-${index}`}
+							>
 								{result.message}
 							</p>
 						))}
 					</div>
 				) : null}
-				{message.model ? <p className="mt-2 mb-0 text-[9px] text-slate-400">{message.model}</p> : null}
+				{message.model ? <p className="mt-2 mb-0 text-[10px] font-bold text-[#7A5036]/55">{message.model}</p> : null}
 			</div>
 		</article>
 	);
 }
 
-export function AiAssistant({ isSharing, previewRef }: AiAssistantProps) {
+export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 	const { overlayAvailable, executeToolCalls } = useAiOverlayActions();
 	const chat = useAiChat(executeToolCalls);
+	const [isOpen, setIsOpen] = useState(false);
 	const [draft, setDraft] = useState("");
 	const [attachments, setAttachments] = useState<AiImageAttachment[]>([]);
 	const [attachmentError, setAttachmentError] = useState<string | null>(null);
+	const [autoScreenContext, setAutoScreenContext] = useState(true);
+	const [lastAutoCapture, setLastAutoCapture] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 
+	const setAssistantOpen = useCallback(
+		(nextOpen: boolean) => {
+			setIsOpen(nextOpen);
+			onOpenChange?.(nextOpen);
+		},
+		[onOpenChange],
+	);
+
 	useEffect(() => {
-		messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-	}, [chat.messages.length, chat.isSending]);
+		if (isOpen) messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+	}, [chat.messages.length, chat.isSending, isOpen]);
+
+	useEffect(() => {
+		if (!isOpen) return;
+		const focusId = window.setTimeout(() => textareaRef.current?.focus(), 80);
+		const closeOnEscape = (event: KeyboardEvent) => {
+			if (event.key === "Escape") setAssistantOpen(false);
+		};
+		window.addEventListener("keydown", closeOnEscape);
+		return () => {
+			window.clearTimeout(focusId);
+			window.removeEventListener("keydown", closeOnEscape);
+		};
+	}, [isOpen, setAssistantOpen]);
 
 	const addUpload = async (file: File | undefined) => {
 		if (!file) return;
@@ -77,93 +130,175 @@ export function AiAssistant({ isSharing, previewRef }: AiAssistantProps) {
 		}
 	};
 
-	const captureScreen = () => {
+	const captureScreen = async () => {
 		setAttachmentError(null);
+		if (isDesktopScreenFrameCaptureAvailable()) return captureDesktopScreenFrame();
+		throw new Error("Run Meera through Electron to capture the desktop.");
+	};
+
+	const addScreenFrame = async () => {
 		try {
-			const video = previewRef.current;
-			if (!video) throw new Error("Start screen sharing before capturing a frame.");
-			const image = captureSharedScreenFrame(video);
-			setAttachments((current) => [...current.slice(-2), image]);
+			const image = await captureScreen();
+			setAttachments((current) => [...current.filter((candidate) => candidate.source !== "screen").slice(-2), image]);
 		} catch (error) {
-			setAttachmentError(error instanceof Error ? error.message : "Could not capture the shared screen.");
+			setAttachmentError(error instanceof Error ? error.message : "Could not capture the desktop.");
 		}
+	};
+
+	const startNewChat = () => {
+		chat.clearMessages();
+		setDraft("");
+		setAttachments([]);
+		setAttachmentError(null);
+		setLastAutoCapture(false);
+		textareaRef.current?.focus();
 	};
 
 	const submit = async (event: FormEvent) => {
 		event.preventDefault();
-		const sent = await chat.sendMessage(draft, attachments);
-		if (sent) {
-			setDraft("");
-			setAttachments([]);
+		if (chat.isSending) return;
+		setAttachmentError(null);
+		setLastAutoCapture(false);
+
+		const draftToSend = draft;
+		let images = attachments;
+		if (autoScreenContext && !images.some((image) => image.source === "screen") && shouldAutoCaptureSharedScreen(draftToSend)) {
+			try {
+				images = [...images, await captureScreen()];
+				setLastAutoCapture(true);
+			} catch (error) {
+				setAttachmentError(error instanceof Error ? error.message : "Could not capture the desktop.");
+			}
+		}
+
+		if (!draftToSend.trim() && images.length === 0) return;
+
+		setDraft("");
+		setAttachments([]);
+		const sent = await chat.sendMessage(draftToSend, images);
+		if (!sent) {
+			setDraft(draftToSend);
+			setAttachments(images);
 		}
 	};
 
+	const canCaptureScreen = isDesktopScreenFrameCaptureAvailable();
+	const statusLabel = chat.status?.available ? "Ollama connected" : chat.status ? "Ollama unavailable" : "Checking Ollama";
+
+	if (!isOpen) {
+		return (
+			<button
+				className="group grid h-screen w-screen place-items-center bg-transparent p-1 focus-visible:outline-3 focus-visible:outline-offset-[-6px] focus-visible:outline-[#3B82F6]"
+				type="button"
+				aria-label="Open Meera AI chat"
+				onClick={() => setAssistantOpen(true)}
+			>
+				<span className="relative grid size-[76px] place-items-center overflow-hidden rounded-[1.65rem] border border-[#F8E4C8] bg-[#F8E4C8] shadow-[0_18px_48px_rgba(75,43,31,0.22)] transition group-hover:-translate-y-0.5">
+					{/* eslint-disable-next-line @next/next/no-img-element */}
+					<img className="size-[68px] object-cover" src="/assets/meera/meera_icon.svg" alt="" />
+					<span
+						className={`absolute top-3 right-3 size-2.5 rounded-full ring-4 ring-[#FFF8EE] ${
+							chat.status?.available ? "bg-[#9BCF53]" : "bg-[#F4B942]"
+						}`}
+					/>
+				</span>
+			</button>
+		);
+	}
+
 	return (
-		<section className="mt-12 border-t border-slate-200 pt-7" aria-labelledby="ai-assistant-title">
-			<div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-				<div>
-					<p className="mb-1 text-[10px] font-bold text-emerald-700 uppercase">Ollama test console</p>
-					<h2 className="text-lg font-semibold" id="ai-assistant-title">
-						Meera AI assistant
-					</h2>
+		<section
+			className="flex h-screen w-screen flex-col overflow-hidden rounded-[1.8rem] border border-[#F8E4C8] bg-[#FFF8EE] text-[#4B2B1F] shadow-[0_24px_80px_rgba(75,43,31,0.24)]"
+			aria-label="Meera AI chat"
+			role="dialog"
+		>
+			<header className="flex min-h-20 items-center justify-between gap-3 border-b border-[#F8E4C8] bg-white/60 px-5">
+				<div className="flex min-w-0 items-center gap-3">
+					<span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-[#F8E4C8] shadow-sm">
+						{/* eslint-disable-next-line @next/next/no-img-element */}
+						<img className="size-11 object-cover" src="/assets/meera/meera_icon.svg" alt="" />
+					</span>
+					<div className="min-w-0">
+						<h2 className="truncate text-lg font-black">Meera</h2>
+						<p className="m-0 flex items-center gap-1.5 text-[11px] font-extrabold text-[#7A5036]">
+							<span className={`size-2 rounded-full ${chat.status?.available ? "bg-[#9BCF53]" : "bg-[#F4B942]"}`} />
+							{statusLabel}
+						</p>
+					</div>
 				</div>
-				<div className="flex items-center gap-2 text-[10px] font-semibold text-slate-500">
-					<span className={`size-2 rounded-full ${chat.status?.available ? "bg-emerald-500" : chat.status ? "bg-amber-400" : "bg-slate-300"}`} />
-					{chat.status?.available ? "Ollama connected" : chat.status ? "Ollama unavailable" : "Checking Ollama"}
+				<div className="flex items-center gap-2">
+					<button
+						className="min-h-9 rounded-full bg-[#F3FBE8] px-3 text-xs font-extrabold text-[#6FA334] transition hover:bg-[#E7F6D6]"
+						type="button"
+						onClick={startNewChat}
+					>
+						New
+					</button>
+					<button
+						className="grid size-9 place-items-center rounded-full bg-white text-[#7A5036] shadow-sm transition hover:bg-[#F8E4C8]"
+						type="button"
+						aria-label="Close Meera AI chat"
+						onClick={() => setAssistantOpen(false)}
+					>
+						<CloseIcon />
+					</button>
 				</div>
+			</header>
+
+			<div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[#FFF8EE] p-4" aria-live="polite">
+				{chat.messages.map((message) => (
+					<ChatMessage message={message} key={message.id} />
+				))}
+				{chat.isSending ? (
+					<div className="flex justify-start">
+						<p className="m-0 rounded-full border border-[#F8E4C8] bg-white px-4 py-2 text-xs font-extrabold text-[#7A5036] shadow-sm">
+							Meera is reading the screen...
+						</p>
+					</div>
+				) : null}
+				<div ref={messagesEndRef} />
 			</div>
 
-			<div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
-				<div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-					<div className="h-[430px] space-y-3 overflow-y-auto p-4" aria-live="polite">
-						{chat.messages.map((message) => (
-							<ChatMessage message={message} key={message.id} />
+			<form className="border-t border-[#F8E4C8] bg-white/80 p-4" onSubmit={submit}>
+				{attachments.length ? (
+					<div className="mb-3 flex flex-wrap gap-2">
+						{attachments.map((image) => (
+							<div className="flex max-w-48 items-center gap-2 rounded-2xl border border-[#F8E4C8] bg-[#FFF8EE] p-1.5" key={image.id}>
+								{/* eslint-disable-next-line @next/next/no-img-element */}
+								<img className="size-9 rounded-xl object-cover" src={image.dataUrl} alt="" />
+								<span className="min-w-0 flex-1 truncate text-[10px] font-extrabold text-[#7A5036]">
+									{image.source === "screen" ? "Desktop frame" : image.name}
+								</span>
+								<button
+									className="grid size-7 place-items-center rounded-full text-[#7A5036] hover:bg-[#F8E4C8]"
+									type="button"
+									aria-label={`Remove ${image.name}`}
+									onClick={() => setAttachments((current) => current.filter((candidate) => candidate.id !== image.id))}
+								>
+									<CloseIcon />
+								</button>
+							</div>
 						))}
-						{chat.isSending ? (
-							<div className="flex justify-start">
-								<p className="m-0 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-[10px] font-semibold text-slate-500">
-									Meera is thinking...
-								</p>
-							</div>
-						) : null}
-						<div ref={messagesEndRef} />
 					</div>
+				) : null}
 
-					<form className="border-t border-slate-200 bg-white p-3" onSubmit={submit}>
-						{attachments.length ? (
-							<div className="mb-3 flex flex-wrap gap-2">
-								{attachments.map((image) => (
-									<div className="flex max-w-52 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 p-1.5" key={image.id}>
-										{/* eslint-disable-next-line @next/next/no-img-element */}
-										<img className="size-9 rounded object-cover" src={image.dataUrl} alt="" />
-										<span className="min-w-0 flex-1 truncate text-[9px] font-semibold">{image.source === "screen" ? "Shared-screen frame" : image.name}</span>
-										<button
-											className="size-6 rounded text-xs text-slate-500 hover:bg-slate-200"
-											type="button"
-											aria-label={`Remove ${image.name}`}
-											onClick={() => setAttachments((current) => current.filter((candidate) => candidate.id !== image.id))}
-										>
-											×
-										</button>
-									</div>
-								))}
-							</div>
-						) : null}
+				<div className="rounded-[1.35rem] border border-[#F8E4C8] bg-[#FFF8EE] p-2 shadow-inner">
+					<textarea
+						ref={textareaRef}
+						className="max-h-28 min-h-20 w-full resize-none bg-transparent px-2 py-1 text-sm leading-6 text-[#4B2B1F] outline-none placeholder:text-[#7A5036]/55"
+						placeholder="Ask Meera to inspect, point, highlight, or explain..."
+						value={draft}
+						onChange={(event) => setDraft(event.target.value)}
+						onKeyDown={(event) => {
+							if (event.key === "Enter" && !event.shiftKey) {
+								event.preventDefault();
+								event.currentTarget.form?.requestSubmit();
+							}
+						}}
+					/>
 
-						<textarea
-							className="min-h-20 w-full resize-y rounded-md border border-slate-200 px-3 py-2 text-xs leading-5 outline-none focus:border-emerald-700"
-							placeholder="Ask Meera, attach an image, or request an overlay..."
-							value={draft}
-							onChange={(event) => setDraft(event.target.value)}
-							onKeyDown={(event) => {
-								if (event.key === "Enter" && !event.shiftKey) {
-									event.preventDefault();
-									event.currentTarget.form?.requestSubmit();
-								}
-							}}
-						/>
-
-						<div className="mt-2 flex flex-wrap items-center gap-2">
+					<div className="mt-2 flex items-center justify-between gap-2">
+						<div className="flex min-w-0 flex-wrap gap-2">
 							<input
 								ref={fileInputRef}
 								className="hidden"
@@ -175,76 +310,67 @@ export function AiAssistant({ isSharing, previewRef }: AiAssistantProps) {
 								}}
 							/>
 							<button
-								className="min-h-8 rounded-md bg-slate-100 px-2.5 text-[10px] font-semibold hover:bg-slate-200"
+								className="min-h-8 rounded-full bg-white px-3 text-[10px] font-extrabold text-[#7A5036] shadow-sm transition hover:bg-[#F8E4C8]"
 								type="button"
 								onClick={() => fileInputRef.current?.click()}
 							>
-								Upload image
+								Upload
 							</button>
 							<button
-								className="min-h-8 rounded-md bg-slate-100 px-2.5 text-[10px] font-semibold hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-45"
+								className="min-h-8 rounded-full bg-white px-3 text-[10px] font-extrabold text-[#7A5036] shadow-sm transition hover:bg-[#F8E4C8] disabled:cursor-not-allowed disabled:opacity-45"
 								type="button"
-								disabled={!isSharing}
-								onClick={captureScreen}
+								disabled={!canCaptureScreen}
+								onClick={() => void addScreenFrame()}
 							>
-								Capture shared screen
-							</button>
-							<button
-								className="ml-auto min-h-8 rounded-md bg-emerald-950 px-3.5 text-[10px] font-semibold text-white hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-45"
-								type="submit"
-								disabled={chat.isSending || (!draft.trim() && attachments.length === 0)}
-							>
-								{chat.isSending ? "Sending..." : "Send"}
+								Screen
 							</button>
 						</div>
-						{attachmentError || chat.error ? <p className="mt-2 mb-0 text-[10px] text-red-600">{attachmentError || chat.error}</p> : null}
-					</form>
+						<button
+							className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-full bg-[#9BCF53] px-4 text-xs font-black text-[#4B2B1F] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#A9DA66] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-45"
+							type="submit"
+							disabled={chat.isSending || (!draft.trim() && attachments.length === 0)}
+						>
+							{chat.isSending ? "Sending" : "Send"}
+							<SendIcon />
+						</button>
+					</div>
 				</div>
 
-				<aside className="space-y-5">
-					<div>
-						<h3 className="text-xs font-semibold">Connected capabilities</h3>
-						<div className="mt-3 grid gap-2 text-[10px] text-slate-600">
-							<p className="m-0 flex items-center justify-between border-b border-slate-200 pb-2">
-								Text chat <strong>{chat.status?.chatModel ?? "qwen3.5:9b"}</strong>
-							</p>
-							<p className="m-0 flex items-center justify-between border-b border-slate-200 pb-2">
-								Image reading <strong>{chat.status?.visionModel ?? "qwen3-vl:8b"}</strong>
-							</p>
-							<p className="m-0 flex items-center justify-between border-b border-slate-200 pb-2">
-								Shared screen <strong>{isSharing ? "Ready" : "Start sharing"}</strong>
-							</p>
-							<p className="m-0 flex items-center justify-between border-b border-slate-200 pb-2">
-								Desktop overlays <strong>{overlayAvailable ? "Ready" : "Electron only"}</strong>
-							</p>
-						</div>
-					</div>
+				<label className="mt-3 flex items-center gap-2 text-[11px] font-bold text-[#7A5036]">
+					<input
+						className="size-3.5 accent-[#6FA334]"
+						type="checkbox"
+						checked={autoScreenContext}
+						onChange={(event) => setAutoScreenContext(event.target.checked)}
+					/>
+					Auto-attach a fresh desktop frame for visual or overlay requests
+				</label>
 
-					<div>
-						<h3 className="text-xs font-semibold">Try a prompt</h3>
-						<div className="mt-3 grid gap-2">
-							{suggestions.map((suggestion) => (
-								<button
-									className="rounded-md border border-slate-200 bg-white px-3 py-2 text-left text-[10px] leading-4 text-slate-600 hover:border-emerald-700 hover:text-slate-900"
-									type="button"
-									key={suggestion}
-									onClick={() => setDraft(suggestion)}
-								>
-									{suggestion}
-								</button>
-							))}
-						</div>
-					</div>
+				{lastAutoCapture ? <p className="mt-2 mb-0 text-[11px] font-extrabold text-[#6FA334]">Attached a fresh desktop frame.</p> : null}
+				{attachmentError || chat.error ? <p className="mt-2 mb-0 text-[11px] font-bold text-[#C24141]">{attachmentError || chat.error}</p> : null}
+			</form>
 
-					<button
-						className="min-h-8 text-[10px] font-semibold text-slate-500 hover:text-slate-900"
-						type="button"
-						onClick={chat.clearMessages}
-					>
-						Clear conversation
-					</button>
-				</aside>
-			</div>
+			<footer className="grid gap-3 border-t border-[#F8E4C8] bg-[#FFF8EE] px-4 py-3">
+				<div className="flex flex-wrap gap-1.5">
+					{suggestions.map((suggestion) => (
+						<button
+							className="rounded-full border border-[#F8E4C8] bg-white px-3 py-1.5 text-left text-[10px] leading-4 font-bold text-[#7A5036] transition hover:border-[#9BCF53] hover:text-[#4B2B1F]"
+							type="button"
+							key={suggestion}
+							onClick={() => {
+								setDraft(suggestion);
+								textareaRef.current?.focus();
+							}}
+						>
+							{suggestion}
+						</button>
+					))}
+				</div>
+				<div className="flex items-center justify-between gap-3 text-[10px] font-extrabold text-[#7A5036]/70">
+					<span>{chat.status?.visionModel ?? "qwen3-vl:8b"} for images</span>
+					<span>{overlayAvailable ? "Desktop overlays ready" : "Electron overlays unavailable"}</span>
+				</div>
+			</footer>
 		</section>
 	);
 }

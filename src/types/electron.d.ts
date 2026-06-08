@@ -21,9 +21,22 @@ export type DesktopOverlayBridge = {
 	reportApplied: (commandType: OverlayCommand["type"]) => void;
 };
 
+export type DesktopAssistantScreenFrame = {
+	name: string;
+	mimeType: "image/jpeg";
+	dataUrl: string;
+};
+
+export type DesktopAssistantBridge = {
+	isDesktop: true;
+	setOpen: (open: boolean) => Promise<{ ok: true }>;
+	captureScreenFrame: () => Promise<DesktopAssistantScreenFrame>;
+};
+
 declare global {
 	interface Window {
 		meeraOverlay?: DesktopOverlayBridge;
+		meeraAssistant?: DesktopAssistantBridge;
 	}
 }
 

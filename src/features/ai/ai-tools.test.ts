@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toolCallToOverlayCommand } from "@/features/ai/ai-tools";
+import { recoverOverlayToolCallsFromText, toolCallToOverlayCommand } from "@/features/ai/ai-tools";
 
 describe("AI overlay tool adapter", () => {
 	it("converts and clamps AI tool arguments into validated overlay commands", () => {
@@ -40,5 +40,52 @@ describe("AI overlay tool adapter", () => {
 
 	it("rejects unknown tool names", () => {
 		expect(toolCallToOverlayCommand({ function: { name: "run_shell", arguments: {} } })).toBeNull();
+	});
+
+	it("recovers coordinate-style overlay text into an arrow tool call", () => {
+		const calls = recoverOverlayToolCallsFromText({
+			prompt: "Overlay something random on my YouTube screen.",
+			content: `I'll randomly pick the "HUGE SMASH!" video.
+
+Coordinates: x=0.7, y=0.25
+Arrow points directly to the thumbnail.`,
+		});
+
+		expect(calls[0]).toMatchObject({
+			function: { name: "overlay_show_arrow", arguments: { x: 0.7, y: 0.25 } },
+		});
+		expect(toolCallToOverlayCommand(calls[0])?.type).toBe("arrow.show");
+	});
+
+	it("recovers the overlay demo request without model-native tool calls", () => {
+		const calls = recoverOverlayToolCallsFromText({
+			prompt: "Show every overlay type so I can test them.",
+			content: "Here are the overlay types.",
+		});
+
+		expect(calls.map((call) => call.function?.name)).toEqual([
+			"overlay_move_cursor",
+			"overlay_show_arrow",
+			"overlay_show_highlight",
+			"overlay_show_bubble",
+		]);
+	});
+
+	it("does not recover overlay tools for ordinary text chat", () => {
+		expect(
+			recoverOverlayToolCallsFromText({
+				prompt: "Summarize what Meera can do.",
+				content: "Meera can triage support requests and prepare tickets.",
+			}),
+		).toEqual([]);
+	});
+
+	it("does not draw overlays for ordinary coordinate descriptions", () => {
+		expect(
+			recoverOverlayToolCallsFromText({
+				prompt: "What is on my screen?",
+				content: "The arrow icon appears near Coordinates: x=0.7, y=0.25.",
+			}),
+		).toEqual([]);
 	});
 });

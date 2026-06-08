@@ -34,21 +34,26 @@ Open the browser app:
 pnpm dev
 ```
 
+Then visit `http://localhost:3000/demo`.
+
+The browser demo is only the support-session UI. Desktop overlays and the assistant launcher require Electron.
+
 Open the Electron app with desktop overlays:
 
 ```powershell
 pnpm desktop:dev
 ```
 
-Scroll to **Meera AI assistant**.
+Click the Meera logo button floating at the bottom-right of the desktop to open the chat panel. The Electron launcher and chat panel are one always-on-top assistant window, separate from the main app window.
 
 Try:
 
 - `What can you help me with?`
 - Upload an image, then ask `Describe this image.`
-- Start screen sharing, click **Capture shared screen**, then ask `What is on my screen?`
+- In Electron, ask `What is on my screen?`
+- In Electron, ask `Analyze my screen and point at the most important control.`
 - In Electron, ask `Show every overlay type so I can test them.`
-- Attach a shared-screen frame, then ask `Point at the most important control.`
+- Use **Screen** in the chat panel when you want to manually attach a fresh desktop frame.
 
 ## Architecture
 
@@ -67,9 +72,10 @@ Try:
 ### Validated actions
 
 - `src/features/ai/ai-tools.ts`
-  - Declares the tools Ollama can call.
-  - Converts untrusted tool arguments into the existing `OverlayCommand` contract.
-  - Clamps coordinates and rejects unknown tools.
+	- Declares the tools Ollama can call.
+	- Converts untrusted tool arguments into the existing `OverlayCommand` contract.
+	- Clamps coordinates and rejects unknown tools.
+	- Recovers guarded coordinate-style overlay responses when a model writes text instead of native tool calls.
 - `src/features/ai/use-ai-overlay-actions.ts`
   - Executes validated commands through the existing Electron overlay bridge.
 
@@ -91,16 +97,24 @@ To add a future AI action:
 
 Do not let model output call Electron IPC, shell commands, or browser APIs directly.
 
-### Images and shared screen
+### Images and desktop frames
 
 - `src/features/ai/image-input.ts`
-  - Accepts JPEG, PNG, and WebP uploads.
-  - Converts and resizes images before sending them.
-  - Captures a still frame from the current screen-share preview.
+	- Accepts JPEG, PNG, and WebP uploads.
+	- Converts and resizes images before sending them.
+	- Captures a still frame from Electron's desktop capture bridge.
+	- Detects screen, visual guidance, and overlay prompts that should receive an automatic desktop frame.
 - `src/features/ai/ai-assistant.tsx`
-  - Composes chat, uploads, frame capture, and action feedback.
+	- Renders the Electron assistant launcher and chat surface.
+	- Composes chat, uploads, manual desktop frame capture, automatic frame capture, and action feedback.
+- `src/app/assistant/page.tsx`
+  - Renders the Electron-only assistant overlay surface.
+- `electron/main.ts`
+  - Creates the always-on-top assistant FAB window.
+  - Resizes the window between the closed FAB size and open chat size.
+  - Captures desktop frames for the assistant through Electron.
 
-Screen understanding is currently request-based: the user captures a frame and sends it to the model. It is not a continuous autonomous screen-watching loop.
+Screen understanding is request-based. In Electron, when auto-capture is enabled in the assistant, Meera attaches one fresh desktop frame before prompts that mention the screen, pointing, highlighting, cursors, arrows, overlays, or visual guidance. It is not a continuous autonomous screen-watching loop.
 
 ## API Shape
 
@@ -126,7 +140,7 @@ Meera sends a validated request to `POST /api/ai/chat`:
 }
 ```
 
-The response contains assistant text plus any requested overlay tool calls. The client validates every tool call again before sending an overlay command.
+The response contains assistant text plus any requested overlay tool calls. The client validates every tool call again before sending an overlay command. Native model tool calls are preferred; coordinate-style overlay text is only recovered for prompts that clearly ask for visual overlay actions.
 
 ## Deployment Notes
 

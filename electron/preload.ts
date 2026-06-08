@@ -1,6 +1,12 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { OverlayCommand } from "../src/features/overlay/overlay-protocol";
 
+type AssistantScreenFrame = {
+	name: string;
+	mimeType: "image/jpeg";
+	dataUrl: string;
+};
+
 const api = {
 	isDesktop: true,
 	getStatus: () => ipcRenderer.invoke("overlay:get-status"),
@@ -15,4 +21,11 @@ const api = {
 	reportApplied: (commandType: OverlayCommand["type"]) => ipcRenderer.send("overlay:applied", commandType),
 };
 
+const assistantApi = {
+	isDesktop: true,
+	setOpen: (open: boolean) => ipcRenderer.invoke("assistant:set-open", open),
+	captureScreenFrame: () => ipcRenderer.invoke("assistant:capture-screen-frame") as Promise<AssistantScreenFrame>,
+};
+
 contextBridge.exposeInMainWorld("meeraOverlay", api);
+contextBridge.exposeInMainWorld("meeraAssistant", assistantApi);

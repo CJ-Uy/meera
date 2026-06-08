@@ -166,6 +166,117 @@ function withDisplay<T extends OverlayCommand>(command: T, value: unknown): T {
 	return displayId ? { ...command, displayId } : command;
 }
 
+function overlayToolCall(name: string, args: Record<string, unknown>): AiToolCall {
+	return { function: { name, arguments: args } };
+}
+
+const normalizedNumberPattern = "(\\d+(?:\\.\\d+)?%?)";
+const coordinatePairPatterns = [
+	new RegExp(`\\bx\\s*[:=]\\s*${normalizedNumberPattern}\\s*(?:,|;|\\s+)\\s*y\\s*[:=]\\s*${normalizedNumberPattern}`, "i"),
+	new RegExp(`\\bcoordinates?\\b[^\\n\\d]*${normalizedNumberPattern}\\s*(?:,|;|/)\\s*${normalizedNumberPattern}`, "i"),
+	new RegExp(`\\(\\s*${normalizedNumberPattern}\\s*,\\s*${normalizedNumberPattern}\\s*\\)`, "i"),
+] as const;
+
+function parseNormalizedNumber(value: string) {
+	const parsed = Number(value.replace("%", ""));
+	if (!Number.isFinite(parsed)) return null;
+	const normalized = value.includes("%") || parsed > 1 ? parsed / 100 : parsed;
+	return Math.min(1, Math.max(0, normalized));
+}
+
+function extractPoint(text: string) {
+	for (const pattern of coordinatePairPatterns) {
+		const match = pattern.exec(text);
+		const x = match?.[1] ? parseNormalizedNumber(match[1]) : null;
+		const y = match?.[2] ? parseNormalizedNumber(match[2]) : null;
+		if (x !== null && y !== null) return { x, y };
+	}
+	return null;
+}
+
+function extractSize(text: string) {
+	const pattern = new RegExp(`\\bwidth\\s*[:=]\\s*${normalizedNumberPattern}[^\\n\\d]+height\\s*[:=]\\s*${normalizedNumberPattern}`, "i");
+	const match = pattern.exec(text);
+	const width = match?.[1] ? parseNormalizedNumber(match[1]) : null;
+	const height = match?.[2] ? parseNormalizedNumber(match[2]) : null;
+	if (width === null || height === null) return null;
+	return { width: Math.max(0.04, width), height: Math.max(0.04, height) };
+}
+
+function compactOverlayMessage(content: string) {
+	const candidates = content
+		.split(/\r?\n/)
+		.map((line) => line.replace(/[`*_>#\[\]]/g, "").replace(/\s+/g, " ").trim())
+		.filter((line) => line && !/^coordinates?\b/i.test(line) && !/^x\s*[:=]/i.test(line) && !/^let me know\b/i.test(line));
+	const selected = candidates.find((line) => /\b(pick|selected|click|target|look|random|highlight|arrow)\b/i.test(line)) ?? candidates[0];
+	if (!selected) return "Look here.";
+	return selected.slice(0, 90);
+}
+
+function hasOverlayActionIntent(prompt: string, content: string) {
+	const promptHasAction = /\b(show|put|place|add|draw|display|move|point|highlight|mark|circle|pick|choose|guide|overlay|clear|remove|hide|click)\b/i.test(
+		prompt,
+	);
+	const promptHasOverlayTarget = /\b(overlay|arrow|highlight|cursor|bubble|point|mark|circle|annotation|screen|desktop|youtube|button|click)\b/i.test(
+		prompt,
+	);
+	const contentLooksLikeOverlayPlan =
+		Boolean(extractPoint(content)) && /\b(coordinates?|arrow|highlight|overlay|points?|target|thumbnail|button|video)\b/i.test(content);
+	return promptHasAction && (promptHasOverlayTarget || contentLooksLikeOverlayPlan);
+}
+
+function highlightArgsFromPoint(point: { x: number; y: number }, content: string) {
+	const size = extractSize(content) ?? { width: 0.22, height: 0.16 };
+	return {
+		x: Math.max(0, point.x - size.width / 2),
+		y: Math.max(0, point.y - size.height / 2),
+		width: size.width,
+		height: size.height,
+		message: compactOverlayMessage(content),
+	};
+}
+
+export function recoverOverlayToolCallsFromText({
+	content,
+	prompt,
+}: {
+	content: string;
+	prompt: string;
+}): AiToolCall[] {
+	const text = `${prompt}\n${content}`;
+	if (!hasOverlayActionIntent(prompt, content)) return [];
+
+	if (/\b(show|test|display)\b/i.test(prompt) && /\b(every|all)\b/i.test(prompt) && /\boverlay\b/i.test(prompt)) {
+		return [
+			overlayToolCall("overlay_move_cursor", { x: 0.24, y: 0.28, label: "Meera" }),
+			overlayToolCall("overlay_show_arrow", { x: 0.72, y: 0.28, message: "Arrow" }),
+			overlayToolCall("overlay_show_highlight", { x: 0.54, y: 0.56, width: 0.28, height: 0.18, message: "Highlight" }),
+			overlayToolCall("overlay_show_bubble", { x: 0.35, y: 0.74, message: "Chat bubble" }),
+		];
+	}
+
+	if (/\b(clear|erase|remove)\b/i.test(prompt) && /\b(overlay|guidance|annotation|all)\b/i.test(prompt)) {
+		return [overlayToolCall("overlay_clear", {})];
+	}
+
+	if (/\bhide\b/i.test(prompt) && /\bcursor\b/i.test(prompt)) {
+		return [overlayToolCall("overlay_hide_cursor", {})];
+	}
+
+	const point = extractPoint(content) ?? extractPoint(prompt) ?? { x: 0.5, y: 0.5 };
+	const message = compactOverlayMessage(content);
+	const calls: AiToolCall[] = [];
+
+	if (/\bcursor\b/i.test(text)) calls.push(overlayToolCall("overlay_move_cursor", { x: point.x, y: point.y, label: "Meera" }));
+	if (/\b(highlight|circle|box)\b/i.test(text)) calls.push(overlayToolCall("overlay_show_highlight", highlightArgsFromPoint(point, content)));
+	if (/\b(bubble|message|label|note)\b/i.test(text)) calls.push(overlayToolCall("overlay_show_bubble", { x: point.x, y: point.y, message }));
+	if (calls.length === 0 || /\b(arrow|point|mark|pick|choose|overlay)\b/i.test(text)) {
+		calls.unshift(overlayToolCall("overlay_show_arrow", { x: point.x, y: point.y, message }));
+	}
+
+	return calls;
+}
+
 export function toolCallToOverlayCommand(toolCall: AiToolCall): OverlayCommand | null {
 	const name = toolCall.function?.name;
 	if (!name) return null;

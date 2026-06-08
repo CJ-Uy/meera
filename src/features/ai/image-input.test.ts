@@ -1,0 +1,19 @@
+import { describe, expect, it } from "vitest";
+import { isDesktopScreenFrameCaptureAvailable, shouldAutoCaptureSharedScreen } from "@/features/ai/image-input";
+
+describe("AI shared-screen auto capture heuristics", () => {
+	it("captures for screen and overlay guidance prompts", () => {
+		expect(shouldAutoCaptureSharedScreen("Analyze my shared screen and point at the button.")).toBe(true);
+		expect(shouldAutoCaptureSharedScreen("Show an overlay arrow where I should click.")).toBe(true);
+		expect(shouldAutoCaptureSharedScreen("What is on my screen?")).toBe(true);
+	});
+
+	it("does not capture for ordinary text chat", () => {
+		expect(shouldAutoCaptureSharedScreen("Summarize what Meera can do.")).toBe(false);
+		expect(shouldAutoCaptureSharedScreen("Write a friendly welcome message.")).toBe(false);
+	});
+
+	it("reports desktop capture unavailable outside Electron", () => {
+		expect(isDesktopScreenFrameCaptureAvailable()).toBe(false);
+	});
+});

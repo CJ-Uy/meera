@@ -10,7 +10,13 @@ const overlayWindows = new Map<number, BrowserWindow>();
 const readyOverlayDisplays = new Set<number>();
 const smokeAppliedEvents: string[] = [];
 let mainWindow: BrowserWindow | null = null;
+let assistantWindow: BrowserWindow | null = null;
+let assistantIsOpen = false;
 let smokeStarted = false;
+
+const assistantClosedSize = { width: 88, height: 88 };
+const assistantOpenSize = { width: 460, height: 650 };
+const assistantMargin = 24;
 
 function isTrustedUrl(url: string) {
 	try {
@@ -20,8 +26,18 @@ function isTrustedUrl(url: string) {
 	}
 }
 
+function overlayUrlForDisplay(displayId: number) {
+	const overlayUrl = new URL("/overlay", appUrl);
+	overlayUrl.searchParams.set("displayId", displayId.toString());
+	return overlayUrl.toString();
+}
+
+function assistantUrl() {
+	return new URL("/assistant", appUrl).toString();
+}
+
 function isTrustedSender(sender: Electron.WebContents) {
-	return sender === mainWindow?.webContents;
+	return sender === mainWindow?.webContents || sender === assistantWindow?.webContents;
 }
 
 function restrictNavigation(browserWindow: BrowserWindow) {
@@ -81,7 +97,7 @@ function createOverlayWindow(display: Display) {
 	overlayWindow.setIgnoreMouseEvents(true, { forward: true });
 	overlayWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
 	restrictNavigation(overlayWindow);
-	void overlayWindow.loadURL(`${appUrl}/overlay?displayId=${display.id}`);
+	void overlayWindow.loadURL(overlayUrlForDisplay(display.id));
 	overlayWindows.set(display.id, overlayWindow);
 }
 
@@ -90,6 +106,28 @@ function recreateOverlayWindows() {
 	for (const overlayWindow of overlayWindows.values()) overlayWindow.destroy();
 	overlayWindows.clear();
 	for (const display of screen.getAllDisplays()) createOverlayWindow(display);
+}
+
+function assistantBounds(open: boolean) {
+	const workArea = screen.getPrimaryDisplay().workArea;
+	const size = open
+		? {
+				width: Math.min(assistantOpenSize.width, workArea.width - assistantMargin * 2),
+				height: Math.min(assistantOpenSize.height, workArea.height - assistantMargin * 2),
+			}
+		: assistantClosedSize;
+
+	return {
+		width: size.width,
+		height: size.height,
+		x: workArea.x + workArea.width - size.width - assistantMargin,
+		y: workArea.y + workArea.height - size.height - assistantMargin,
+	};
+}
+
+function positionAssistantWindow() {
+	if (!assistantWindow || assistantWindow.isDestroyed()) return;
+	assistantWindow.setBounds(assistantBounds(assistantIsOpen), false);
 }
 
 function createMainWindow() {
@@ -112,6 +150,38 @@ function createMainWindow() {
 	mainWindow.on("closed", () => {
 		mainWindow = null;
 		if (!isSmokeTest) app.quit();
+	});
+}
+
+function createAssistantWindow() {
+	assistantIsOpen = false;
+	assistantWindow = new BrowserWindow({
+		...assistantBounds(false),
+		show: !isSmokeTest,
+		frame: false,
+		transparent: true,
+		backgroundColor: "#00000000",
+		alwaysOnTop: true,
+		skipTaskbar: true,
+		resizable: false,
+		movable: false,
+		fullscreenable: false,
+		hasShadow: false,
+		webPreferences: {
+			preload: preloadPath,
+			contextIsolation: true,
+			nodeIntegration: false,
+			sandbox: true,
+			backgroundThrottling: false,
+		},
+	});
+
+	assistantWindow.setAlwaysOnTop(true, "screen-saver");
+	assistantWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+	restrictNavigation(assistantWindow);
+	void assistantWindow.loadURL(assistantUrl());
+	assistantWindow.on("closed", () => {
+		assistantWindow = null;
 	});
 }
 
@@ -160,6 +230,30 @@ function configureIpc() {
 		return { ok: true };
 	});
 
+	ipcMain.handle("assistant:set-open", (event, open: unknown) => {
+		if (event.sender !== assistantWindow?.webContents) throw new Error("Assistant window controls are only available to the assistant overlay.");
+		assistantIsOpen = open === true;
+		positionAssistantWindow();
+		return { ok: true };
+	});
+
+	ipcMain.handle("assistant:capture-screen-frame", async (event) => {
+		if (event.sender !== assistantWindow?.webContents) throw new Error("Screen capture is only available to the assistant overlay.");
+		const sources = await desktopCapturer.getSources({
+			types: ["screen"],
+			thumbnailSize: { width: 1600, height: 1000 },
+		});
+		const primaryDisplayId = screen.getPrimaryDisplay().id.toString();
+		const preferredSource = sources.find((source) => source.display_id === primaryDisplayId) ?? sources[0];
+		if (!preferredSource || preferredSource.thumbnail.isEmpty()) throw new Error("No desktop screen capture source is available.");
+		const jpeg = preferredSource.thumbnail.toJPEG(84);
+		return {
+			name: `desktop-screen-${new Date().toISOString()}.jpg`,
+			mimeType: "image/jpeg",
+			dataUrl: `data:image/jpeg;base64,${jpeg.toString("base64")}`,
+		};
+	});
+
 	ipcMain.on("overlay:ready", (event, displayId: number) => {
 		const overlayWindow = overlayWindows.get(displayId);
 		if (!overlayWindow || overlayWindow.webContents !== event.sender) return;
@@ -194,7 +288,11 @@ async function startSmokeTestIfReady() {
 			boundsMatch(bounds.height, display.bounds.height)
 		);
 	});
-	if (!windowsAreConfigured) {
+	const assistantIsConfigured =
+		Boolean(assistantWindow && !assistantWindow.isDestroyed() && assistantWindow.isAlwaysOnTop()) &&
+		assistantWindow?.getBounds().width === assistantClosedSize.width &&
+		assistantWindow?.getBounds().height === assistantClosedSize.height;
+	if (!windowsAreConfigured || !assistantIsConfigured) {
 		const diagnostics = displays.map((display) => {
 			const overlayWindow = overlayWindows.get(display.id);
 			return {
@@ -205,7 +303,11 @@ async function startSmokeTestIfReady() {
 				focusable: overlayWindow?.isFocusable(),
 			};
 		});
-		console.error("MEERA_DESKTOP_SMOKE_FAILED overlay windows are not configured correctly", diagnostics);
+		console.error("MEERA_DESKTOP_SMOKE_FAILED overlay windows are not configured correctly", {
+			overlays: diagnostics,
+			assistant: assistantWindow?.getBounds(),
+			assistantAlwaysOnTop: assistantWindow?.isAlwaysOnTop(),
+		});
 		app.exit(1);
 		return;
 	}
@@ -259,9 +361,19 @@ app.whenReady().then(() => {
 	configureMediaCapture();
 	createMainWindow();
 	recreateOverlayWindows();
-	screen.on("display-added", recreateOverlayWindows);
-	screen.on("display-removed", recreateOverlayWindows);
-	screen.on("display-metrics-changed", recreateOverlayWindows);
+	createAssistantWindow();
+	screen.on("display-added", () => {
+		recreateOverlayWindows();
+		positionAssistantWindow();
+	});
+	screen.on("display-removed", () => {
+		recreateOverlayWindows();
+		positionAssistantWindow();
+	});
+	screen.on("display-metrics-changed", () => {
+		recreateOverlayWindows();
+		positionAssistantWindow();
+	});
 });
 
 app.on("window-all-closed", () => app.quit());
