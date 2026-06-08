@@ -101,6 +101,7 @@ export function useAiChat(executeToolCalls: (toolCalls: AiToolCall[]) => Promise
 				]);
 				return true;
 			} catch (sendError) {
+				setMessages((current) => current.filter((message) => message.id !== userMessage.id));
 				setError(sendError instanceof Error ? sendError.message : "Meera could not reach Ollama.");
 				return false;
 			} finally {

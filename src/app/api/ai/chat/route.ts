@@ -14,6 +14,7 @@ export async function POST(request: Request) {
 		}
 		return NextResponse.json(await chatWithOllama(body));
 	} catch (error) {
+		console.error("[Meera AI] chat request failed", error);
 		const message = error instanceof Error ? error.message : "Meera could not reach Ollama.";
 		return NextResponse.json({ error: message }, { status: 502 });
 	}

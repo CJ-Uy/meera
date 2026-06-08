@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { normalizeOverlayToolCalls, recoverOverlayToolCallsFromText, toolCallToOverlayCommand } from "@/features/ai/ai-tools";
+import {
+	normalizeOverlayToolCalls,
+	reconcileOverlayToolCalls,
+	recoverOverlayToolCallsFromText,
+	toolCallToOverlayCommand,
+} from "@/features/ai/ai-tools";
 
 describe("AI overlay tool adapter", () => {
 	it("converts and clamps AI tool arguments into validated overlay commands", () => {
@@ -66,6 +71,40 @@ describe("AI overlay tool adapter", () => {
 		expect(command).toMatchObject({ type: "arrow.show", target: { x: 0.7, y: 0.25 } });
 	});
 
+	it("normalizes Qwen relative 0-1000 coordinates instead of treating them as image pixels", () => {
+		const [implicitCall, explicitCall, topLeftCall] = normalizeOverlayToolCalls(
+			[
+				{ function: { name: "overlay_show_arrow", arguments: { x: 700, y: 250 } } },
+				{ function: { name: "overlay_move_cursor", arguments: { x: 700, y: 250, coordinateSpace: "relative_1000" } } },
+				{ function: { name: "overlay_show_arrow", arguments: { x: 70, y: 25 } } },
+			],
+			{ imageWidth: 1440, imageHeight: 810 },
+		);
+
+		expect(toolCallToOverlayCommand(implicitCall)).toMatchObject({ type: "arrow.show", target: { x: 0.7, y: 0.25 } });
+		expect(toolCallToOverlayCommand(explicitCall)).toMatchObject({ type: "cursor.move", target: { x: 0.7, y: 0.25 } });
+		expect(toolCallToOverlayCommand(topLeftCall)).toMatchObject({ type: "arrow.show", target: { x: 0.07, y: 0.025 } });
+	});
+
+	it("still supports explicit and percent-suffixed percentage coordinates", () => {
+		const [explicitCall, suffixedCall] = normalizeOverlayToolCalls([
+			{ function: { name: "overlay_show_arrow", arguments: { x: 70, y: 25, coordinateSpace: "percent" } } },
+			{ function: { name: "overlay_move_cursor", arguments: { x: "70%", y: "25%" } } },
+		]);
+
+		expect(toolCallToOverlayCommand(explicitCall)).toMatchObject({ type: "arrow.show", target: { x: 0.7, y: 0.25 } });
+		expect(toolCallToOverlayCommand(suffixedCall)).toMatchObject({ type: "cursor.move", target: { x: 0.7, y: 0.25 } });
+	});
+
+	it("infers image pixels for the whole coordinate pair when one axis exceeds 1000", () => {
+		const [call] = normalizeOverlayToolCalls(
+			[{ function: { name: "overlay_show_arrow", arguments: { x: 1344, y: 225 } } }],
+			{ imageWidth: 1920, imageHeight: 900 },
+		);
+
+		expect(toolCallToOverlayCommand(call)).toMatchObject({ type: "arrow.show", target: { x: 0.7, y: 0.25 } });
+	});
+
 	it("normalizes highlight center pixels into top-left overlay rectangles", () => {
 		const [call] = normalizeOverlayToolCalls(
 			[
@@ -81,6 +120,25 @@ describe("AI overlay tool adapter", () => {
 		const command = toolCallToOverlayCommand(call);
 
 		expect(command).toMatchObject({ type: "highlight.show", rect: { x: 0.4, y: 0.4, width: 0.2, height: 0.2 } });
+	});
+
+	it("applies an explicit coordinate space to small highlight dimensions", () => {
+		const [call] = normalizeOverlayToolCalls(
+			[
+				{
+					function: {
+						name: "overlay_show_highlight",
+						arguments: { x: 700, y: 250, width: 1, height: 10, coordinateSpace: "relative_1000" },
+					},
+				},
+			],
+			{ imageWidth: 1920, imageHeight: 900 },
+		);
+
+		expect(toolCallToOverlayCommand(call)).toMatchObject({
+			type: "highlight.show",
+			rect: { x: 0.7, y: 0.25, width: 0.001, height: 0.01 },
+		});
 	});
 
 	it("normalizes visible grid cells into overlay coordinates", () => {
@@ -155,6 +213,52 @@ Arrow points directly to the thumbnail.`,
 		});
 	});
 
+	it("reconciles an incorrect native arrow with an explicitly requested box", () => {
+		const calls = reconcileOverlayToolCalls({
+			prompt: "Show a box around the video.",
+			content: "",
+			context: { imageWidth: 1440, imageHeight: 810 },
+			toolCalls: [{ function: { name: "overlay_show_arrow", arguments: { x: 700, y: 250 } } }],
+		});
+
+		expect(calls).toHaveLength(1);
+		expect(calls[0]?.function?.name).toBe("overlay_show_highlight");
+		expect(toolCallToOverlayCommand(calls[0])).toMatchObject({
+			type: "highlight.show",
+			rect: { x: 0.59, y: 0.16999999999999998, width: 0.22, height: 0.16 },
+		});
+	});
+
+	it("reconciles an incorrect native arrow with explicitly requested text", () => {
+		const calls = reconcileOverlayToolCalls({
+			prompt: 'Show a text overlay that says "Watch this".',
+			content: "",
+			toolCalls: [{ function: { name: "overlay_show_arrow", arguments: { x: 800, y: 300 } } }],
+		});
+
+		expect(calls).toHaveLength(1);
+		expect(toolCallToOverlayCommand(calls[0])).toMatchObject({
+			type: "bubble.show",
+			target: { x: 0.8, y: 0.3 },
+			message: "Watch this",
+		});
+	});
+
+	it("guarantees every overlay primitive for the overlay demo request", () => {
+		const calls = reconcileOverlayToolCalls({
+			prompt: "Show every overlay type so I can test them.",
+			content: "",
+			toolCalls: [{ function: { name: "overlay_show_arrow", arguments: { x: 0.5, y: 0.5 } } }],
+		});
+
+		expect(calls.map((call) => call.function?.name)).toEqual([
+			"overlay_move_cursor",
+			"overlay_show_arrow",
+			"overlay_show_highlight",
+			"overlay_show_bubble",
+		]);
+	});
+
 	it("does not invent center arrows when no overlay target is available", () => {
 		expect(
 			recoverOverlayToolCallsFromText({
@@ -185,6 +289,17 @@ Arrow points directly to the thumbnail.`,
 				content: "Meera can triage support requests and prepare tickets.",
 			}),
 		).toEqual([]);
+	});
+
+	it("recovers a screen-aware recommendation as an arrow when the model writes coordinates", () => {
+		const calls = recoverOverlayToolCallsFromText({
+			prompt: "Suggest a random YouTube video.",
+			content: "I recommend the top-right video. Coordinates: x=700, y=250.",
+		});
+
+		expect(calls[0]).toMatchObject({
+			function: { name: "overlay_show_arrow", arguments: { x: 0.7, y: 0.25 } },
+		});
 	});
 
 	it("does not draw overlays for ordinary coordinate descriptions", () => {

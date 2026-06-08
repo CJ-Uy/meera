@@ -8,9 +8,28 @@ import { useDesktopOverlay } from "@/features/overlay/use-desktop-overlay";
 export function useAiOverlayActions() {
 	const { available, sendCommand } = useDesktopOverlay();
 
+	const clearVisualGuidance = useCallback(async () => {
+		if (!available) return;
+		await sendCommand({ type: "overlay.clear" });
+	}, [available, sendCommand]);
+
 	const executeToolCalls = useCallback(
 		async (toolCalls: AiToolCall[]): Promise<AiActionResult[]> => {
 			const results: AiActionResult[] = [];
+			const showsVisualGuidance = toolCalls.some((toolCall) =>
+				["overlay_move_cursor", "overlay_show_arrow", "overlay_show_highlight", "overlay_show_bubble"].includes(
+					toolCall.function?.name ?? "",
+				),
+			);
+			const clearsVisualGuidance = toolCalls.some((toolCall) => toolCall.function?.name === "overlay_clear");
+			if (available && showsVisualGuidance && !clearsVisualGuidance) {
+				try {
+					await sendCommand({ type: "overlay.clear" });
+				} catch {
+					// Continue validating the requested actions; individual sends report their own failures below.
+				}
+			}
+
 			for (const toolCall of toolCalls) {
 				const tool = toolCall.function?.name ?? "unknown_tool";
 				const command = toolCallToOverlayCommand(toolCall);
@@ -34,5 +53,5 @@ export function useAiOverlayActions() {
 		[available, sendCommand],
 	);
 
-	return { overlayAvailable: available, executeToolCalls };
+	return { overlayAvailable: available, executeToolCalls, clearVisualGuidance };
 }
