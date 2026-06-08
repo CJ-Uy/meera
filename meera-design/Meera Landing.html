@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Meera — AI support that shows users what to do</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --cream:#FBF6EE;
+  --cream-2:#F5ECDD;
+  --cream-3:#EFE4D2;
+  --paper:#FFFFFF;
+  --ink:#1C3349;
+  --ink-2:#33495C;
+  --muted:#6E7E8B;
+  --line:#EAE0D1;
+  --line-2:#E2D6C2;
+
+  --teal:#2E9C8E;
+  --teal-600:#26867A;
+  --teal-700:#1E6A60;
+  --teal-050:#E4F1EE;
+  --teal-100:#CDE7E2;
+
+  --sand:#E79B6B;
+  --sand-600:#D9844F;
+  --sand-050:#FBEADD;
+
+  --gold:#D9A65A;
+  --gold-050:#F7EBD3;
+
+  --green:#7FB85C;
+  --green-050:#EAF3E0;
+  --rose:#E08769;
+
+  --navy-deep:#16293B;
+
+  /* tweakable accent (set by JS) */
+  --accent:#2E9C8E;
+  --accent-600:#26867A;
+  --accent-050:#E4F1EE;
+
+  --r-sm:10px; --r-md:16px; --r-lg:24px; --r-xl:34px; --r-pill:999px;
+  --sh-sm:0 1px 2px rgba(28,51,73,.05), 0 4px 12px -6px rgba(28,51,73,.10);
+  --sh-md:0 2px 4px rgba(28,51,73,.04), 0 14px 34px -14px rgba(28,51,73,.18);
+  --sh-lg:0 4px 8px rgba(28,51,73,.05), 0 30px 60px -22px rgba(28,51,73,.28);
+  --maxw:1200px;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;
+  font-family:'Plus Jakarta Sans', system-ui, sans-serif;
+  background:var(--cream);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  line-height:1.55;
+}
+h1,h2,h3,h4{margin:0;line-height:1.08;letter-spacing:-.02em;font-weight:800;color:var(--ink);}
+p{margin:0;}
+a{color:inherit;text-decoration:none;}
+img{display:block;max-width:100%;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;}
+::selection{background:var(--accent-050);}
+
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 32px;}
+.section{padding:104px 0;}
+.mono{font-family:'DM Mono',ui-monospace,monospace;}
+.eyebrow{
+  font-family:'DM Mono',monospace;font-size:12.5px;font-weight:500;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--accent-600);
+  display:inline-flex;align-items:center;gap:9px;
+}
+.eyebrow::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent);}
+.eyebrow.sand{color:var(--sand-600);}
+.eyebrow.sand::before{background:var(--sand);}
+
+.h-display{font-size:clamp(40px,6vw,72px);font-weight:800;letter-spacing:-.035em;line-height:1.02;}
+.h-2{font-size:clamp(30px,4vw,46px);font-weight:800;letter-spacing:-.03em;line-height:1.05;}
+.h-3{font-size:clamp(21px,2.4vw,27px);font-weight:700;letter-spacing:-.02em;}
+.lede{font-size:clamp(17px,1.5vw,20px);color:var(--ink-2);line-height:1.6;font-weight:500;}
+.muted{color:var(--muted);}
+.tnum{font-feature-settings:"tnum" 1;}
+
+/* buttons */
+.btn{
+  display:inline-flex;align-items:center;gap:9px;justify-content:center;
+  font-weight:700;font-size:15.5px;letter-spacing:-.01em;
+  padding:14px 24px;border-radius:var(--r-pill);
+  transition:transform .16s ease, box-shadow .2s ease, background .2s ease;
+  white-space:nowrap;
+}
+.btn:active{transform:translateY(1px);}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:0 10px 22px -10px color-mix(in oklab, var(--accent) 70%, black);}
+.btn-primary:hover{background:var(--accent-600);transform:translateY(-1px);}
+.btn-dark{background:var(--ink);color:#fff;}
+.btn-dark:hover{background:var(--navy-deep);transform:translateY(-1px);}
+.btn-ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line-2);}
+.btn-ghost:hover{border-color:var(--ink);background:#fff;}
+.btn-white{background:#fff;color:var(--ink);box-shadow:var(--sh-sm);}
+.btn-white:hover{transform:translateY(-1px);box-shadow:var(--sh-md);}
+.btn-sm{padding:10px 16px;font-size:14px;}
+
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-sm);}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:var(--r-pill);font-size:13px;font-weight:600;background:#fff;border:1px solid var(--line);}
+
+.grain{position:relative;}
+
+/* reveal-on-scroll */
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1);}
+.reveal.in{opacity:1;transform:none;}
+@media (prefers-reduced-motion: reduce){.reveal{opacity:1;transform:none;transition:none;}}
+
+/* floating meerkat helper bob */
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+@keyframes pulse-ring{0%{transform:scale(.85);opacity:.7}70%{transform:scale(1.35);opacity:0}100%{opacity:0}}
+@keyframes dash-move{to{stroke-dashoffset:-16;}}
+
+#app{overflow-x:clip;}
+.app-loading{display:flex;align-items:center;justify-content:center;height:100vh;color:var(--muted);font-family:'DM Mono',monospace;font-size:13px;letter-spacing:.1em;}
+
+@media (max-width:760px){
+  .section{padding:72px 0;}
+  .wrap{padding:0 20px;}
+}
+</style>
+</head>
+<body>
+<div id="app"><div class="app-loading">loading meera…</div></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="meera-ui.jsx"></script>
+<script type="text/babel" src="meera-demos.jsx"></script>
+<script type="text/babel" src="meera-dashboard.jsx"></script>
+<script type="text/babel" src="meera-sections.jsx"></script>
+<script type="text/babel" src="meera-app.jsx"></script>
+</body>
+</html>

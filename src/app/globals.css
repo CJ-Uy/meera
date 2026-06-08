@@ -1,6 +1,119 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=DM+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
+
+:root {
+	--cream: #FBF6EE;
+	--cream-2: #F5ECDD;
+	--ink: #1C3349;
+	--ink-2: #33495C;
+	--muted: #6E7E8B;
+	--line: #EAE0D1;
+	--line-2: #E2D6C2;
+	--teal: #2E9C8E;
+	--teal-600: #26867A;
+	--teal-700: #1E6A60;
+	--teal-050: #E4F1EE;
+	--teal-100: #CDE7E2;
+	--sand: #E79B6B;
+	--sand-600: #D9844F;
+	--sand-050: #FBEADD;
+	--gold: #D9A65A;
+	--gold-050: #F7EBD3;
+	--green: #7FB85C;
+	--green-050: #EAF3E0;
+	--navy-deep: #16293B;
+	--meera-tan: #efb16d;
+	--meera-cream: #fff8ee;
+	--meera-card: #ffffff;
+	--meera-beige: #f8e4c8;
+	--meera-green: #9bcf53;
+	--meera-green-dark: #6fa334;
+	--meera-brown: #4b2b1f;
+	--meera-brown-soft: #7a5036;
+	--trust-blue: #3b82f6;
+	--trust-blue-soft: #eaf3ff;
+
+	--meera-font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+	--meera-font-mono: "DM Mono", ui-monospace, monospace;
+	--meera-cream: #fbf6ee;
+	--meera-cream-2: #f5ecdd;
+	--meera-cream-3: #efe4d2;
+	--meera-paper: #ffffff;
+	--meera-ink: #1c3349;
+	--meera-ink-2: #33495c;
+	--meera-muted: #6e7e8b;
+	--meera-line: #eae0d1;
+	--meera-line-2: #e2d6c2;
+	--meera-teal: #2e9c8e;
+	--meera-teal-600: #26867a;
+	--meera-teal-700: #1e6a60;
+	--meera-teal-050: #e4f1ee;
+	--meera-teal-100: #cde7e2;
+	--meera-sand: #e79b6b;
+	--meera-sand-600: #d9844f;
+	--meera-sand-050: #fbeadd;
+	--meera-gold: #d9a65a;
+	--meera-gold-050: #f7ebd3;
+	--meera-green: #7fb85c;
+	--meera-green-050: #eaf3e0;
+	--meera-rose: #e08769;
+	--meera-navy-deep: #16293b;
+	--meera-accent: #2e9c8e;
+	--meera-accent-600: #26867a;
+	--meera-accent-050: #e4f1ee;
+	--meera-r-sm: 10px;
+	--meera-r-md: 16px;
+	--meera-r-lg: 24px;
+	--meera-r-xl: 34px;
+	--meera-r-pill: 999px;
+	--meera-sh-sm: 0 1px 2px rgba(28, 51, 73, 0.05), 0 4px 12px -6px rgba(28, 51, 73, 0.1);
+	--meera-sh-md: 0 2px 4px rgba(28, 51, 73, 0.04), 0 14px 34px -14px rgba(28, 51, 73, 0.18);
+	--meera-sh-lg: 0 4px 8px rgba(28, 51, 73, 0.05), 0 30px 60px -22px rgba(28, 51, 73, 0.28);
+}
 
 html,
 body {
 	overflow-x: hidden;
+}
+
+html {
+	scroll-behavior: smooth;
+}
+
+body {
+	background: var(--meera-cream);
+	color: var(--meera-ink);
+	font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+	line-height: 1.55;
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+}
+
+.font-mono {
+	font-family: var(--meera-font-mono);
+}
+
+::selection {
+	background: var(--meera-accent-050);
+}
+
+@keyframes bob {
+	0%, 100% { transform: translateY(0); }
+	50%       { transform: translateY(-9px); }
+}
+
+@keyframes pulse-ring {
+	0%   { transform: scale(.85); opacity: .7; }
+	70%  { transform: scale(1.35); opacity: 0; }
+	100% { opacity: 0; }
+}
+
+@keyframes fadeUp {
+	from { opacity: 0; transform: translateY(8px); }
+	to   { opacity: 1; transform: none; }
+}
+
+@keyframes tdot {
+	0%, 60%, 100% { transform: translateY(0); opacity: .4; }
+	30%           { transform: translateY(-4px); opacity: 1; }
 }

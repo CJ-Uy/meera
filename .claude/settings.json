@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(codex:rescue)",
+      "Skill(codex:rescue:*)",
+      "Bash(node C:/Users/charl/.claude/plugins/cache/openai-codex/codex/1.0.4/scripts/codex-companion.mjs task '<task> *)",
+      "Skill(codex:setup)",
+      "Skill(codex:setup:*)",
+      "PowerShell(Expand-Archive -Path 'c:\\\\Users\\\\charl\\\\Documents\\\\GitHub\\\\meera\\\\Meera.zip' -DestinationPath 'c:\\\\Users\\\\charl\\\\Documents\\\\GitHub\\\\meera\\\\meera-design' -Force)",
+      "Bash(git -C \"c:\\\\Users\\\\charl\\\\Documents\\\\GitHub\\\\meera\" status)",
+      "Bash(git -C \"c:/Users/charl/Documents/GitHub/meera\" checkout -- src/app/page.tsx)",
+      "Bash(git -C \"c:/Users/charl/Documents/GitHub/meera\" status --short)"
+    ]
+  }
+}

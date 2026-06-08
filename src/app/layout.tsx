@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-	title: "Meera | Guided support",
-	description: "A calm, guided university support session.",
+	title: "Meera | AI support orchestration",
+	description: "Meera turns unstructured support requests into resolved answers or ready-to-act tickets.",
 };
 
 export default function RootLayout({
