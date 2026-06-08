@@ -18,6 +18,9 @@ export type OverlayCoordinateContext = {
 	gridRows?: number;
 };
 
+type OverlayCoordinateSpace = "normalized" | "percent" | "image_pixels" | "relative_1000";
+type VisualOverlayToolName = "overlay_move_cursor" | "overlay_show_arrow" | "overlay_show_highlight" | "overlay_show_bubble";
+
 const displayProperty = {
 	type: "string",
 	enum: ["primary", "all"],
@@ -25,16 +28,17 @@ const displayProperty = {
 };
 const coordinateSpaceProperty = {
 	type: "string",
-	enum: ["normalized", "percent", "image_pixels"],
-	description: "Use normalized for 0-1 coordinates, percent for 0-100 coordinates, or image_pixels for pixel coordinates in the attached screen image.",
+	enum: ["normalized", "percent", "image_pixels", "relative_1000"],
+	description:
+		"Use relative_1000 for Qwen visual-grounding coordinates from 0-1000, normalized for 0-1, percent for 0-100, or image_pixels for pixels in the attached screen image.",
 };
 const imageSizeProperties = {
 	imageWidth: { type: "number", description: "Width in pixels of the attached screen image when using image_pixels." },
 	imageHeight: { type: "number", description: "Height in pixels of the attached screen image when using image_pixels." },
 };
 const pointProperties = {
-	x: { type: "number", description: "Target horizontal coordinate. Prefer normalized 0-1 unless coordinateSpace is image_pixels." },
-	y: { type: "number", description: "Target vertical coordinate. Prefer normalized 0-1 unless coordinateSpace is image_pixels." },
+	x: { type: "number", description: "Target horizontal coordinate. Prefer Qwen's relative 0-1000 visual-grounding coordinate." },
+	y: { type: "number", description: "Target vertical coordinate. Prefer Qwen's relative 0-1000 visual-grounding coordinate." },
 	coordinateSpace: coordinateSpaceProperty,
 	gridCell: { type: "string", description: "Optional visible calibration grid cell label, such as A1 or J3." },
 	gridColumn: { type: "string", description: "Optional visible calibration grid column label, such as A or J." },
@@ -97,8 +101,8 @@ export const OLLAMA_OVERLAY_TOOLS: OllamaTool[] = [
 				type: "object",
 				properties: {
 					...pointProperties,
-					width: { type: "number", description: "Normalized width from 0 to 1." },
-					height: { type: "number", description: "Normalized height from 0 to 1." },
+					width: { type: "number", description: "Target width using coordinateSpace. Normalized 0-1 values are also accepted." },
+					height: { type: "number", description: "Target height using coordinateSpace. Normalized 0-1 values are also accepted." },
 					centerX: { type: "number", description: "Optional horizontal center coordinate when x/y are not top-left." },
 					centerY: { type: "number", description: "Optional vertical center coordinate when x/y are not top-left." },
 					id: { type: "string" },
@@ -270,9 +274,51 @@ function normalizeGridPoint(args: Record<string, unknown>, context?: OverlayCoor
 }
 
 function coordinateSpace(args: Record<string, unknown>) {
-	return args.coordinateSpace === "normalized" || args.coordinateSpace === "percent" || args.coordinateSpace === "image_pixels"
-		? args.coordinateSpace
+	return args.coordinateSpace === "normalized" ||
+		args.coordinateSpace === "percent" ||
+		args.coordinateSpace === "image_pixels" ||
+		args.coordinateSpace === "relative_1000"
+		? (args.coordinateSpace as OverlayCoordinateSpace)
 		: undefined;
+}
+
+const coordinateArgumentNames = [
+	"x",
+	"y",
+	"centerX",
+	"centerY",
+	"imageX",
+	"imageY",
+	"pixelX",
+	"pixelY",
+	"screenX",
+	"screenY",
+	"targetX",
+	"targetY",
+	"left",
+	"top",
+	"pixelLeft",
+	"pixelTop",
+	"width",
+	"height",
+	"pixelWidth",
+	"pixelHeight",
+	"boxWidth",
+	"boxHeight",
+	"w",
+	"h",
+] as const;
+
+function inferredCoordinateSpace(args: Record<string, unknown>, context?: OverlayCoordinateContext): OverlayCoordinateSpace | undefined {
+	const explicitSpace = coordinateSpace(args);
+	if (explicitSpace) return explicitSpace;
+
+	if (coordinateArgumentNames.some((name) => typeof args[name] === "string" && args[name].trim().endsWith("%"))) return "percent";
+	const values = coordinateArgumentNames.map((name) => numeric(args[name])).filter((value): value is number => value !== null);
+	if (values.length === 0) return undefined;
+	if (context && values.some((value) => Math.abs(value) > 1_000)) return "image_pixels";
+	if (values.some((value) => Math.abs(value) > 2)) return "relative_1000";
+	return undefined;
 }
 
 function normalizeCoordinateValue(
@@ -286,14 +332,16 @@ function normalizeCoordinateValue(
 	if (parsed === null) return fallback;
 	const textValue = typeof value === "string" ? value.trim() : "";
 	const size = axisSize(axis, args, context);
-	const space = coordinateSpace(args);
+	const space = inferredCoordinateSpace(args, context);
 
 	if (space === "image_pixels" && size) return clamp(parsed / size, fallback);
+	if (space === "relative_1000") return clamp(parsed / 1_000, fallback);
 	if (space === "percent" || textValue.endsWith("%")) return clamp(parsed / 100, fallback);
 	if (space === "normalized") return clamp(parsed, fallback);
 	if (parsed >= 0 && parsed <= 1) return parsed;
 	if (parsed <= 2) return clamp(parsed, fallback);
-	if (size && parsed > 100) return clamp(parsed / size, fallback);
+	if (size && parsed > 1_000) return clamp(parsed / size, fallback);
+	if (parsed > 100) return clamp(parsed / 1_000, fallback);
 	return clamp(parsed / 100, fallback);
 }
 
@@ -304,6 +352,9 @@ function normalizeDimensionValue(
 	args: Record<string, unknown>,
 	context?: OverlayCoordinateContext,
 ) {
+	const parsed = numeric(value);
+	const explicitSpace = coordinateSpace(args);
+	if (parsed !== null && parsed >= 0 && parsed <= 1 && (explicitSpace === undefined || explicitSpace === "normalized")) return parsed;
 	return Math.max(0, normalizeCoordinateValue(value, axis, fallback, args, context));
 }
 
@@ -426,9 +477,10 @@ function extractPoint(text: string, context?: OverlayCoordinateContext) {
 	for (const pattern of coordinatePairPatterns) {
 		const match = pattern.exec(text);
 		if (!match?.[1] || !match[2]) continue;
+		const args = { x: match[1], y: match[2] };
 		return {
-			x: normalizeCoordinateValue(match[1], "x", 0.5, {}, context),
-			y: normalizeCoordinateValue(match[2], "y", 0.5, {}, context),
+			x: normalizeCoordinateValue(match[1], "x", 0.5, args, context),
+			y: normalizeCoordinateValue(match[2], "y", 0.5, args, context),
 		};
 	}
 	return null;
@@ -478,13 +530,19 @@ function wantsArrow(text: string) {
 	return /\b(arrow|point|pointer)\b/i.test(text);
 }
 
+function isOverlayDemoPrompt(prompt: string) {
+	return /\b(show|test|display)\b/i.test(prompt) && /\b(every|all)\b/i.test(prompt) && /\boverlay\b/i.test(prompt);
+}
+
 function hasOverlayActionIntent(prompt: string, content: string) {
-	const promptHasAction = /\b(show|put|place|add|draw|display|move|point|highlight|mark|circle|pick|choose|guide|overlay|clear|remove|hide|click)\b/i.test(
-		prompt,
-	);
-	const promptHasOverlayTarget = /\b(overlay|arrow|highlight|cursor|bubble|point|mark|circle|annotation|screen|desktop|youtube|button|click)\b/i.test(
-		prompt,
-	);
+	const promptHasAction =
+		/\b(show|put|place|add|draw|display|move|point|highlight|mark|circle|pick|choose|select|suggest|recommend|find|open|navigate|guide|overlay|clear|remove|hide|click)\b/i.test(
+			prompt,
+		);
+	const promptHasOverlayTarget =
+		/\b(overlay|arrow|highlight|cursor|bubble|point|mark|circle|annotation|screen|desktop|youtube|video|button|menu|link|tab|page|click)\b/i.test(
+			prompt,
+		);
 	const contentLooksLikeOverlayPlan =
 		Boolean(extractPoint(content)) && /\b(coordinates?|grid|cell|arrow|highlight|overlay|points?|target|thumbnail|button|video)\b/i.test(content);
 	return promptHasAction && (promptHasOverlayTarget || contentLooksLikeOverlayPlan);
@@ -501,6 +559,107 @@ function highlightArgsFromPoint(point: { x: number; y: number }, content: string
 	};
 }
 
+function visualToolName(name: string | undefined): name is VisualOverlayToolName {
+	return (
+		name === "overlay_move_cursor" ||
+		name === "overlay_show_arrow" ||
+		name === "overlay_show_highlight" ||
+		name === "overlay_show_bubble"
+	);
+}
+
+function requestedVisualTools(prompt: string): VisualOverlayToolName[] {
+	if (isOverlayDemoPrompt(prompt)) {
+		return ["overlay_move_cursor", "overlay_show_arrow", "overlay_show_highlight", "overlay_show_bubble"];
+	}
+
+	const tools: VisualOverlayToolName[] = [];
+	if (wantsCursor(prompt)) tools.push("overlay_move_cursor");
+	if (wantsHighlight(prompt)) tools.push("overlay_show_highlight");
+	if (wantsTextOverlay(prompt)) tools.push("overlay_show_bubble");
+	if (wantsArrow(prompt)) tools.push("overlay_show_arrow");
+	return tools;
+}
+
+function pointFromToolCall(toolCall: AiToolCall) {
+	const name = toolCall.function?.name;
+	const args = parseArguments(toolCall.function?.arguments);
+	const point = pointFromArgs(args);
+	if (!point) return null;
+	if (name !== "overlay_show_highlight") return point;
+	const width = numeric(args.width);
+	const height = numeric(args.height);
+	return {
+		x: clamp(point.x + (width ?? 0) / 2, point.x),
+		y: clamp(point.y + (height ?? 0) / 2, point.y),
+	};
+}
+
+function isDefaultCenter(point: { x: number; y: number } | null) {
+	return Boolean(point && Math.abs(point.x - 0.5) < 0.001 && Math.abs(point.y - 0.5) < 0.001);
+}
+
+function synthesizedVisualToolCall(
+	name: VisualOverlayToolName,
+	point: { x: number; y: number } | null,
+	message: string,
+	content: string,
+	context?: OverlayCoordinateContext,
+) {
+	switch (name) {
+		case "overlay_move_cursor":
+			return point ? overlayToolCall(name, { ...point, label: "Meera" }) : null;
+		case "overlay_show_arrow":
+			return point ? overlayToolCall(name, { ...point, message }) : null;
+		case "overlay_show_highlight":
+			return point ? overlayToolCall(name, { ...highlightArgsFromPoint(point, content, context), message }) : null;
+		case "overlay_show_bubble":
+			return overlayToolCall(name, { ...(point ?? { x: 0.5, y: 0.82 }), message, placement: "top" });
+	}
+}
+
+export function reconcileOverlayToolCalls({
+	content,
+	context,
+	prompt,
+	toolCalls,
+}: {
+	content: string;
+	context?: OverlayCoordinateContext;
+	prompt: string;
+	toolCalls: AiToolCall[];
+}) {
+	const normalizedCalls = normalizeOverlayToolCalls(toolCalls, context);
+	if (isOverlayDemoPrompt(prompt)) {
+		return normalizeOverlayToolCalls(
+			[
+				overlayToolCall("overlay_move_cursor", { x: 0.24, y: 0.28, label: "Meera" }),
+				overlayToolCall("overlay_show_arrow", { x: 0.72, y: 0.28, message: "Arrow" }),
+				overlayToolCall("overlay_show_highlight", { x: 0.54, y: 0.56, width: 0.28, height: 0.18, message: "Highlight" }),
+				overlayToolCall("overlay_show_bubble", { x: 0.35, y: 0.74, message: "Chat bubble" }),
+			],
+			context,
+		);
+	}
+
+	const requestedTools = requestedVisualTools(prompt);
+	if (requestedTools.length === 0) return normalizedCalls;
+
+	const controlCalls = normalizedCalls.filter((call) => !visualToolName(call.function?.name));
+	const contentPoint = extractPoint(content, context);
+	const nativePoint = normalizedCalls.map(pointFromToolCall).find((point) => point !== null) ?? null;
+	const preferredPoint = contentPoint && isDefaultCenter(nativePoint) ? contentPoint : nativePoint ?? contentPoint ?? extractPoint(prompt, context);
+	const message = overlayMessage(prompt, content);
+	const visualCalls = requestedTools.flatMap((name) => {
+		const matchingCall = normalizedCalls.find((call) => call.function?.name === name);
+		if (matchingCall && !(contentPoint && isDefaultCenter(pointFromToolCall(matchingCall)))) return [matchingCall];
+		const synthesized = synthesizedVisualToolCall(name, preferredPoint, message, content, context);
+		return synthesized ? [synthesized] : [];
+	});
+
+	return normalizeOverlayToolCalls([...controlCalls, ...visualCalls], context);
+}
+
 export function recoverOverlayToolCallsFromText({
 	content,
 	context,
@@ -513,7 +672,7 @@ export function recoverOverlayToolCallsFromText({
 	const text = `${prompt}\n${content}`;
 	if (!hasOverlayActionIntent(prompt, content)) return [];
 
-	if (/\b(show|test|display)\b/i.test(prompt) && /\b(every|all)\b/i.test(prompt) && /\boverlay\b/i.test(prompt)) {
+	if (isOverlayDemoPrompt(prompt)) {
 		return [
 			overlayToolCall("overlay_move_cursor", { x: 0.24, y: 0.28, label: "Meera" }),
 			overlayToolCall("overlay_show_arrow", { x: 0.72, y: 0.28, message: "Arrow" }),
@@ -532,7 +691,9 @@ export function recoverOverlayToolCallsFromText({
 
 	const point = extractPoint(content, context) ?? extractPoint(prompt, context);
 	const message = overlayMessage(prompt, content);
-	const wantsText = wantsTextOverlay(text);
+	const promptHasExplicitVisualTool = requestedVisualTools(prompt).length > 0;
+	const intentText = promptHasExplicitVisualTool ? prompt : text;
+	const wantsText = wantsTextOverlay(intentText);
 	if (!point) {
 		if (wantsText) {
 			return [
@@ -549,10 +710,10 @@ export function recoverOverlayToolCallsFromText({
 
 	const calls: AiToolCall[] = [];
 
-	if (wantsCursor(text)) calls.push(overlayToolCall("overlay_move_cursor", { x: point.x, y: point.y, label: "Meera" }));
-	if (wantsHighlight(text)) calls.push(overlayToolCall("overlay_show_highlight", highlightArgsFromPoint(point, content, context)));
+	if (wantsCursor(intentText)) calls.push(overlayToolCall("overlay_move_cursor", { x: point.x, y: point.y, label: "Meera" }));
+	if (wantsHighlight(intentText)) calls.push(overlayToolCall("overlay_show_highlight", highlightArgsFromPoint(point, content, context)));
 	if (wantsText) calls.push(overlayToolCall("overlay_show_bubble", { x: point.x, y: point.y, message, placement: "top" }));
-	if (calls.length === 0 || wantsArrow(text) || /\b(mark|pick|choose)\b/i.test(text)) {
+	if (calls.length === 0 || wantsArrow(intentText) || /\b(mark|pick|choose|select|suggest|recommend)\b/i.test(intentText)) {
 		calls.unshift(overlayToolCall("overlay_show_arrow", { x: point.x, y: point.y, message }));
 	}
 

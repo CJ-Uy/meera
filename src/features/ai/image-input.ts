@@ -1,8 +1,8 @@
 import type { AiImageAttachment, AiImageSource, AiScreenFrameMetadata } from "@/features/ai/ai-types";
 
 const MAX_SOURCE_BYTES = 12 * 1024 * 1024;
-const MAX_EDGE = 1_600;
-const JPEG_QUALITY = 0.84;
+const MAX_EDGE = 1_280;
+const JPEG_QUALITY = 0.78;
 const SUPPORTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const CALIBRATION_GRID = { columns: 12, rows: 8 } as const;
 const AUTO_CAPTURE_PATTERNS = [
@@ -18,6 +18,8 @@ const AUTO_CAPTURE_PATTERNS = [
 	/\bguide me\b/i,
 	/\bwhat (?:am i|is) (?:seeing|on)\b/i,
 	/\bwhere (?:is|should)\b/i,
+	/\b(suggest|recommend|pick|choose|select|find|open|navigate)\b.*\b(youtube|video|button|menu|link|tab|page|app|screen)\b/i,
+	/\b(youtube|video|button|menu|link|tab|page|app|screen)\b.*\b(suggest|recommend|pick|choose|select|find|open|navigate)\b/i,
 ];
 const OVERLAY_CALIBRATION_PATTERNS = [
 	/\boverlay\b/i,
@@ -199,6 +201,13 @@ export function captureSharedScreenFrame(video: HTMLVideoElement): AiImageAttach
 }
 
 export function shouldAutoCaptureSharedScreen(prompt: string) {
+	if (
+		(/\b(clear|erase|remove)\b/i.test(prompt) && /\b(overlay|guidance|annotation|all)\b/i.test(prompt)) ||
+		(/\bhide\b/i.test(prompt) && /\bcursor\b/i.test(prompt)) ||
+		(/\b(show|test|display)\b/i.test(prompt) && /\b(every|all)\b/i.test(prompt) && /\boverlay\b/i.test(prompt))
+	) {
+		return false;
+	}
 	return AUTO_CAPTURE_PATTERNS.some((pattern) => pattern.test(prompt));
 }
 

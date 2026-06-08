@@ -83,7 +83,7 @@ function ChatMessage({ message }: { message: AiChatMessage }) {
 }
 
 export function AiAssistant({ onOpenChange }: AiAssistantProps) {
-	const { overlayAvailable, executeToolCalls } = useAiOverlayActions();
+	const { overlayAvailable, executeToolCalls, clearVisualGuidance } = useAiOverlayActions();
 	const chat = useAiChat(executeToolCalls);
 	const [isOpen, setIsOpen] = useState(false);
 	const [draft, setDraft] = useState("");
@@ -163,7 +163,15 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 
 		const draftToSend = draft;
 		let images = attachments;
-		if (autoScreenContext && !images.some((image) => image.source === "screen") && shouldAutoCaptureSharedScreen(draftToSend)) {
+		const needsFreshScreen = autoScreenContext && shouldAutoCaptureSharedScreen(draftToSend);
+		if (needsFreshScreen) {
+			try {
+				await clearVisualGuidance();
+			} catch {
+				// A stale overlay is harmless if the desktop bridge disappears during submission.
+			}
+		}
+		if (needsFreshScreen && !images.some((image) => image.source === "screen")) {
 			try {
 				images = [...images, await captureScreen()];
 				setLastAutoCapture(true);

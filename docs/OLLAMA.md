@@ -21,6 +21,9 @@ OLLAMA_CHAT_MODEL=qwen3.5:9b
 OLLAMA_VISION_MODEL=qwen3-vl:8b
 OLLAMA_CHAT_CONTEXT=8192
 OLLAMA_VISION_CONTEXT=4096
+# Text-only replies. Vision output remains uncapped so Qwen3-VL can reach its final tool call.
+OLLAMA_MAX_TOKENS=256
+# Total vision request budget. Meera splits this across an initial attempt and one timeout recovery attempt.
 OLLAMA_REQUEST_TIMEOUT_MS=85000
 ```
 
@@ -64,10 +67,14 @@ Try:
   - `POST` validates chat input and calls Ollama.
 - `src/features/ai/ollama-client.ts`
   - Selects the text or vision model.
+  - Handles deterministic overlay controls and explicit coordinate commands locally without an Ollama round trip.
+  - Keeps recent text context for follow-up requests while stripping stale screenshots so only the fresh screen frame is sent.
   - Strips image data URLs to the base64 format Ollama expects.
-  - Applies timeouts, context limits, system instructions, and overlay tools.
+  - Applies a bounded total timeout, context limits, system instructions, and overlay tools.
   - Adds screen-frame coordinate calibration to vision prompts.
   - Normalizes native tool calls against the latest captured screen frame before returning them.
+  - Leaves Qwen3-VL output uncapped because it may use hundreds of tokens in its hidden thinking field before emitting a tool call.
+  - Retries transient Ollama runner, gateway, and vision timeout failures once within the configured total timeout budget.
   - Surfaces remote timeout/524 failures as concise retryable errors instead of raw Cloudflare HTML.
 - `src/features/ai/ai-prompt.ts`
   - Defines Meera's system instructions.
@@ -78,7 +85,9 @@ Try:
 	- Declares the tools Ollama can call.
 	- Converts untrusted tool arguments into the existing `OverlayCommand` contract.
 	- Accepts normalized, percent, or `image_pixels` coordinate spaces, then converts them to overlay-normalized values.
+	- Treats Qwen3-VL's native visual-grounding coordinates as relative `0..1000` values instead of screenshot pixels.
 	- Accepts visible calibration grid cells such as `J2` and converts them to overlay-normalized values.
+	- Reconciles model tool choices with an explicitly requested cursor, arrow, highlight/box, or text bubble.
 	- Clamps coordinates and rejects unknown tools.
 	- Recovers guarded coordinate-style overlay responses when a model writes text instead of native tool calls.
 - `src/features/ai/use-ai-overlay-actions.ts`
@@ -122,7 +131,7 @@ Do not let model output call Electron IPC, shell commands, or browser APIs direc
   - Captures desktop frames for the assistant through Electron.
   - Temporarily hides Meera's assistant and overlay windows while capturing so the model sees the target app cleanly.
 
-Screen understanding is request-based. In Electron, when auto-capture is enabled in the assistant, Meera attaches one fresh desktop frame before prompts that mention the screen, pointing, highlighting, cursors, arrows, overlays, or visual guidance. For overlay placement prompts, Meera sends Ollama a temporary grid-labeled copy of the screenshot. The grid is not drawn on the desktop; it only helps the model choose a cell such as `J2`, which Meera converts back into overlay coordinates. The frame also includes real pixel dimensions, and Meera repairs pixel-style tool calls server-side. It is not a continuous autonomous screen-watching loop.
+Screen understanding is request-based. In Electron, when auto-capture is enabled in the assistant, Meera attaches one fresh desktop frame before prompts that mention the screen, pointing, highlighting, cursors, arrows, overlays, visual guidance, or common visible task requests such as finding a button or suggesting a YouTube video. For overlay placement prompts, Meera sends Ollama a temporary grid-labeled copy of the screenshot. The grid is not drawn on the desktop; it only helps the model choose a cell such as `J2`, which Meera converts back into overlay coordinates. The frame also includes real pixel dimensions, and Meera repairs Qwen-relative and pixel-style tool calls server-side. It is not a continuous autonomous screen-watching loop.
 
 ## API Shape
 

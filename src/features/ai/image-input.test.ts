@@ -6,11 +6,16 @@ describe("AI shared-screen auto capture heuristics", () => {
 		expect(shouldAutoCaptureSharedScreen("Analyze my shared screen and point at the button.")).toBe(true);
 		expect(shouldAutoCaptureSharedScreen("Show an overlay arrow where I should click.")).toBe(true);
 		expect(shouldAutoCaptureSharedScreen("What is on my screen?")).toBe(true);
+		expect(shouldAutoCaptureSharedScreen("Suggest a random YouTube video.")).toBe(true);
+		expect(shouldAutoCaptureSharedScreen("Find the settings button for me.")).toBe(true);
 	});
 
 	it("does not capture for ordinary text chat", () => {
 		expect(shouldAutoCaptureSharedScreen("Summarize what Meera can do.")).toBe(false);
 		expect(shouldAutoCaptureSharedScreen("Write a friendly welcome message.")).toBe(false);
+		expect(shouldAutoCaptureSharedScreen("Show every overlay type so I can test them.")).toBe(false);
+		expect(shouldAutoCaptureSharedScreen("Clear every overlay.")).toBe(false);
+		expect(shouldAutoCaptureSharedScreen("Hide the cursor.")).toBe(false);
 	});
 
 	it("only calibrates screen frames for overlay placement prompts", () => {
