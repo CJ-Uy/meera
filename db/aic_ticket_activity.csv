@@ -1,0 +1,8 @@
+﻿ActivityTitle,TicketNumber,ActivityType,Description,Result,CreatedByType,Timestamp
+Initial Wi-Fi concern received,AIC-000001,Student Message,Student said laptop would not connect to Wi-Fi before online quiz.,Not Applicable,Student,2026-06-07 09:00
+Suggested Wi-Fi troubleshooting,AIC-000001,Bot Guidance,"Meera suggested forgetting network, reconnecting, toggling Wi-Fi, and checking error message.",Pending,Meera,2026-06-07 09:02
+Troubleshooting failed,AIC-000001,Troubleshooting Step,Student confirmed Wi-Fi still did not connect after guided steps.,Failed,Student,2026-06-07 09:06
+Payment validation boundary explained,AIC-000002,Bot Guidance,Meera explained that staff must verify payment records and collected payment details.,Not Applicable,Meera,2026-06-07 09:18
+Hold message requested,AIC-000003,Bot Guidance,Meera asked student to provide the exact registration hold message or screenshot.,Pending,Meera,2026-06-07 09:26
+Medical certificate guidance provided,AIC-000004,Bot Guidance,Meera provided general instructions for medical certificate request process.,Success,Meera,2026-06-07 09:35
+ID access issue escalated,AIC-000005,Status Update,Meera escalated the ID access issue to Student Services with location and timestamp details.,Pending,Meera,2026-06-07 09:43

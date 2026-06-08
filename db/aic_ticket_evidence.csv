@@ -1,0 +1,4 @@
+﻿EvidenceTitle,TicketNumber,EvidenceType,FileName,Description,ScreenContextSummary,ContainsSensitiveInfo,CapturedOn
+Wi-Fi authentication error screenshot,AIC-000001,Screenshot,wifi_error_mock.png,Student reports authentication error on Campus-Student network.,Wi-Fi settings page showed connection attempt failed due to authentication issue.,No,2026-06-07 09:04
+Payment reference details,AIC-000002,Proof of Payment,payment_reference_mock.pdf,Student gave bank transfer reference number; proof attachment pending.,,Yes,2026-06-07 09:18
+Registration hold screenshot pending,AIC-000003,Screenshot,,Student has not yet uploaded hold screenshot.,,Maybe,2026-06-07 09:26

@@ -1,0 +1,6 @@
+﻿SessionName,TicketNumber,StudentID,Channel,InitialMessage,ConversationSummary,Outcome,StartedOn,EndedOn
+Session AIC-000001,AIC-000001,2026-00123,Chat,My laptop won’t connect to Wi-Fi and I have an exam in 10 minutes!,"Meera collected Wi-Fi details, guided troubleshooting, and escalated to IT when unresolved.",Escalated to Staff,2026-06-07 09:00,2026-06-07 09:07
+Session AIC-000002,AIC-000002,2026-00456,Chat,I paid my tuition but it still says unpaid.,Meera collected payment details and escalated for Finance/Billing verification.,Escalated to Staff,2026-06-07 09:16,2026-06-07 09:20
+Session AIC-000003,AIC-000003,2025-00890,Chat,Why do I have a registration hold?,Meera identified Registrar ownership and asked for the exact hold message.,Escalated to Staff,2026-06-07 09:24,2026-06-07 09:27
+Session AIC-000004,AIC-000004,2026-00291,Chat,Can I get a medical certificate for my absence?,Meera provided general documentation guidance and the student confirmed understanding.,Resolved by Agent,2026-06-07 09:33,2026-06-07 09:36
+Session AIC-000005,AIC-000005,2024-00334,Screen Share,My ID won’t let me enter the building.,Meera collected building/time details and escalated to Student Services.,Escalated to Staff,2026-06-07 09:40,2026-06-07 09:44

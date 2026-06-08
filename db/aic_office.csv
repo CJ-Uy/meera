@@ -1,0 +1,6 @@
+﻿OfficeName,OfficeCode,Description,EscalationEmail,Active
+IT Department,IT,"Handles network access, system outages, devices, printers, accounts, LMS, and software concerns.",it-support@university.edu,Yes
+Registrar,REG,"Handles enrollment, academic records, registration holds, course enlistment, transcripts, and term status concerns.",registrar@university.edu,Yes
+Finance/Billing Support,FIN,"Handles tuition balance, billing, assessment, proof of payment, payment posting, and scholarship payment concerns.",finance@university.edu,Yes
+Medical/Campus Health Services,MED,"Handles appointment guidance, clinic access, medical certificate requirements, and health documentation processes.",healthservices@university.edu,Yes
+Student Services,SS,"Handles ID concerns, campus access, facilities, student life services, and general administrative support.",studentservices@university.edu,Yes

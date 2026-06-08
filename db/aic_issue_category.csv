@@ -1,0 +1,12 @@
+﻿CategoryName,CategoryCode,OfficeCode,Description,DefaultPriority,RequiresHumanReview,RequiredDetails,SafeResolutionAllowed
+Wi-Fi Access Issue,IT_WIFI,IT,Student cannot connect to or maintain campus Wi-Fi access.,Normal,No,Student ID; email; location; device type; network name; error message; steps already tried,Yes
+Account Lockout,IT_LOCKOUT,IT,"Student cannot access account, LMS, portal, or university system due to lockout or credential issue.",High,Yes,Student ID; email; affected system; error message; deadline; steps already tried,Yes
+Printer Concern,IT_PRINT,IT,"Printer failed, charged incorrectly, jammed, or did not release print job.",Normal,Maybe,Student ID; email; printer location; time; print job details; amount charged if any,Yes
+Registration Hold,REG_HOLD,REG,"Student sees a hold blocking registration, enlistment, or enrollment.",High,Yes,Student ID; email; term; program/year level; hold message; enrollment deadline,No
+Academic Records Request,REG_RECORDS,REG,"Student asks about transcripts, records, grades, certificates, or academic documents.",Normal,Yes,Student ID; email; document type; term; purpose; deadline,Yes
+Tuition Balance Concern,FIN_BALANCE,FIN,"Student asks about tuition balance, billing, assessment, or account statement.",Normal,Yes,Student ID; email; term; balance shown; screenshot if available,Yes
+Payment Posting Issue,FIN_PAYMENT,FIN,Student reports paid tuition or fees are still marked unpaid.,High,Yes,Student ID; email; term; payment date; payment channel; reference number; proof of payment,No
+Medical Certificate Request,MED_CERT,MED,Student asks about medical certificate requirements or processing.,Normal,Yes,Student ID; email; absence date; requested document; clinic visit details if any,Yes
+Clinic Appointment Guidance,MED_APPT,MED,Student asks how to schedule or access campus health services.,Normal,Maybe,Student ID; email; preferred date; concern type; urgency,Yes
+ID Access Issue,SS_ID,SS,"Student ID does not work for entry, services, or campus access.",Normal,Yes,Student ID; email; building/location; time; error/denial details,Yes
+Facilities Concern,SS_FACILITY,SS,"Student reports concerns about campus services, spaces, or facilities.",Normal,Maybe,Student ID; email; location; issue description; photo if available,Yes
