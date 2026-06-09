@@ -17,8 +17,14 @@ type TesseractWorker = {
 		options?: Record<string, unknown>,
 		output?: Record<string, unknown>,
 	) => Promise<{ data: unknown }>;
+	setParameters?: (params: Record<string, unknown>) => Promise<unknown>;
 	terminate: () => Promise<unknown>;
 };
+
+// Tesseract page segmentation mode 11 = "sparse text": find as much text as possible in no particular
+// order. UI screens are scattered labels/buttons, not paragraphs, so this finds far more elements than
+// the default (which assumes one uniform block). Our candidate builder groups the words into lines itself.
+const PSM_SPARSE_TEXT = "11";
 
 let workerPromise: Promise<TesseractWorker | null> | null = null;
 
@@ -29,7 +35,13 @@ async function getWorker(): Promise<TesseractWorker | null> {
 				const tesseract = (await import("tesseract.js")) as unknown as {
 					createWorker: (lang?: string) => Promise<TesseractWorker>;
 				};
-				return await tesseract.createWorker("eng");
+				const worker = await tesseract.createWorker("eng");
+				try {
+					await worker.setParameters?.({ tessedit_pageseg_mode: PSM_SPARSE_TEXT });
+				} catch {
+					// Older builds may not accept this — default segmentation still works.
+				}
+				return worker;
 			} catch {
 				return null;
 			}
