@@ -263,10 +263,10 @@ function Card({ children, className = "", style }: { children: ReactNode; classN
 	return <div className={`rounded-[24px] border bg-white ${className}`} style={{ borderColor: "var(--line)", boxShadow: "var(--sh-md)", ...style }}>{children}</div>;
 }
 
-function PortalShell({ children, active = "Registration" }: { children: ReactNode; active?: string }) {
+function PortalShell({ children, active = "Registration", className = "" }: { children: ReactNode; active?: string; className?: string }) {
 	const items = ["Dashboard", "Registration", "Financials", "Records", "Help"];
 	return (
-		<div className="grid min-h-[520px] grid-cols-[140px_minmax(0,1fr)] overflow-hidden rounded-none bg-[#FCFAF6] md:grid-cols-[154px_minmax(0,1fr)]">
+		<div className={`grid min-h-[520px] grid-cols-[140px_minmax(0,1fr)] overflow-hidden rounded-none bg-[#FCFAF6] md:grid-cols-[154px_minmax(0,1fr)] ${className}`}>
 			<aside className="bg-[#1C3349] p-3 text-[#cdd8e0] md:p-4">
 				<div className="mb-5 flex items-center gap-2">
 					<span className="grid size-7 place-items-center rounded-lg bg-[#34506b] text-sm font-[800] text-white">N</span>
@@ -345,7 +345,7 @@ function StudentEmbedded() {
 
 	return (
 		<div className="relative min-h-[calc(100vh-94px)]">
-			<PortalShell active="Financials">
+			<PortalShell active="Financials" className="min-h-[calc(100vh-94px)]">
 				<p className="font-['DM_Mono'] text-[11px] uppercase tracking-[0.1em]" style={{ color: "var(--muted)" }}>FINANCIALS &amp; HOLDS</p>
 				<h2 className="mt-2 text-2xl font-[800]">Your Account</h2>
 				<Card className="mt-5 max-w-md p-5">
