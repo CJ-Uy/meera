@@ -59,6 +59,8 @@ taskkill /PID 3296 /F
 
 Replace `3296` with the PID shown in your terminal. This usually means a previous smoke test or desktop dev run was closed without stopping its dev server.
 
+The desktop app is **only** the Meera assistant: a logo button floating at the bottom-right of the screen, plus the transparent, click-through overlays it draws. It does not open the marketing site or any other window. Quit from the Meera tray icon (**Quit Meera**) or by pressing `Ctrl+C` in the terminal.
+
 Once Meera opens:
 
 1. Open another app beside or behind Meera, such as Settings, Notepad, or VS Code.
@@ -67,14 +69,13 @@ Once Meera opens:
 4. Upload an image in the chat panel, then ask `Describe this image.`
 5. Ask `Analyze my screen and point at the most important control.`
 6. Confirm the chat says it attached a fresh screen frame and the model response uses `meta-llama/llama-4-scout-17b-16e-instruct`.
-7. In Electron, ask `Show every overlay type so I can test them.` and confirm the cursor, arrow, highlight, and chat bubble appear.
-8. Open the support demo at `/demo`, then find **Desktop overlay simulator**.
-9. Click **Move cursor** and confirm the Meera cursor appears over the other app.
-10. Test **Cursor tour**, **Show arrow**, **Show chat bubble**, **Highlight area**, and **Run full demo**.
-11. Confirm the overlay does not block clicks on the app underneath it.
-12. Click **Clear desktop overlay** and confirm the overlay disappears.
-13. Click **Stop sharing** and confirm the preview clears.
-14. Click **Use microphone**, speak, confirm the input meter responds, then click **Mute microphone**.
+7. Ask `Show every overlay type so I can test them.` and confirm the cursor, arrow, highlight, and chat bubble appear over the other app and do not block clicks on it.
+
+The support demo, overlay simulator, screen-sharing preview, and microphone meter are part of the browser **web** app. Run `pnpm dev` and open `http://localhost:3000/demo`:
+
+1. In the **Student / Inquirer** view, find **Desktop overlay simulator**. Its controls drive real overlays only inside Electron; in a plain browser they stay disabled with **Desktop mode required** (the desktop overlays are exercised through the assistant chat above).
+2. Click **Stop sharing** and confirm the preview clears.
+3. Click **Use microphone**, speak, confirm the input meter responds, then click **Mute microphone**.
 
 For a production-style local run, use:
 
