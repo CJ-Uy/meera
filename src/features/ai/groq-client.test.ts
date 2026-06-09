@@ -107,7 +107,8 @@ describe("Groq client", () => {
 		expect(Array.isArray(request.messages[3]?.content)).toBe(true);
 		const latestContent = request.messages[3]?.content as Array<Record<string, unknown>>;
 		expect(latestContent[0]).toMatchObject({ type: "text" });
-		expect(String(latestContent[0]?.text)).toContain("Prefer normalized coordinates from 0 to 1");
+		expect(String(latestContent[0]?.text)).toContain("1920x900 pixels");
+		expect(String(latestContent[0]?.text)).toContain("PERCENT of the image size");
 		expect(String(latestContent[0]?.text)).not.toContain("relative coordinates from 0 to 1000");
 		expect(latestContent[1]).toMatchObject({ type: "image_url", image_url: { url: image.dataUrl } });
 		expect(result.toolCalls[0]).toMatchObject({
@@ -115,7 +116,7 @@ describe("Groq client", () => {
 		});
 	});
 
-	it("enforces the explicitly requested overlay type on Groq tool calls", async () => {
+	it("respects the model's chosen overlay type instead of overriding from prompt keywords", async () => {
 		vi.stubGlobal(
 			"fetch",
 			vi.fn().mockResolvedValue(
@@ -135,11 +136,13 @@ describe("Groq client", () => {
 			),
 		);
 
+		// The prompt says "box", but the model chose an arrow — we trust the model and do not bolt on a highlight.
 		const result = await chatWithGroq({
-			messages: [{ role: "user", content: "Show a box around the selected video.", images: [image] }],
+			messages: [{ role: "user", content: "Point at the selected video box.", images: [image] }],
 		});
 
-		expect(result.toolCalls[0]?.function?.name).toBe("overlay_show_highlight");
+		expect(result.toolCalls).toHaveLength(1);
+		expect(result.toolCalls[0]?.function?.name).toBe("overlay_show_arrow");
 	});
 
 	it("accepts numeric-string tool arguments and retries Groq tool validation failures", async () => {
@@ -201,7 +204,8 @@ describe("Groq client", () => {
 		expect(cursorTool?.function.parameters.properties.x).toMatchObject({
 			anyOf: [{ type: "number" }, { type: "string" }],
 		});
-		expect(firstRequest.temperature).toBe(0.2);
+		// Vision/grounding turns are deterministic on every attempt.
+		expect(firstRequest.temperature).toBe(0);
 		expect(secondRequest.temperature).toBe(0);
 		expect(result.toolCalls[0]).toMatchObject({
 			function: { name: "overlay_move_cursor", arguments: { x: 0.7, y: 0.25, coordinateSpace: "normalized" } },

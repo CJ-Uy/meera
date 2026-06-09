@@ -88,19 +88,19 @@ The transparent overlay is always on top and click-through, so it will not block
 
 ### AI Assistant
 
-The AI assistant runs from Electron's dedicated always-on-top assistant window. Groq is the default provider, while Ollama remains available through configuration. Browser-only Next.js pages do not mount a second in-app assistant.
+The AI assistant runs from Electron's dedicated always-on-top assistant window. Groq is the only AI provider. Browser-only Next.js pages do not mount a second in-app assistant.
 
-- Text-only Groq requests use `llama-3.1-8b-instant`.
-- Groq requests with an uploaded image or captured desktop frame use `meta-llama/llama-4-scout-17b-16e-instruct`.
+- Text-only requests use `llama-3.1-8b-instant`.
+- Requests with an uploaded image or captured desktop frame use Groq's only multimodal model, `meta-llama/llama-4-scout-17b-16e-instruct`.
 - In Electron, the assistant opens from a Meera logo button in its own always-on-top desktop overlay window.
 - In Electron, Meera can automatically attach a fresh desktop screen frame for visual or overlay prompts.
 - Provider calls and credentials stay behind the server-side `/api/ai/chat` route.
 - AI overlay tool calls are converted into the same validated overlay commands used by the simulator.
 - Captured desktop frames carry image dimensions and display metadata, so overlay coordinates are calibrated against the screenshot the model saw.
-- For overlay prompts, Meera sends a temporary labeled grid version of the screenshot to the active provider and converts grid cells back into desktop overlay coordinates.
+- **Zoom-refine grounding:** because Llama-4 Scout is a weak single-shot grounder, Meera spends Groq's speed on a second cheap pass — it crops and upscales the region around the model's first guess and re-grounds the target there, then maps the precise result back to full-screen coordinates. A bad refine can only nudge the overlay within that neighbourhood, and if the refine pass returns nothing usable the first guess is kept. Disable it with `NEXT_PUBLIC_MEERA_GROUNDING_REFINE=0`.
 - If a model writes coordinate-style overlay instructions instead of native tool calls, Meera recovers those guarded overlay requests into validated overlay commands.
 
-See [docs/AI_PROVIDERS.md](docs/AI_PROVIDERS.md) for setup, provider switching, test prompts, architecture, and extension guidance.
+See [docs/AI_PROVIDERS.md](docs/AI_PROVIDERS.md) for setup, test prompts, architecture, and extension guidance.
 
 ### Overlay API
 

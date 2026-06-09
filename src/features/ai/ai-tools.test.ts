@@ -71,19 +71,17 @@ describe("AI overlay tool adapter", () => {
 		expect(command).toMatchObject({ type: "arrow.show", target: { x: 0.7, y: 0.25 } });
 	});
 
-	it("normalizes Qwen relative 0-1000 coordinates instead of treating them as image pixels", () => {
-		const [implicitCall, explicitCall, topLeftCall] = normalizeOverlayToolCalls(
+	it("treats bare 0-100 coordinates as percent and still honors explicit relative_1000", () => {
+		const [percentImplicit, explicitRelative] = normalizeOverlayToolCalls(
 			[
-				{ function: { name: "overlay_show_arrow", arguments: { x: 700, y: 250 } } },
-				{ function: { name: "overlay_move_cursor", arguments: { x: 700, y: 250, coordinateSpace: "relative_1000" } } },
 				{ function: { name: "overlay_show_arrow", arguments: { x: 70, y: 25 } } },
+				{ function: { name: "overlay_move_cursor", arguments: { x: 700, y: 250, coordinateSpace: "relative_1000" } } },
 			],
 			{ imageWidth: 1440, imageHeight: 810 },
 		);
 
-		expect(toolCallToOverlayCommand(implicitCall)).toMatchObject({ type: "arrow.show", target: { x: 0.7, y: 0.25 } });
-		expect(toolCallToOverlayCommand(explicitCall)).toMatchObject({ type: "cursor.move", target: { x: 0.7, y: 0.25 } });
-		expect(toolCallToOverlayCommand(topLeftCall)).toMatchObject({ type: "arrow.show", target: { x: 0.07, y: 0.025 } });
+		expect(toolCallToOverlayCommand(percentImplicit)).toMatchObject({ type: "arrow.show", target: { x: 0.7, y: 0.25 } });
+		expect(toolCallToOverlayCommand(explicitRelative)).toMatchObject({ type: "cursor.move", target: { x: 0.7, y: 0.25 } });
 	});
 
 	it("still supports explicit and percent-suffixed percentage coordinates", () => {
@@ -213,20 +211,30 @@ Arrow points directly to the thumbnail.`,
 		});
 	});
 
-	it("reconciles an incorrect native arrow with an explicitly requested box", () => {
+	it("trusts the model's overlay type and never bolts on a spurious box from a target noun", () => {
+		// "the red box" mentions "box", but the user asked to POINT — keep just the model's arrow.
 		const calls = reconcileOverlayToolCalls({
-			prompt: "Show a box around the video.",
+			prompt: "Point at the red box.",
 			content: "",
 			context: { imageWidth: 1440, imageHeight: 810 },
-			toolCalls: [{ function: { name: "overlay_show_arrow", arguments: { x: 700, y: 250 } } }],
+			toolCalls: [{ function: { name: "overlay_show_arrow", arguments: { x: 20, y: 70, coordinateSpace: "percent" } } }],
+		});
+
+		expect(calls).toHaveLength(1);
+		expect(calls[0]?.function?.name).toBe("overlay_show_arrow");
+		expect(toolCallToOverlayCommand(calls[0])).toMatchObject({ type: "arrow.show", target: { x: 0.2, y: 0.7 } });
+	});
+
+	it("synthesizes a requested overlay only when the model produced none", () => {
+		const calls = reconcileOverlayToolCalls({
+			prompt: "Highlight the save button.",
+			content: "Coordinates: x=40, y=60.",
+			context: { imageWidth: 1000, imageHeight: 1000 },
+			toolCalls: [],
 		});
 
 		expect(calls).toHaveLength(1);
 		expect(calls[0]?.function?.name).toBe("overlay_show_highlight");
-		expect(toolCallToOverlayCommand(calls[0])).toMatchObject({
-			type: "highlight.show",
-			rect: { x: 0.59, y: 0.16999999999999998, width: 0.22, height: 0.16 },
-		});
 	});
 
 	it("does not treat target-shape descriptions as highlight requests", () => {
@@ -249,19 +257,15 @@ Arrow points directly to the thumbnail.`,
 		expect(toolCallToOverlayCommand(calls[0])).toMatchObject({ type: "cursor.move", target: { x: 0.78125, y: 0.5 } });
 	});
 
-	it("reconciles an incorrect native arrow with explicitly requested text", () => {
+	it("keeps the model's overlay even when the prompt mentions a different overlay word", () => {
 		const calls = reconcileOverlayToolCalls({
-			prompt: 'Show a text overlay that says "Watch this".',
+			prompt: 'Add a note that says "Watch this".',
 			content: "",
-			toolCalls: [{ function: { name: "overlay_show_arrow", arguments: { x: 800, y: 300 } } }],
+			toolCalls: [{ function: { name: "overlay_show_arrow", arguments: { x: 80, y: 30, coordinateSpace: "percent" } } }],
 		});
 
 		expect(calls).toHaveLength(1);
-		expect(toolCallToOverlayCommand(calls[0])).toMatchObject({
-			type: "bubble.show",
-			target: { x: 0.8, y: 0.3 },
-			message: "Watch this",
-		});
+		expect(toolCallToOverlayCommand(calls[0])).toMatchObject({ type: "arrow.show", target: { x: 0.8, y: 0.3 } });
 	});
 
 	it("guarantees every overlay primitive for the overlay demo request", () => {

@@ -4,13 +4,29 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import {
 	calibrateOverlayFramesForPrompt,
 	captureDesktopScreenFrame,
+	cropAndUpscaleScreenFrame,
 	isDesktopScreenFrameCaptureAvailable,
 	prepareUploadedImage,
 	shouldAutoCaptureSharedScreen,
 } from "@/features/ai/image-input";
-import type { AiChatMessage, AiImageAttachment } from "@/features/ai/ai-types";
-import { useAiChat } from "@/features/ai/use-ai-chat";
+import type { AiChatMessage, AiChatResponse, AiImageAttachment, AiToolCall } from "@/features/ai/ai-types";
+import { useAiChat, type AssistantToolCallContext } from "@/features/ai/use-ai-chat";
 import { useAiOverlayActions } from "@/features/ai/use-ai-overlay-actions";
+import { refineOverlayToolCalls } from "@/features/ai/visual-grounding";
+
+// Zoom-refine the model's first coordinate guess by default. Set NEXT_PUBLIC_MEERA_GROUNDING_REFINE=0 to disable.
+const GROUNDING_REFINE_ENABLED = process.env.NEXT_PUBLIC_MEERA_GROUNDING_REFINE !== "0";
+
+async function requestRefineGrounding(image: AiImageAttachment, prompt: string): Promise<AiToolCall[]> {
+	const response = await fetch("/api/ai/chat", {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ messages: [{ role: "user", content: prompt, images: [image] }] }),
+	});
+	if (!response.ok) return [];
+	const body = (await response.json()) as AiChatResponse & { error?: string };
+	return body.toolCalls ?? [];
+}
 
 type AiAssistantProps = {
 	onOpenChange?: (isOpen: boolean) => void;
@@ -84,7 +100,21 @@ function ChatMessage({ message }: { message: AiChatMessage }) {
 
 export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 	const { overlayAvailable, executeToolCalls, clearVisualGuidance } = useAiOverlayActions();
-	const chat = useAiChat(executeToolCalls);
+	const handleAssistantToolCalls = useCallback(
+		async (toolCalls: AiToolCall[], { images, prompt }: AssistantToolCallContext) => {
+			const frame = images.find((image) => image.source === "screen");
+			const refined = await refineOverlayToolCalls({
+				toolCalls,
+				frame,
+				prompt,
+				enabled: GROUNDING_REFINE_ENABLED,
+				deps: { cropFrame: cropAndUpscaleScreenFrame, requestRefine: requestRefineGrounding },
+			});
+			return executeToolCalls(refined);
+		},
+		[executeToolCalls],
+	);
+	const chat = useAiChat(handleAssistantToolCalls);
 	const [isOpen, setIsOpen] = useState(false);
 	const [draft, setDraft] = useState("");
 	const [attachments, setAttachments] = useState<AiImageAttachment[]>([]);
@@ -200,7 +230,7 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 	const canCaptureScreen = isDesktopScreenFrameCaptureAvailable();
 	const providerLabel = chat.status?.providerLabel ?? "AI provider";
 	const statusLabel = chat.status?.available
-		? `${providerLabel}${chat.status.fallbackActive ? " fallback" : ""} connected`
+		? `${providerLabel} connected`
 		: chat.status
 			? `${providerLabel} unavailable`
 			: "Checking AI provider";
