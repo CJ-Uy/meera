@@ -23,8 +23,18 @@ Rules:
 - elementId MUST be one of the listed ids (e.g. e7). Never invent an id or output coordinates.
 - Match on the element's visible text and the position hints. Prefer the most specific match.
 - If several elements match, pick the one whose text and position best fit the request.
+- Use the recent conversation (when provided) to resolve references like "it", "that", or "the one below" to a concrete element.
 - Keep message to a short, friendly label (<= 60 chars). When action is none, message briefly says why.
 `.trim();
+
+export type SelectionHistoryTurn = { role: string; content: string };
+
+function renderHistory(history: SelectionHistoryTurn[]): string {
+	const recent = history.filter((turn) => turn.content?.trim()).slice(-4);
+	if (recent.length === 0) return "";
+	const lines = recent.map((turn) => `${turn.role === "assistant" ? "Meera" : "User"}: ${turn.content.trim().slice(0, 160)}`);
+	return ['Recent conversation (resolve references like "it" or "that" against this):', ...lines, ""].join("\n");
+}
 
 export const SELECT_OVERLAY_TARGET_TOOL = {
 	type: "function",
@@ -53,13 +63,18 @@ export const SELECT_OVERLAY_TARGET_TOOL = {
 	},
 } as const;
 
-export function buildSelectionMessages(prompt: string, candidates: GroundingCandidate[]): AiChatInputMessage[] {
-	const list = renderCandidatesForPrompt(candidates);
+export function buildSelectionMessages(
+	prompt: string,
+	candidates: GroundingCandidate[],
+	history: SelectionHistoryTurn[] = [],
+): AiChatInputMessage[] {
+	const historyBlock = renderHistory(history);
 	const content = [
+		...(historyBlock ? [historyBlock] : []),
 		`User request: "${prompt.trim().slice(0, 400)}"`,
 		"",
 		"On-screen elements:",
-		list,
+		renderCandidatesForPrompt(candidates),
 		"",
 		"Call select_overlay_target with the best element id and action.",
 	].join("\n");

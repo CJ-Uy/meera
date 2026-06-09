@@ -253,7 +253,8 @@ async function groundedSelectionResponse(request: AiChatRequest): Promise<AiChat
 	if (!prompt.trim()) return null;
 
 	const settings = config();
-	const [selectionMessage] = buildSelectionMessages(prompt, candidates);
+	const history = request.messages.slice(0, -1).map((message) => ({ role: message.role, content: message.content }));
+	const [selectionMessage] = buildSelectionMessages(prompt, candidates, history);
 
 	let data: GroqChatResponse;
 	try {

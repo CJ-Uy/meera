@@ -5,7 +5,7 @@ import {
 	positionLabel,
 	renderCandidatesForPrompt,
 } from "@/features/ai/grounding/candidates";
-import { parseSelection, selectionToToolCalls } from "@/features/ai/grounding/select";
+import { buildSelectionMessages, parseSelection, selectionToToolCalls } from "@/features/ai/grounding/select";
 import type { GroundingCandidate, OcrWord } from "@/features/ai/grounding/types";
 
 function word(text: string, x0: number, y0: number, x1: number, y1: number, confidence = 90): OcrWord {
@@ -113,5 +113,20 @@ describe("parseSelection + selectionToToolCalls", () => {
 
 	it("renders candidates compactly for the prompt", () => {
 		expect(renderCandidatesForPrompt(candidates)).toContain('e3: "Sign in"');
+	});
+
+	it("includes recent conversation so references like 'it' resolve", () => {
+		const [message] = buildSelectionMessages("now highlight it instead", candidates, [
+			{ role: "user", content: "point at the sign in button" },
+			{ role: "assistant", content: "Sign in" },
+		]);
+		expect(message.content).toContain("Recent conversation");
+		expect(message.content).toContain("point at the sign in button");
+		expect(message.content).toContain('e3: "Sign in"');
+	});
+
+	it("omits the conversation block when there is no history", () => {
+		const [message] = buildSelectionMessages("point at sign in", candidates);
+		expect(message.content).not.toContain("Recent conversation");
 	});
 });
