@@ -8,5 +8,12 @@ Project slug: `meera`.
 | D1 production database | `meera-prod-db` | `DB` in production | Production relational data |
 | R2 dev bucket | `meera-dev-uploads` | `BUCKET` in dev/default Wrangler envs | Shared/dev upload storage |
 | R2 production bucket | `meera-prod-uploads` | `BUCKET` in production | Production upload storage |
+| Shared dev API Worker | `meera-shared-dev-api` | `DB`, `BUCKET` | Authenticated typed API for outside developers |
 
-Outside developers may receive shared API credentials or dev-bucket-only R2 S3 credentials. They should never receive production D1 access or production R2 credentials.
+Shared dev API URL:
+
+```txt
+https://meera-shared-dev-api.cj-uy.workers.dev
+```
+
+Outside developers receive `SHARED_API_BASE_URL` and `SHARED_API_TOKEN`. They should never receive production D1 access or production R2 credentials.

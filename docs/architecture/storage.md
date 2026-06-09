@@ -21,3 +21,5 @@ Upload flow:
 2. The route generates a storage key.
 3. The active storage adapter writes the object.
 4. `GET /api/uploads/[key]` streams it back.
+
+In shared outside-dev mode, those adapter calls forward to the deployed dev Worker's authenticated `/internal/uploads` endpoints, which then use the dev `BUCKET` binding.

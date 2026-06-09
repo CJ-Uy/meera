@@ -1,0 +1,28 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "meera-shared-dev-api",
+	"account_id": "8527ec1369d46f55304a6f59ab5356e4",
+	"main": "cloudflare/shared-dev-api.ts",
+	"compatibility_date": "2026-06-05",
+	"workers_dev": true,
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "meera-dev-db",
+			"database_id": "3cf48b33-5400-474b-bff1-9e1edaab408e",
+			"migrations_dir": "drizzle/migrations"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "BUCKET",
+			"bucket_name": "meera-dev-uploads"
+		}
+	],
+	"observability": {
+		"enabled": true
+	}
+}

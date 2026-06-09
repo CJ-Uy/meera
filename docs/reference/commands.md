@@ -13,6 +13,7 @@
 | Apply local migrations | `pnpm db:migrate:local` |
 | Apply shared/dev migrations | `pnpm db:migrate:dev` |
 | Apply production migrations | `pnpm db:migrate:prod` |
+| Deploy shared dev API Worker | `pnpm deploy:shared-api` |
 | Deploy shared/dev | `pnpm deploy:dev` |
 | Deploy production | `pnpm deploy:prod` |
 | Generate Cloudflare types | `pnpm cf-typegen` |

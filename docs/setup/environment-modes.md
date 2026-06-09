@@ -17,4 +17,4 @@
 | `r2-s3` | R2 S3-compatible dev credentials |
 | `binding` | Cloudflare R2 binding `env.BUCKET` |
 
-Outside developers should use `APP_ENV=shared`. Production uses bindings because they avoid public credential distribution, keep D1/R2 native to Workers, and are faster than routing production data through HTTP.
+Outside developers should use `APP_ENV=shared` with `STORAGE_MODE=api` unless they are issued dev-only R2 S3 credentials. Production uses bindings because they avoid public credential distribution, keep D1/R2 native to Workers, and are faster than routing production data through HTTP.

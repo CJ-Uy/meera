@@ -1,2 +1,5 @@
+APP_ENV=local
+STORAGE_MODE=binding
 NEXTJS_ENV=development
 NEXT_PUBLIC_ADMIN_DEMO_API_BASE=https://meera-admin-demo-api.cj-uy.workers.dev
+SHARED_API_TOKEN=replace-with-local-shared-api-token

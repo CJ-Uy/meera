@@ -6,6 +6,7 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "meera",
 	"account_id": "8527ec1369d46f55304a6f59ab5356e4",
+	"workers_dev": true,
 	"main": ".open-next/worker.js",
 	"compatibility_date": "2026-06-05",
 	"compatibility_flags": [
@@ -54,6 +55,7 @@
 	"env": {
 		"dev": {
 			"name": "meera-dev",
+			"workers_dev": true,
 			"vars": {
 				"APP_ENV": "local",
 				"STORAGE_MODE": "binding"
@@ -84,6 +86,7 @@
 		},
 		"production": {
 			"name": "meera",
+			"workers_dev": true,
 			"vars": {
 				"APP_ENV": "production",
 				"STORAGE_MODE": "binding"

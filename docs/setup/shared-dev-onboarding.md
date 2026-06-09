@@ -16,7 +16,7 @@ Storage options:
 STORAGE_MODE=api
 ```
 
-or dev-bucket-only R2 S3 credentials:
+This routes uploads and downloads through the same authenticated shared dev API as database access. If the owner issues dev-bucket-only R2 S3 credentials, storage can also use:
 
 ```env
 STORAGE_MODE=r2-s3
