@@ -7,16 +7,19 @@ import type { GroundingCandidate } from "@/features/ai/grounding/types";
  * can't see, and adds them as overlay candidates. Without this, "highlight the thumbnail" has no target
  * and falls back to the vision model's blind guess.
  *
- * Heuristic (deterministic, no model): downscale the frame, score each grid cell by how "busy" it is
- * (luminance + saturation variance — photos score high, flat UI chrome scores low), threshold into a
- * mask, then take large, solid, rectangular connected components. Everything stays in image space, so a
- * region rect maps onto the overlay exactly like an OCR rect. The pure grid->regions step is unit-tested;
- * the canvas->grid step is verified visually with the in-app "Debug boxes" tool.
+ * Pipeline (deterministic, no model):
+ *  1. Downscale the frame; score each grid cell by "busyness" (luminance + saturation variance — photos
+ *     score high, flat UI chrome scores low).
+ *  2. Threshold the grid ADAPTIVELY (Otsu, with an absolute floor) so it self-calibrates to light/dark
+ *     themes instead of relying on a magic constant.
+ *  3. Morphologically close the mask so smooth patches inside a photo (sky, skin) don't punch holes.
+ *  4. Keep large, solid, rectangular connected components.
+ *
+ * Everything stays in image space, so a region rect maps onto the overlay exactly like an OCR rect. The
+ * pure grid->regions and Otsu steps are unit-tested; the canvas->grid step is verified with "Debug boxes".
  */
 
-export type RegionOptions = {
-	/** Cell is "content" when its busyness score exceeds this. Lower = more regions. */
-	threshold: number;
+export type RegionFilterOptions = {
 	/** Reject regions smaller than this fraction of the frame (drop icons/noise). */
 	minAreaFraction: number;
 	/** Reject regions larger than this fraction (drop full-window backgrounds). */
@@ -25,31 +28,134 @@ export type RegionOptions = {
 	minFill: number;
 	/** Keep at most this many regions (largest first). */
 	maxRegions: number;
+	/** Morphological close iterations to fill interior holes of photos. */
+	closeIterations: number;
 };
 
-export const DEFAULT_REGION_OPTIONS: RegionOptions = {
-	threshold: 180,
-	minAreaFraction: 0.02,
+export const DEFAULT_REGION_FILTER: RegionFilterOptions = {
+	minAreaFraction: 0.015,
 	maxAreaFraction: 0.6,
-	minFill: 0.5,
-	maxRegions: 12,
+	minFill: 0.45,
+	maxRegions: 14,
+	closeIterations: 1,
 };
 
-const DOWNSCALE_WIDTH = 480;
-const CELL = 8;
+// Below this absolute busyness, treat the whole frame as flat UI (no regions) regardless of Otsu — stops
+// a uniform screen from being split into noise.
+export const REGION_SCORE_FLOOR = 55;
+const DOWNSCALE_WIDTH = 560;
+const CELL = 10;
 
 type Rect = { x: number; y: number; width: number; height: number };
 
-/** Pure core: turn a per-cell busyness grid into normalized region rects. Unit-tested. */
-export function computeRegionsFromScoreGrid(scores: number[], cols: number, rows: number, options: RegionOptions): Rect[] {
+/** Otsu's method: pick the score threshold that best separates "busy" cells from "flat" cells. Pure. */
+export function otsuThreshold(scores: number[]): number {
+	if (scores.length === 0) return 0;
+	let min = Infinity;
+	let max = -Infinity;
+	for (const value of scores) {
+		if (value < min) min = value;
+		if (value > max) max = value;
+	}
+	if (!(max > min)) return max;
+
+	const bins = 64;
+	const histogram = new Array<number>(bins).fill(0);
+	const span = max - min;
+	for (const value of scores) {
+		const bin = Math.min(bins - 1, Math.floor(((value - min) / span) * bins));
+		histogram[bin] += 1;
+	}
+	const binMid = (bin: number) => min + ((bin + 0.5) / bins) * span;
+
+	const total = scores.length;
+	let sumAll = 0;
+	for (let bin = 0; bin < bins; bin += 1) sumAll += binMid(bin) * histogram[bin];
+
+	let weightBackground = 0;
+	let sumBackground = 0;
+	let bestVariance = -1;
+	let threshold = (min + max) / 2;
+	for (let bin = 0; bin < bins; bin += 1) {
+		weightBackground += histogram[bin];
+		if (weightBackground === 0) continue;
+		const weightForeground = total - weightBackground;
+		if (weightForeground === 0) break;
+		sumBackground += binMid(bin) * histogram[bin];
+		const meanBackground = sumBackground / weightBackground;
+		const meanForeground = (sumAll - sumBackground) / weightForeground;
+		const between = weightBackground * weightForeground * (meanBackground - meanForeground) ** 2;
+		if (between > bestVariance) {
+			bestVariance = between;
+			threshold = binMid(bin);
+		}
+	}
+	return threshold;
+}
+
+function dilate(mask: boolean[], cols: number, rows: number): boolean[] {
+	const out = new Array<boolean>(mask.length).fill(false);
+	for (let y = 0; y < rows; y += 1) {
+		for (let x = 0; x < cols; x += 1) {
+			const i = y * cols + x;
+			if (
+				mask[i] ||
+				(x > 0 && mask[i - 1]) ||
+				(x < cols - 1 && mask[i + 1]) ||
+				(y > 0 && mask[i - cols]) ||
+				(y < rows - 1 && mask[i + cols])
+			) {
+				out[i] = true;
+			}
+		}
+	}
+	return out;
+}
+
+function erode(mask: boolean[], cols: number, rows: number): boolean[] {
+	const out = new Array<boolean>(mask.length).fill(false);
+	for (let y = 0; y < rows; y += 1) {
+		for (let x = 0; x < cols; x += 1) {
+			const i = y * cols + x;
+			const keep =
+				mask[i] &&
+				(x === 0 || mask[i - 1]) &&
+				(x === cols - 1 || mask[i + 1]) &&
+				(y === 0 || mask[i - cols]) &&
+				(y === rows - 1 || mask[i + cols]);
+			out[i] = keep;
+		}
+	}
+	return out;
+}
+
+function closeMask(mask: boolean[], cols: number, rows: number, iterations: number): boolean[] {
+	let result = mask;
+	for (let i = 0; i < iterations; i += 1) result = dilate(result, cols, rows);
+	for (let i = 0; i < iterations; i += 1) result = erode(result, cols, rows);
+	return result;
+}
+
+/** Pure core: turn a per-cell busyness grid + threshold into normalized region rects. Unit-tested. */
+export function computeRegionsFromScoreGrid(
+	scores: number[],
+	cols: number,
+	rows: number,
+	threshold: number,
+	options: RegionFilterOptions = DEFAULT_REGION_FILTER,
+): Rect[] {
 	if (cols <= 0 || rows <= 0 || scores.length < cols * rows) return [];
-	const mask = scores.map((value) => value > options.threshold);
+	const mask = closeMask(
+		scores.map((value) => value > threshold),
+		cols,
+		rows,
+		options.closeIterations,
+	);
 	const visited = new Array<boolean>(cols * rows).fill(false);
 	const regions: (Rect & { area: number })[] = [];
 
 	for (let start = 0; start < cols * rows; start += 1) {
 		if (!mask[start] || visited[start]) continue;
-		// Flood-fill this connected component (4-connectivity).
 		let minCx = cols;
 		let maxCx = -1;
 		let minCy = rows;
@@ -87,13 +193,7 @@ export function computeRegionsFromScoreGrid(scores: number[], cols: number, rows
 		const aspect = boxCols / boxRows;
 		if (areaFraction < options.minAreaFraction || areaFraction > options.maxAreaFraction) continue;
 		if (fill < options.minFill || aspect < 0.2 || aspect > 6) continue;
-		regions.push({
-			x: minCx / cols,
-			y: minCy / rows,
-			width: boxCols / cols,
-			height: boxRows / rows,
-			area: areaFraction,
-		});
+		regions.push({ x: minCx / cols, y: minCy / rows, width: boxCols / cols, height: boxRows / rows, area: areaFraction });
 	}
 
 	return regions
@@ -111,7 +211,6 @@ function loadImage(dataUrl: string) {
 	});
 }
 
-/** Build the busyness score grid from a frame. Returns null if canvas is unavailable. */
 async function scoreGridFromFrame(dataUrl: string): Promise<{ scores: number[]; cols: number; rows: number } | null> {
 	if (typeof document === "undefined") return null;
 	const image = await loadImage(dataUrl);
@@ -162,15 +261,27 @@ async function scoreGridFromFrame(dataUrl: string): Promise<{ scores: number[]; 
 	return { scores, cols, rows };
 }
 
-export async function detectContentRegions(
+export type RegionStats = {
+	scoreMax: number;
+	scoreMean: number;
+	otsu: number;
+	threshold: number;
+	cellsAbove: number;
+	cells: number;
+	regions: number;
+};
+
+export async function detectContentRegionsDebug(
 	dataUrl: string,
-	options: RegionOptions = DEFAULT_REGION_OPTIONS,
-): Promise<GroundingCandidate[]> {
+	options: RegionFilterOptions = DEFAULT_REGION_FILTER,
+): Promise<{ candidates: GroundingCandidate[]; stats: RegionStats | null }> {
 	try {
 		const grid = await scoreGridFromFrame(dataUrl);
-		if (!grid) return [];
-		const rects = computeRegionsFromScoreGrid(grid.scores, grid.cols, grid.rows, options);
-		return rects.map((rect, index) => ({
+		if (!grid) return { candidates: [], stats: null };
+		const otsu = otsuThreshold(grid.scores);
+		const threshold = Math.max(otsu, REGION_SCORE_FLOOR);
+		const rects = computeRegionsFromScoreGrid(grid.scores, grid.cols, grid.rows, threshold, options);
+		const candidates: GroundingCandidate[] = rects.map((rect, index) => ({
 			id: `r${index + 1}`,
 			text: "",
 			role: "region",
@@ -180,7 +291,26 @@ export async function detectContentRegions(
 			width: rect.width,
 			height: rect.height,
 		}));
+		const scoreMax = grid.scores.reduce((a, b) => Math.max(a, b), 0);
+		const scoreMean = grid.scores.reduce((a, b) => a + b, 0) / grid.scores.length;
+		const stats: RegionStats = {
+			scoreMax: Math.round(scoreMax),
+			scoreMean: Math.round(scoreMean),
+			otsu: Math.round(otsu),
+			threshold: Math.round(threshold),
+			cellsAbove: grid.scores.filter((value) => value > threshold).length,
+			cells: grid.scores.length,
+			regions: candidates.length,
+		};
+		return { candidates, stats };
 	} catch {
-		return [];
+		return { candidates: [], stats: null };
 	}
+}
+
+export async function detectContentRegions(
+	dataUrl: string,
+	options: RegionFilterOptions = DEFAULT_REGION_FILTER,
+): Promise<GroundingCandidate[]> {
+	return (await detectContentRegionsDebug(dataUrl, options)).candidates;
 }

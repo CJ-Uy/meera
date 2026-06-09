@@ -13,7 +13,7 @@ import {
 import type { AiChatMessage, AiChatResponse, AiImageAttachment, AiToolCall } from "@/features/ai/ai-types";
 import { buildCandidatesFromOcr, candidateToOverlayToolCall } from "@/features/ai/grounding/candidates";
 import { runOcrWords, warmUpOcr } from "@/features/ai/grounding/ocr";
-import { detectContentRegions } from "@/features/ai/grounding/regions";
+import { detectContentRegions, detectContentRegionsDebug } from "@/features/ai/grounding/regions";
 import type { GroundingCandidate } from "@/features/ai/grounding/types";
 import { useAiChat, type AssistantToolCallContext } from "@/features/ai/use-ai-chat";
 import { useAiOverlayActions } from "@/features/ai/use-ai-overlay-actions";
@@ -130,6 +130,7 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 	const [autoScreenContext, setAutoScreenContext] = useState(true);
 	const [lastAutoCapture, setLastAutoCapture] = useState(false);
 	const [isGrounding, setIsGrounding] = useState(false);
+	const [debugInfo, setDebugInfo] = useState<string | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -195,22 +196,26 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 	// or selection (boxes correct but the wrong one gets picked during a real request).
 	const showDetectedElements = async () => {
 		setAttachmentError(null);
+		setDebugInfo(null);
 		try {
 			const frame = await captureScreen();
 			if (!frame.width || !frame.height) throw new Error("Captured frame has no size.");
 			const words = await runOcrWords(frame.dataUrl);
 			const ocrCandidates = buildCandidatesFromOcr(words, { imageWidth: frame.width, imageHeight: frame.height });
-			const regionCandidates = REGION_DETECTION_ENABLED ? await detectContentRegions(frame.dataUrl) : [];
+			const { candidates: regionCandidates, stats } = REGION_DETECTION_ENABLED
+				? await detectContentRegionsDebug(frame.dataUrl)
+				: { candidates: [], stats: null };
 			const candidates = [...ocrCandidates, ...regionCandidates];
-			console.log(
-				`[Meera debug] frame=${frame.width}x${frame.height} detected ${ocrCandidates.length} text + ${regionCandidates.length} regions`,
-				candidates,
-			);
+			const statsLine = stats
+				? `text=${ocrCandidates.length} regions=${stats.regions} · scoreMax=${stats.scoreMax} mean=${stats.scoreMean} otsu=${stats.otsu} thr=${stats.threshold} above=${stats.cellsAbove}/${stats.cells}`
+				: `text=${ocrCandidates.length} regions=0 (no region grid)`;
+			setDebugInfo(statsLine);
+			console.log(`[Meera debug] frame=${frame.width}x${frame.height} ${statsLine}`, candidates);
 			if (candidates.length === 0) {
-				setAttachmentError("Debug: OCR found no text elements on this screen.");
+				setAttachmentError("Debug: nothing detected on this screen.");
 				return;
 			}
-			const calls = candidates.slice(0, 40).map((candidate) => candidateToOverlayToolCall(candidate, "highlight", candidate.id));
+			const calls = candidates.slice(0, 48).map((candidate) => candidateToOverlayToolCall(candidate, "highlight", candidate.id));
 			await executeToolCalls(calls);
 		} catch (error) {
 			setAttachmentError(error instanceof Error ? error.message : "Debug capture failed.");
@@ -466,6 +471,7 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 				</label>
 
 				{lastAutoCapture ? <p className="mt-2 mb-0 text-[11px] font-bold text-[var(--teal-700)]">Attached a fresh desktop frame.</p> : null}
+					{debugInfo ? <p className="mt-2 mb-0 font-['DM_Mono'] text-[10px] break-words text-[var(--muted)]">{debugInfo}</p> : null}
 				{attachmentError || chat.error ? <p className="mt-2 mb-0 text-[11px] font-semibold text-[#C0532F]">{attachmentError || chat.error}</p> : null}
 			</form>
 
