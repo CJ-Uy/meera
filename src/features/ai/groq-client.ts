@@ -286,6 +286,9 @@ async function groundedSelectionResponse(request: AiChatRequest): Promise<AiChat
 	const choice = data.choices?.[0];
 	const selection = parseSelection(choice?.message?.tool_calls, choice?.message?.content);
 	const toolCalls = selectionToToolCalls(selection, candidates);
+	console.log(
+		`[Meera grounding] candidates=${candidates.length} action=${selection?.action ?? "?"} elementId=${selection?.elementId || "-"} matched=${toolCalls.length > 0}`,
+	);
 	if (toolCalls.length === 0) return null;
 
 	return {
@@ -293,6 +296,7 @@ async function groundedSelectionResponse(request: AiChatRequest): Promise<AiChat
 		model: data.model || settings.selectionModel,
 		toolCalls,
 		grounding: "ocr",
+		selectedElementId: selection?.elementId,
 	};
 }
 

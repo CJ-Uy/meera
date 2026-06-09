@@ -63,6 +63,8 @@ export type AiChatResponse = {
 	toolCalls: AiToolCall[];
 	/** How the overlay coordinates were grounded. "ocr"/"uia" are exact and skip the vision refine pass. */
 	grounding?: AiGroundingMode;
+	/** Candidate id the selection model chose (for debugging which element was targeted). */
+	selectedElementId?: string;
 };
 
 export type AiProviderName = "groq";

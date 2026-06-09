@@ -33,7 +33,12 @@ function requestHistory(messages: AiChatMessage[]): AiChatInputMessage[] {
 		.map((message) => ({ role: message.role, content: message.content }));
 }
 
-export type AssistantToolCallContext = { images: AiImageAttachment[]; prompt: string; grounding?: AiGroundingMode };
+export type AssistantToolCallContext = {
+	images: AiImageAttachment[];
+	prompt: string;
+	grounding?: AiGroundingMode;
+	selectedElementId?: string;
+};
 
 export function useAiChat(
 	handleToolCalls: (toolCalls: AiToolCall[], context: AssistantToolCallContext) => Promise<AiActionResult[]>,
@@ -96,7 +101,12 @@ export function useAiChat(
 				});
 				const body = (await response.json()) as AiChatResponse & { error?: string };
 				if (!response.ok) throw new Error(body.error || "AI chat request failed.");
-				const actionResults = await handleToolCalls(body.toolCalls ?? [], { images, prompt: normalizedContent, grounding: body.grounding });
+				const actionResults = await handleToolCalls(body.toolCalls ?? [], {
+					images,
+					prompt: normalizedContent,
+					grounding: body.grounding,
+					selectedElementId: body.selectedElementId,
+				});
 				setMessages((current) => [
 					...current,
 					{

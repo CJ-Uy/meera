@@ -11,7 +11,7 @@ import {
 	shouldExtractScreenElements,
 } from "@/features/ai/image-input";
 import type { AiChatMessage, AiChatResponse, AiImageAttachment, AiToolCall } from "@/features/ai/ai-types";
-import { buildCandidatesFromOcr } from "@/features/ai/grounding/candidates";
+import { buildCandidatesFromOcr, candidateToOverlayToolCall } from "@/features/ai/grounding/candidates";
 import { runOcrWords, warmUpOcr } from "@/features/ai/grounding/ocr";
 import type { GroundingCandidate } from "@/features/ai/grounding/types";
 import { useAiChat, type AssistantToolCallContext } from "@/features/ai/use-ai-chat";
@@ -103,10 +103,11 @@ function ChatMessage({ message }: { message: AiChatMessage }) {
 export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 	const { overlayAvailable, executeToolCalls, clearVisualGuidance } = useAiOverlayActions();
 	const handleAssistantToolCalls = useCallback(
-		async (toolCalls: AiToolCall[], { images, prompt, grounding }: AssistantToolCallContext) => {
+		async (toolCalls: AiToolCall[], { images, prompt, grounding, selectedElementId }: AssistantToolCallContext) => {
 			const frame = images.find((image) => image.source === "screen");
 			// Selection grounding (ocr/uia) already yields exact rects — skip the vision refine pass for it.
 			const exactlyGrounded = grounding === "ocr" || grounding === "uia";
+			console.log(`[Meera] grounding=${grounding ?? "vision/none"} selected=${selectedElementId ?? "-"} toolCalls=${toolCalls.length}`);
 			const refined = await refineOverlayToolCalls({
 				toolCalls,
 				frame,
@@ -186,6 +187,28 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 		}
 	};
 
+	// Diagnostic: capture, OCR, and box every detected element live on the real screen. Lets us see at a
+	// glance whether failures are detection (target has no box), coordinates (boxes misaligned with the UI),
+	// or selection (boxes correct but the wrong one gets picked during a real request).
+	const showDetectedElements = async () => {
+		setAttachmentError(null);
+		try {
+			const frame = await captureScreen();
+			if (!frame.width || !frame.height) throw new Error("Captured frame has no size.");
+			const words = await runOcrWords(frame.dataUrl);
+			const candidates = buildCandidatesFromOcr(words, { imageWidth: frame.width, imageHeight: frame.height });
+			console.log(`[Meera debug] frame=${frame.width}x${frame.height} detected ${candidates.length} candidates`, candidates);
+			if (candidates.length === 0) {
+				setAttachmentError("Debug: OCR found no text elements on this screen.");
+				return;
+			}
+			const calls = candidates.slice(0, 40).map((candidate) => candidateToOverlayToolCall(candidate, "highlight", candidate.id));
+			await executeToolCalls(calls);
+		} catch (error) {
+			setAttachmentError(error instanceof Error ? error.message : "Debug capture failed.");
+		}
+	};
+
 	const startNewChat = () => {
 		chat.clearMessages();
 		setDraft("");
@@ -239,6 +262,7 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 			try {
 				const words = await runOcrWords(screenFrame.dataUrl);
 				candidates = buildCandidatesFromOcr(words, { imageWidth: screenFrame.width, imageHeight: screenFrame.height });
+				console.log(`[Meera] OCR candidates for "${draftToSend.slice(0, 60)}": ${candidates.length}`);
 			} catch {
 				candidates = [];
 			} finally {
@@ -399,6 +423,15 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 								onClick={() => void addScreenFrame()}
 							>
 								Screen
+							</button>
+							<button
+								className="min-h-8 rounded-full border border-dashed border-[var(--line)] bg-white px-3 text-[11px] font-bold text-[var(--muted)] transition hover:border-[var(--teal)] hover:text-[var(--teal-700)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-[var(--line)] disabled:hover:text-[var(--muted)]"
+								type="button"
+								disabled={!canCaptureScreen}
+								title="Debug: box every element Meera detects on screen"
+								onClick={() => void showDetectedElements()}
+							>
+								Debug boxes
 							</button>
 						</div>
 						<button
