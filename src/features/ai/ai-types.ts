@@ -58,7 +58,7 @@ export type AiChatResponse = {
 	toolCalls: AiToolCall[];
 };
 
-export type AiProviderName = "groq" | "ollama";
+export type AiProviderName = "groq";
 
 export type AiProviderStatus = {
 	available: boolean;
@@ -68,8 +68,6 @@ export type AiProviderStatus = {
 	visionModel: string;
 	models: string[];
 	configuredProvider?: AiProviderName;
-	fallbackProvider?: AiProviderName;
-	fallbackActive?: boolean;
 	error?: string;
 };
 

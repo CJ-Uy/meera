@@ -41,10 +41,7 @@ export function messagesForProvider(request: AiChatRequest, usesVision: boolean)
 	);
 }
 
-export function coordinateCalibration(
-	images: AiImageAttachment[] | undefined,
-	options: { preferRelative1000?: boolean } = {},
-) {
+export function coordinateCalibration(images: AiImageAttachment[] | undefined) {
 	const screenFrames = images?.filter((image) => image.source === "screen" && image.width && image.height) ?? [];
 	if (screenFrames.length === 0) return "";
 
@@ -52,9 +49,6 @@ export function coordinateCalibration(
 		.map((image, index) => {
 			const label = image.screen?.displayLabel ? ` on ${image.screen.displayLabel}` : "";
 			const grid = image.screen?.calibrationGrid;
-			const relativeCoordinateText = options.preferRelative1000
-				? '\n- This provider uses relative coordinates from 0 to 1000 for visual grounding. Prefer those values with coordinateSpace "relative_1000". You may also pass exact pixels by setting coordinateSpace to "image_pixels".'
-				: '\n- Prefer normalized coordinates from 0 to 1. You may use exact pixels with coordinateSpace "image_pixels".';
 			const gridText = grid
 				? `
 - The screenshot has a visible ${grid.columns} column x ${grid.rows} row calibration grid. Columns are letters from A, rows are numbers from 1.
@@ -63,13 +57,14 @@ export function coordinateCalibration(
 				: "";
 			return `
 
-[Screen frame ${index + 1} coordinate calibration${label}]
-- The attached desktop screenshot image is exactly ${image.width}x${image.height} pixels.
-- For arrow, cursor, and bubble tools, target the CENTER of the visible thing.
-- For highlight tools, x/y must be the TOP-LEFT of the rectangle and width/height must cover the visible thing.
-- Normalized formula: x = pixel_x / ${image.width}; y = pixel_y / ${image.height}; width = pixel_width / ${image.width}; height = pixel_height / ${image.height}.${relativeCoordinateText}
-- Never use the center of the image as a placeholder. Use the actual visible target.
-- Do not compensate for the Meera chat window; it is hidden during capture.
+[Screen frame ${index + 1}${label}]
+- This screenshot is exactly ${image.width}x${image.height} pixels. The origin (0,0) is the TOP-LEFT corner; x grows right, y grows down.
+- Give every coordinate as a PERCENT of the image size from 0 to 100 and set coordinateSpace to "percent". You may instead pass exact pixel values with coordinateSpace "image_pixels".
+- Axes: x=0 is the far LEFT edge, x=100 is the far RIGHT edge; y=0 is the very TOP edge, y=100 is the very BOTTOM edge. So a menu bar at the top is near y=5, something centered is y=50, and a taskbar or terminal panel near the bottom is around y=88. Do not flip the y axis.
+- Arrow, cursor, and bubble tools: x/y is the CENTER of the target element.
+- Highlight tool: x/y is the TOP-LEFT corner of the element's bounding box, and width/height (also percent) must be large enough to fully cover the element with a little margin — not the whole screen, not a thin sliver.
+- Read the element's actual on-screen text, icon, or label to locate it precisely. Never output the image center as a guess; if you cannot find the target, say so instead of guessing.
+- The Meera chat window is hidden during capture, so do not account for it.
 ${gridText}
 `.trim();
 		})

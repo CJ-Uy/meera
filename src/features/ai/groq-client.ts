@@ -195,7 +195,8 @@ async function requestGroqChat(request: AiChatRequest, usesVision: boolean) {
 						tools: groqOverlayTools(),
 						tool_choice: "auto",
 						parallel_tool_calls: true,
-						temperature: attempt === 0 ? 0.2 : 0,
+						// Grounding must be deterministic; only let text chat explore on the first attempt.
+						temperature: usesVision ? 0 : attempt === 0 ? 0.2 : 0,
 						max_completion_tokens: settings.maxTokens,
 						stream: false,
 					}),

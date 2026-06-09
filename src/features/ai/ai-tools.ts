@@ -316,8 +316,10 @@ function inferredCoordinateSpace(args: Record<string, unknown>, context?: Overla
 	if (coordinateArgumentNames.some((name) => typeof args[name] === "string" && args[name].trim().endsWith("%"))) return "percent";
 	const values = coordinateArgumentNames.map((name) => numeric(args[name])).filter((value): value is number => value !== null);
 	if (values.length === 0) return undefined;
-	if (context && values.some((value) => Math.abs(value) > 1_000)) return "image_pixels";
-	if (values.some((value) => Math.abs(value) > 2)) return "relative_1000";
+	// Keep pixel pairs consistent: if any axis clearly exceeds the percent range, treat the whole pair as pixels.
+	if (context && values.some((value) => Math.abs(value) > 100)) return "image_pixels";
+	// Otherwise let the per-value ladder map 2..100 as percent (the format the model is instructed to use).
+	// relative_1000 is only honored when the model sets coordinateSpace explicitly.
 	return undefined;
 }
 
@@ -465,6 +467,9 @@ const coordinatePairPatterns = [
 ] as const;
 
 function extractGridPoint(text: string, context?: OverlayCoordinateContext) {
+	// Only interpret a "letter+number" token as a grid cell when a calibration grid is actually in use;
+	// otherwise strings like "H2" or "F12" in the model's prose would be mistaken for coordinates.
+	if (!context?.gridColumns && !context?.gridRows) return null;
 	const match = /\b(?:grid\s*)?(?:cell|square|box)?\s*([A-Z]{1,2})\s*[-:]?\s*(\d{1,2})\b/i.exec(text);
 	if (!match) return null;
 	const gridPoint = normalizeGridPoint({ gridColumn: match[1], gridRow: Number(match[2]) }, context);
@@ -585,24 +590,6 @@ function requestedVisualTools(prompt: string): VisualOverlayToolName[] {
 	return tools;
 }
 
-function pointFromToolCall(toolCall: AiToolCall) {
-	const name = toolCall.function?.name;
-	const args = parseArguments(toolCall.function?.arguments);
-	const point = pointFromArgs(args);
-	if (!point) return null;
-	if (name !== "overlay_show_highlight") return point;
-	const width = numeric(args.width);
-	const height = numeric(args.height);
-	return {
-		x: clamp(point.x + (width ?? 0) / 2, point.x),
-		y: clamp(point.y + (height ?? 0) / 2, point.y),
-	};
-}
-
-function isDefaultCenter(point: { x: number; y: number } | null) {
-	return Boolean(point && Math.abs(point.x - 0.5) < 0.001 && Math.abs(point.y - 0.5) < 0.001);
-}
-
 function synthesizedVisualToolCall(
 	name: VisualOverlayToolName,
 	point: { x: number; y: number } | null,
@@ -646,17 +633,24 @@ export function reconcileOverlayToolCalls({
 		);
 	}
 
+	// Trust the model's tool choice. If it drew any visual overlay, use its calls as-is. The model is
+	// far better than prompt keyword-matching at picking the overlay type (e.g. it correctly answers an
+	// arrow for "point at the red box" and a highlight for "draw a box around it"). Synthesizing from
+	// keywords used to bolt on a spurious second overlay whenever a target noun collided with an overlay
+	// word ("search box", "the box thingy") and overrode correct choices — so only fall back to keyword
+	// synthesis when the model produced NO visual overlay at all (e.g. it answered in prose).
+	if (normalizedCalls.some((call) => visualToolName(call.function?.name))) {
+		return normalizedCalls;
+	}
+
 	const requestedTools = requestedVisualTools(prompt);
 	if (requestedTools.length === 0) return normalizedCalls;
 
 	const controlCalls = normalizedCalls.filter((call) => !visualToolName(call.function?.name));
 	const contentPoint = extractPoint(content, context);
-	const nativePoint = normalizedCalls.map(pointFromToolCall).find((point) => point !== null) ?? null;
-	const preferredPoint = contentPoint && isDefaultCenter(nativePoint) ? contentPoint : nativePoint ?? contentPoint ?? extractPoint(prompt, context);
+	const preferredPoint = contentPoint ?? extractPoint(prompt, context);
 	const message = overlayMessage(prompt, content);
 	const visualCalls = requestedTools.flatMap((name) => {
-		const matchingCall = normalizedCalls.find((call) => call.function?.name === name);
-		if (matchingCall && !(contentPoint && isDefaultCenter(pointFromToolCall(matchingCall)))) return [matchingCall];
 		const synthesized = synthesizedVisualToolCall(name, preferredPoint, message, content, context);
 		return synthesized ? [synthesized] : [];
 	});

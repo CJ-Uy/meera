@@ -17,7 +17,8 @@ let smokeStarted = false;
 const assistantClosedSize = { width: 88, height: 88 };
 const assistantOpenSize = { width: 460, height: 650 };
 const assistantMargin = 24;
-const screenCaptureMaxEdge = 1280;
+const screenCaptureMaxEdge = 1920;
+const screenCaptureJpegQuality = 88;
 const screenCaptureSettleMs = 120;
 
 function isTrustedUrl(url: string) {
@@ -292,7 +293,7 @@ function configureIpc() {
 			if (!preferredSource || preferredSource.thumbnail.isEmpty()) throw new Error("No desktop screen capture source is available.");
 			const size = preferredSource.thumbnail.getSize();
 			const capturedAt = new Date().toISOString();
-			const jpeg = preferredSource.thumbnail.toJPEG(80);
+			const jpeg = preferredSource.thumbnail.toJPEG(screenCaptureJpegQuality);
 			return {
 				name: `desktop-screen-${capturedAt}.jpg`,
 				mimeType: "image/jpeg" as const,

@@ -3,6 +3,11 @@ import type { AiImageAttachment, AiImageSource, AiScreenFrameMetadata } from "@/
 const MAX_SOURCE_BYTES = 12 * 1024 * 1024;
 const MAX_EDGE = 1_280;
 const JPEG_QUALITY = 0.78;
+// Long edge (px) the zoom-refine crop is upscaled to so the weak vision model sees the target large and clear.
+const REFINE_TARGET_EDGE = 1_280;
+const REFINE_JPEG_QUALITY = 0.9;
+// The bright calibration grid occludes UI and adds OCR noise; the zoom-refine loop replaces it. Flip to re-enable.
+const ENABLE_CALIBRATION_GRID = false;
 const SUPPORTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const CALIBRATION_GRID = { columns: 12, rows: 8 } as const;
 const AUTO_CAPTURE_PATTERNS = [
@@ -239,8 +244,49 @@ export async function calibrateScreenFrameForOverlay(image: AiImageAttachment): 
 }
 
 export async function calibrateOverlayFramesForPrompt(prompt: string, images: AiImageAttachment[]) {
-	if (!shouldCalibrateOverlayFrame(prompt)) return images;
+	if (!ENABLE_CALIBRATION_GRID || !shouldCalibrateOverlayFrame(prompt)) return images;
 	return Promise.all(images.map((image) => calibrateScreenFrameForOverlay(image)));
+}
+
+/**
+ * Crop a normalized region out of a full-resolution screen frame and upscale it, so the vision model
+ * can re-ground the target in a zoomed-in view. The region is in full-frame normalized [0,1] coordinates;
+ * the returned frame carries its own (upscaled) pixel dimensions for coordinate calibration.
+ */
+export async function cropAndUpscaleScreenFrame(
+	image: AiImageAttachment,
+	region: { x: number; y: number; width: number; height: number },
+): Promise<AiImageAttachment> {
+	const sourceWidth = image.width;
+	const sourceHeight = image.height;
+	if (!sourceWidth || !sourceHeight) throw new Error("Cannot crop a screen frame without pixel dimensions.");
+
+	const cropX = Math.max(0, Math.min(sourceWidth - 1, Math.round(region.x * sourceWidth)));
+	const cropY = Math.max(0, Math.min(sourceHeight - 1, Math.round(region.y * sourceHeight)));
+	const cropWidth = Math.max(1, Math.min(sourceWidth - cropX, Math.round(region.width * sourceWidth)));
+	const cropHeight = Math.max(1, Math.min(sourceHeight - cropY, Math.round(region.height * sourceHeight)));
+
+	const scale = Math.max(1, REFINE_TARGET_EDGE / Math.max(cropWidth, cropHeight));
+	const outWidth = Math.max(1, Math.round(cropWidth * scale));
+	const outHeight = Math.max(1, Math.round(cropHeight * scale));
+
+	const source = await loadImage(image.dataUrl);
+	const canvas = canvasForExact(outWidth, outHeight);
+	const context = canvas.getContext("2d");
+	if (!context) throw new Error("Could not prepare the zoom refine image.");
+	context.imageSmoothingEnabled = true;
+	context.imageSmoothingQuality = "high";
+	context.drawImage(source, cropX, cropY, cropWidth, cropHeight, 0, 0, outWidth, outHeight);
+
+	return toAttachment({
+		dataUrl: canvas.toDataURL("image/jpeg", REFINE_JPEG_QUALITY),
+		height: outHeight,
+		mimeType: "image/jpeg",
+		name: image.name.replace(/(\.[^.]+)?$/, "-zoom.jpg"),
+		screen: image.screen ? { ...image.screen, calibrationGrid: undefined } : undefined,
+		source: "screen",
+		width: outWidth,
+	});
 }
 
 export function isDesktopScreenFrameCaptureAvailable() {

@@ -31,7 +31,11 @@ function requestHistory(messages: AiChatMessage[]): AiChatInputMessage[] {
 		.map((message) => ({ role: message.role, content: message.content }));
 }
 
-export function useAiChat(executeToolCalls: (toolCalls: AiToolCall[]) => Promise<AiActionResult[]>) {
+export type AssistantToolCallContext = { images: AiImageAttachment[]; prompt: string };
+
+export function useAiChat(
+	handleToolCalls: (toolCalls: AiToolCall[], context: AssistantToolCallContext) => Promise<AiActionResult[]>,
+) {
 	const [messages, setMessages] = useState<AiChatMessage[]>(initialMessages);
 	const [status, setStatus] = useState<AiProviderStatus | null>(null);
 	const [isSending, setIsSending] = useState(false);
@@ -90,7 +94,7 @@ export function useAiChat(executeToolCalls: (toolCalls: AiToolCall[]) => Promise
 				});
 				const body = (await response.json()) as AiChatResponse & { error?: string };
 				if (!response.ok) throw new Error(body.error || "AI chat request failed.");
-				const actionResults = await executeToolCalls(body.toolCalls ?? []);
+				const actionResults = await handleToolCalls(body.toolCalls ?? [], { images, prompt: normalizedContent });
 				setMessages((current) => [
 					...current,
 					{
@@ -110,7 +114,7 @@ export function useAiChat(executeToolCalls: (toolCalls: AiToolCall[]) => Promise
 				setIsSending(false);
 			}
 		},
-		[executeToolCalls, isSending, messages],
+		[handleToolCalls, isSending, messages],
 	);
 
 	const clearMessages = useCallback(() => {

@@ -1,72 +1,72 @@
-# AI Providers In Meera
+# AI In Meera
 
-Meera uses Groq by default and keeps Ollama as an optional provider or fallback. All provider calls stay behind the server-side `POST /api/ai/chat` route. The browser and Electron renderer never receive provider credentials.
+Meera uses **Groq** as its only AI provider. All provider calls stay behind the server-side
+`POST /api/ai/chat` route — the browser and Electron renderer never receive provider credentials.
 
-## Default Groq Models
+## Models
 
 - Text chat: `llama-3.1-8b-instant`
-- Images and desktop frames: `meta-llama/llama-4-scout-17b-16e-instruct`
+- Images and desktop frames: `meta-llama/llama-4-scout-17b-16e-instruct` (Groq's only multimodal model)
 
-Groq's Llama 4 Scout model accepts image data URLs, supports multi-turn image conversations, and can return local function tool calls. Meera validates every returned overlay tool call before sending it to Electron.
+Groq's Llama 4 Scout model accepts image data URLs, supports multi-turn image conversations, and can
+return local function tool calls. Meera validates every returned overlay tool call before sending it to
+Electron.
 
 ## Local Configuration
 
-Create `.env.local`:
+Create `.env.local` (or edit `.env`):
 
 ```env
-AI_PROVIDER=groq
 GROQ_API_KEY=your_groq_api_key
+GROQ_BASE_URL=https://api.groq.com/openai/v1
 GROQ_CHAT_MODEL=llama-3.1-8b-instant
 GROQ_VISION_MODEL=meta-llama/llama-4-scout-17b-16e-instruct
 GROQ_MAX_TOKENS=512
 GROQ_REQUEST_TIMEOUT_MS=30000
+
+# Client-side toggle. Set to 0 to disable the zoom-refine grounding pass for raw speed.
+# NEXT_PUBLIC_MEERA_GROUNDING_REFINE=1
 ```
 
 `.env.local` is ignored by Git. Never add a Groq key to source code or prefix it with `NEXT_PUBLIC_`.
-
-For deployment, add `GROQ_API_KEY` as a server-side secret in the deployment platform. For Wrangler deployments:
+For deployment, add `GROQ_API_KEY` as a server-side secret. For Wrangler:
 
 ```powershell
 pnpm wrangler secret put GROQ_API_KEY
 ```
 
-## Switching Back To Ollama
+## Visual grounding (how overlays get placed)
 
-Set:
+Llama 4 Scout is a general vision model, not a precision UI grounder — its first coordinate guess lands
+in the right neighbourhood but is rarely exact. Meera compensates by spending Groq's speed instead of
+trusting one weak guess:
 
-```env
-AI_PROVIDER=ollama
-```
-
-The existing `OLLAMA_*` settings and adapter remain supported. See [OLLAMA.md](OLLAMA.md) for Ollama-specific configuration.
-
-To use Groq first and Ollama only when Groq fails:
-
-```env
-AI_PROVIDER=groq
-AI_FALLBACK_PROVIDER=ollama
-```
-
-Fallback is opt-in because captured desktop frames are sent to whichever provider handles the request.
+1. **Capture** — Electron grabs the primary display at up to 1920px / JPEG 88 (high enough that small UI
+   text stays legible). Coordinates are calibrated against the exact pixel size the model saw.
+2. **Locate** — the screenshot plus the user's request go to Scout, which returns an overlay tool call
+   with the target's coordinates (percent of the image) or, for highlights, a bounding box.
+3. **Zoom-refine** (`src/features/ai/visual-grounding.ts`) — Meera crops and upscales the region around
+   that first guess and asks Scout to re-locate the target in the zoomed view. Absolute error shrinks
+   with the field of view, so the second pass is far more precise. The refined coordinates are mapped
+   back to full-screen space. Because the crop is centred on the first guess, a bad refine can only move
+   the overlay within that neighbourhood — and if the refine pass finds nothing, the first guess is kept.
+   Toggle with `NEXT_PUBLIC_MEERA_GROUNDING_REFINE`.
+4. **Recover** — if the model writes coordinates in prose instead of a native tool call, Meera recovers
+   them into validated overlay commands.
 
 ## Architecture
 
-- `src/features/ai/ai-service.ts`
-  - Selects the configured provider and optional fallback.
-- `src/features/ai/groq-client.ts`
-  - Sends OpenAI-compatible Chat Completions requests to Groq.
-  - Formats images as `image_url` data URLs.
-  - Uses Groq local function tools and retries transient failures once.
-- `src/features/ai/ollama-client.ts`
-  - Preserves the Ollama provider implementation.
-- `src/features/ai/ai-provider-utils.ts`
-  - Shares screen calibration, stale-image removal, local overlay commands, and response normalization across providers.
-- `src/features/ai/ai-tools.ts`
-  - Declares and validates every overlay tool.
-- `src/app/api/ai/chat/route.ts`
-  - Validates requests and exposes provider-neutral status/chat endpoints.
+- `src/features/ai/ai-service.ts` — selects Groq.
+- `src/features/ai/groq-client.ts` — OpenAI-compatible Chat Completions requests; formats images as
+  `image_url` data URLs; uses Groq local function tools; deterministic (temperature 0) on vision turns.
+- `src/features/ai/ai-provider-utils.ts` — screen calibration, stale-image removal, response normalization.
+- `src/features/ai/visual-grounding.ts` — the zoom-refine loop and its pure coordinate math.
+- `src/features/ai/image-input.ts` — capture preparation and `cropAndUpscaleScreenFrame` for the refine pass.
+- `src/features/ai/ai-tools.ts` — declares and validates every overlay tool, plus coordinate normalization.
+- `src/app/api/ai/chat/route.ts` — validates requests and exposes the chat/status endpoints.
 
-Only the newest screenshot is sent on a visual turn. Recent text history is retained so follow-up requests such as `now use a box instead` still work without repeatedly uploading stale frames.
+Only the newest screenshot is sent on a visual turn. Recent text history is retained so follow-up requests
+such as `now use a box instead` still work without re-uploading stale frames.
 
 ## Running And Testing
 
@@ -78,11 +78,9 @@ Useful prompts:
 
 - `What can you help me with?`
 - `Describe this image.`
-- `Analyze my screen and point at the most important control.`
-- `Highlight the button I should click next.`
+- `Point at the terminal.`
+- `Highlight where I can see my changes.`
 - `Show every overlay type so I can test them.`
-
-The assistant status line shows the active provider and image model. If an optional fallback becomes active, it is labeled as a fallback.
 
 ## References
 
