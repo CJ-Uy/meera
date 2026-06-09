@@ -158,7 +158,9 @@ export function renderCandidatesForPrompt(candidates: GroundingCandidate[]): str
 	return candidates
 		.map((candidate) => {
 			const center = candidateCenter(candidate);
-			return `${candidate.id}: "${candidate.text}" [${positionLabel(center.x, center.y)}]`;
+			// Text candidates show their text; non-text regions (images/cards) show their role instead.
+			const label = candidate.text ? `"${candidate.text}"` : `[${candidate.role}]`;
+			return `${candidate.id}: ${label} [${positionLabel(center.x, center.y)}]`;
 		})
 		.join("\n");
 }

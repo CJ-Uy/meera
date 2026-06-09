@@ -19,8 +19,14 @@ Choose the single element the user means and how to mark it, then call select_ov
 - action "cursor": move Meera's pointer there. Use only when the user mentions the cursor.
 - action "none": the target is NOT in the list, or the user is not asking to mark anything. Leave elementId empty.
 
+Element types:
+- Most entries show their visible text, e.g. e7: "Sign in".
+- Entries shown as [region] are images, thumbnails, photos, video previews, or cards that contain no text
+  of their own. Choose a [region] when the user asks to highlight/point at an image, thumbnail, video
+  preview, picture, card, or tile (not its title text).
+
 Rules:
-- elementId MUST be one of the listed ids (e.g. e7). Never invent an id or output coordinates.
+- elementId MUST be one of the listed ids (e.g. e7 or r2). Never invent an id or output coordinates.
 - Match on the element's visible text and the position hints. Prefer the most specific match.
 - If several elements match, pick the one whose text and position best fit the request.
 - Use the recent conversation (when provided) to resolve references like "it", "that", or "the one below" to a concrete element.

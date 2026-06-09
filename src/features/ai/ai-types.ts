@@ -176,7 +176,7 @@ function isGroundingCandidate(value: unknown): value is GroundingCandidate {
 	if (typeof value.id !== "string" || value.id.length === 0 || value.id.length > 16) return false;
 	if (typeof value.text !== "string" || value.text.length > 200) return false;
 	if (typeof value.role !== "string" || value.role.length > 40) return false;
-	if (value.source !== "ocr" && value.source !== "uia") return false;
+	if (value.source !== "ocr" && value.source !== "uia" && value.source !== "region") return false;
 	return (
 		isNormalizedFraction(value.x) &&
 		isNormalizedFraction(value.y) &&

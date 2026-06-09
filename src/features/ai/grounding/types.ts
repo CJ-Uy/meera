@@ -21,7 +21,7 @@ export type OcrWord = {
 	confidence: number;
 };
 
-export type GroundingSource = "ocr" | "uia";
+export type GroundingSource = "ocr" | "uia" | "region";
 
 /** A candidate UI element. Rect is normalized 0-1 in image space, top-left origin. */
 export type GroundingCandidate = {

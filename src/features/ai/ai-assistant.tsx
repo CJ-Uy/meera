@@ -13,6 +13,7 @@ import {
 import type { AiChatMessage, AiChatResponse, AiImageAttachment, AiToolCall } from "@/features/ai/ai-types";
 import { buildCandidatesFromOcr, candidateToOverlayToolCall } from "@/features/ai/grounding/candidates";
 import { runOcrWords, warmUpOcr } from "@/features/ai/grounding/ocr";
+import { detectContentRegions } from "@/features/ai/grounding/regions";
 import type { GroundingCandidate } from "@/features/ai/grounding/types";
 import { useAiChat, type AssistantToolCallContext } from "@/features/ai/use-ai-chat";
 import { useAiOverlayActions } from "@/features/ai/use-ai-overlay-actions";
@@ -20,6 +21,8 @@ import { refineOverlayToolCalls } from "@/features/ai/visual-grounding";
 
 // Zoom-refine the model's first coordinate guess by default. Set NEXT_PUBLIC_MEERA_GROUNDING_REFINE=0 to disable.
 const GROUNDING_REFINE_ENABLED = process.env.NEXT_PUBLIC_MEERA_GROUNDING_REFINE !== "0";
+// Detect non-text image/card regions (thumbnails) as candidates. Set NEXT_PUBLIC_MEERA_REGIONS=0 to disable.
+const REGION_DETECTION_ENABLED = process.env.NEXT_PUBLIC_MEERA_REGIONS !== "0";
 
 async function requestRefineGrounding(image: AiImageAttachment, prompt: string): Promise<AiToolCall[]> {
 	const response = await fetch("/api/ai/chat", {
@@ -196,8 +199,13 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 			const frame = await captureScreen();
 			if (!frame.width || !frame.height) throw new Error("Captured frame has no size.");
 			const words = await runOcrWords(frame.dataUrl);
-			const candidates = buildCandidatesFromOcr(words, { imageWidth: frame.width, imageHeight: frame.height });
-			console.log(`[Meera debug] frame=${frame.width}x${frame.height} detected ${candidates.length} candidates`, candidates);
+			const ocrCandidates = buildCandidatesFromOcr(words, { imageWidth: frame.width, imageHeight: frame.height });
+			const regionCandidates = REGION_DETECTION_ENABLED ? await detectContentRegions(frame.dataUrl) : [];
+			const candidates = [...ocrCandidates, ...regionCandidates];
+			console.log(
+				`[Meera debug] frame=${frame.width}x${frame.height} detected ${ocrCandidates.length} text + ${regionCandidates.length} regions`,
+				candidates,
+			);
 			if (candidates.length === 0) {
 				setAttachmentError("Debug: OCR found no text elements on this screen.");
 				return;
@@ -261,8 +269,10 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 			setIsGrounding(true);
 			try {
 				const words = await runOcrWords(screenFrame.dataUrl);
-				candidates = buildCandidatesFromOcr(words, { imageWidth: screenFrame.width, imageHeight: screenFrame.height });
-				console.log(`[Meera] OCR candidates for "${draftToSend.slice(0, 60)}": ${candidates.length}`);
+				const ocrCandidates = buildCandidatesFromOcr(words, { imageWidth: screenFrame.width, imageHeight: screenFrame.height });
+				const regionCandidates = REGION_DETECTION_ENABLED ? await detectContentRegions(screenFrame.dataUrl) : [];
+				candidates = [...ocrCandidates, ...regionCandidates];
+				console.log(`[Meera] candidates for "${draftToSend.slice(0, 60)}": ${ocrCandidates.length} text + ${regionCandidates.length} regions`);
 			} catch {
 				candidates = [];
 			} finally {
