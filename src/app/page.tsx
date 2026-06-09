@@ -259,7 +259,7 @@ function Nav() {
 					Sign in
 				</a>
 				<a href="/demo" className="rounded-full px-5 py-2.5 text-sm font-bold text-white" style={{ background: "var(--teal)" }}>
-					Book a demo
+					Open Demo
 				</a>
 			</div>
 		</header>
@@ -306,7 +306,7 @@ function Hero() {
 						Meera is the AI guide that walks students and staff through any issue right on their screen. When she cannot solve it herself, she writes the ticket for you.
 					</p>
 					<div className="mt-8 flex flex-wrap gap-3">
-						<PrimaryButton href="/demo">Book a demo</PrimaryButton>
+						<PrimaryButton href="/demo">Open Demo</PrimaryButton>
 						<GhostButton href="#meeror">
 							See Meeror in action <Icon name="arrow" size={16} stroke={2.2} />
 						</GhostButton>
@@ -863,7 +863,7 @@ function CTA() {
 							See how Meera guides your users and lightens your support team’s load. Book a 20-minute walkthrough.
 						</p>
 						<div className="mt-8 flex flex-wrap gap-3">
-							<PrimaryButton href="/demo">Book a demo</PrimaryButton>
+							<PrimaryButton href="/demo">Open Demo</PrimaryButton>
 							<GhostButton href="#meeror" dark>
 								Explore the product
 							</GhostButton>

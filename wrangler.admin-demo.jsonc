@@ -1,0 +1,17 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "meera-admin-demo-api",
+	"account_id": "8527ec1369d46f55304a6f59ab5356e4",
+	"main": "cloudflare/admin-demo-api.ts",
+	"compatibility_date": "2026-06-05",
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "meera-admin-demo",
+			"database_id": "0f5fb5e5-861f-4e54-a879-96c47e8af7f5"
+		}
+	],
+	"observability": {
+		"enabled": true
+	}
+}

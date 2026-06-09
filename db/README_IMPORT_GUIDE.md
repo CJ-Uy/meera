@@ -33,3 +33,31 @@ Recommended choices:
 - Outcome: Resolved by Agent, Escalated to Staff, Information Provided, Abandoned
 - Activity Type: Student Message, Bot Guidance, Troubleshooting Step, Staff Note, Status Update
 - Activity Result: Success, Failed, Pending, Not Applicable
+
+## Cloudflare D1 Admin Demo
+
+The `/demo` admin CMS is connected to a shared remote Cloudflare D1 database through a public demo API:
+
+- Remote API: `https://meera-admin-demo-api.cj-uy.workers.dev`
+- D1 database: `meera-admin-demo`
+- D1 database id: `0f5fb5e5-861f-4e54-a879-96c47e8af7f5`
+- Worker config: `wrangler.admin-demo.jsonc`
+
+Local devs do not need Cloudflare accounts for the demo UI. They only need this public env value:
+
+```powershell
+NEXT_PUBLIC_ADMIN_DEMO_API_BASE=https://meera-admin-demo-api.cj-uy.workers.dev
+```
+
+To reset or reseed the remote D1 database, run:
+
+```powershell
+pnpm wrangler d1 execute meera-admin-demo --remote --file db/d1_admin_demo_schema.sql
+pnpm wrangler d1 execute meera-admin-demo --remote --file db/d1_admin_demo_seed.sql
+```
+
+To redeploy only the shared admin demo API:
+
+```powershell
+pnpm wrangler deploy -c wrangler.admin-demo.jsonc
+```

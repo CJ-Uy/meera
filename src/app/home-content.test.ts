@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
 	architectureFlow,
 	boundaryCards,
@@ -57,5 +59,12 @@ describe("Meera landing page content", () => {
 	it("uses the uploaded Meera icon as the canonical mascot asset", () => {
 		expect(meeraIconAsset.src).toBe("/assets/meera/meera_icon.svg");
 		expect(meeraIconAsset.alt).toContain("Meera");
+	});
+
+	it("labels demo CTAs as open-demo actions", () => {
+		const source = readFileSync(join(process.cwd(), "src/app/page.tsx"), "utf8");
+
+		expect(source).toContain("Open Demo");
+		expect(source).not.toContain("Book a demo");
 	});
 });
