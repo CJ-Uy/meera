@@ -34,6 +34,8 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+.env.local
+.env.*.local
 
 # vercel
 .vercel
@@ -51,3 +53,11 @@ next-env.d.ts
 
 
 !.dev.vars.example
+
+# local database/storage fallbacks
+.local
+.local/
+.local.db
+*.sqlite
+*.sqlite3
+drizzle/local.db

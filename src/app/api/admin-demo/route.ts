@@ -1,6 +1,9 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { NextResponse } from "next/server";
-import { adminDemoFallback, loadAdminDemoSnapshot } from "@/features/admin/admin-demo-data";
+import {
+	loadAdminDemoSnapshotWithFallback,
+	updateAdminDemoFaqDraft,
+	type AdminDemoFaqDraft,
+} from "@/server/admin-demo-cloudflare";
 
 export const runtime = "edge";
 
@@ -10,53 +13,21 @@ const corsHeaders = {
 	"Access-Control-Allow-Headers": "Content-Type",
 };
 
-type D1Env = CloudflareEnv & {
-	DB?: Parameters<typeof loadAdminDemoSnapshot>[0];
-};
-
-type WritableD1 = {
-	prepare: (query: string) => {
-		bind: (...values: unknown[]) => {
-			run: () => Promise<unknown>;
-		};
-	};
-};
-
-type FaqDraft = {
-	faqId: string;
-	answer?: string;
-	escalateIf?: string;
-};
-
-function isFaqDraft(value: unknown): value is FaqDraft {
+function isFaqDraft(value: unknown): value is AdminDemoFaqDraft {
 	return typeof value === "object" && value !== null && "faqId" in value && typeof (value as { faqId?: unknown }).faqId === "string";
 }
 
 export async function GET() {
-	try {
-		const { env } = await getCloudflareContext({ async: true });
-		const snapshot = await loadAdminDemoSnapshot((env as D1Env).DB);
-
-		return NextResponse.json(snapshot, { headers: corsHeaders });
-	} catch {
-		return NextResponse.json(adminDemoFallback, { headers: corsHeaders });
-	}
+	return NextResponse.json(await loadAdminDemoSnapshotWithFallback(), { headers: corsHeaders });
 }
 
 export async function PUT(request: Request) {
 	const draft: unknown = await request.json().catch(() => null);
 
 	try {
-		const { env } = await getCloudflareContext({ async: true });
-		const db = (env as D1Env).DB as WritableD1 | undefined;
-
-		if (db && isFaqDraft(draft)) {
-			await db
-				.prepare("UPDATE aic_knowledge_article SET ContentSummary = ?, EscalationBoundary = ?, LastVerified = ? WHERE ArticleCode = ?")
-				.bind(draft.answer ?? "", draft.escalateIf ?? "", new Date().toISOString().slice(0, 10), draft.faqId)
-				.run();
-
-			return NextResponse.json({ ok: true, source: "d1", draft }, { headers: corsHeaders });
+		if (isFaqDraft(draft)) {
+			const result = await updateAdminDemoFaqDraft(draft);
+			if (result) return NextResponse.json(result, { headers: corsHeaders });
 		}
 	} catch {
 		// Plain next dev has no Cloudflare context. Keep the demo editable locally.

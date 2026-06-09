@@ -44,8 +44,8 @@ describe("SupportStudio navigation", () => {
 
 		expect(source).toContain("@/features/admin/admin-demo-data");
 		expect(source).toContain("NEXT_PUBLIC_ADMIN_DEMO_API_BASE");
-		expect(apiSource).toContain("getCloudflareContext");
-		expect(apiSource).toContain("loadAdminDemoSnapshot");
+		expect(apiSource).toContain("loadAdminDemoSnapshotWithFallback");
+		expect(apiSource).toContain("updateAdminDemoFaqDraft");
 	});
 
 	it("documents the shared remote admin demo API for account-free local development", () => {

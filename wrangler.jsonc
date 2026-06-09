@@ -33,13 +33,86 @@
 		"enabled": true
 	},
 	"upload_source_maps": true,
+	"vars": {
+		"APP_ENV": "local",
+		"STORAGE_MODE": "binding"
+	},
 	"d1_databases": [
 		{
 			"binding": "DB",
-			"database_name": "meera-admin-demo",
-			"database_id": "0f5fb5e5-861f-4e54-a879-96c47e8af7f5"
+			"database_name": "meera-dev-db",
+			"database_id": "3cf48b33-5400-474b-bff1-9e1edaab408e",
+			"migrations_dir": "drizzle/migrations"
 		}
-	]
+	],
+	"r2_buckets": [
+		{
+			"binding": "BUCKET",
+			"bucket_name": "meera-dev-uploads"
+		}
+	],
+	"env": {
+		"dev": {
+			"name": "meera-dev",
+			"vars": {
+				"APP_ENV": "local",
+				"STORAGE_MODE": "binding"
+			},
+			"images": {
+				"binding": "IMAGES"
+			},
+			"services": [
+				{
+					"binding": "WORKER_SELF_REFERENCE",
+					"service": "meera-dev"
+				}
+			],
+			"d1_databases": [
+				{
+					"binding": "DB",
+					"database_name": "meera-dev-db",
+					"database_id": "3cf48b33-5400-474b-bff1-9e1edaab408e",
+					"migrations_dir": "drizzle/migrations"
+				}
+			],
+			"r2_buckets": [
+				{
+					"binding": "BUCKET",
+					"bucket_name": "meera-dev-uploads"
+				}
+			]
+		},
+		"production": {
+			"name": "meera",
+			"vars": {
+				"APP_ENV": "production",
+				"STORAGE_MODE": "binding"
+			},
+			"images": {
+				"binding": "IMAGES"
+			},
+			"services": [
+				{
+					"binding": "WORKER_SELF_REFERENCE",
+					"service": "meera"
+				}
+			],
+			"d1_databases": [
+				{
+					"binding": "DB",
+					"database_name": "meera-prod-db",
+					"database_id": "e405ca42-591b-447a-9620-4242783ef126",
+					"migrations_dir": "drizzle/migrations"
+				}
+			],
+			"r2_buckets": [
+				{
+					"binding": "BUCKET",
+					"bucket_name": "meera-prod-uploads"
+				}
+			]
+		}
+	}
 	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
