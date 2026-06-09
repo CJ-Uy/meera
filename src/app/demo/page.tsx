@@ -1,5 +1,5 @@
-import { SupportStudio } from "@/components/support-studio";
+import { MeeraDemoExperience } from "@/components/demo/meera-demo-experience";
 
 export default function DemoPage() {
-	return <SupportStudio />;
+	return <MeeraDemoExperience />;
 }

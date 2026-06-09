@@ -22,7 +22,7 @@ function Nav({onDemo}){
         </nav>
         <span style={{flex:1}}/>
         <a href="#" style={{fontSize:14.5,fontWeight:600,color:"var(--ink-2)"}} className="nav-signin">Sign in</a>
-        <button onClick={onDemo} className="btn btn-primary btn-sm" style={{padding:"10px 18px"}}>Book a demo</button>
+        <button onClick={onDemo} className="btn btn-primary btn-sm" style={{padding:"10px 18px"}}><Icon name="play" size={14} sw={2}/> Open demo</button>
       </div>
     </header>
   );
@@ -86,7 +86,7 @@ function HeroText({align="left",onDemo}){
         When she can’t solve it herself, she writes the ticket for you.
       </p>
       <div style={{display:"flex",gap:12,flexWrap:"wrap",justifyContent:c?"center":"flex-start"}}>
-        <button onClick={onDemo} className="btn btn-primary">Book a demo</button>
+        <button onClick={onDemo} className="btn btn-primary"><Icon name="play" size={15} sw={2}/> Open demo</button>
         <a href="#meeror" className="btn btn-ghost">See Meeror in action <Icon name="arrow" size={16} sw={2.2}/></a>
       </div>
       <div style={{display:"flex",gap:22,flexWrap:"wrap",marginTop:34,justifyContent:c?"center":"flex-start"}}>
@@ -126,7 +126,7 @@ function Hero({layout="split",chips=true,onDemo}){
                   Meera walks people through any issue right on their screen — and when she can’t fix it, she writes the ticket for you.
                 </p>
                 <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-                  <button onClick={onDemo} className="btn btn-primary">Book a demo</button>
+                  <button onClick={onDemo} className="btn btn-primary"><Icon name="play" size={15} sw={2}/> Open demo</button>
                   <a href="#meeror" className="btn" style={{background:"rgba(255,255,255,.1)",color:"#fff",border:"1.5px solid rgba(255,255,255,.25)"}}>See Meeror <Icon name="arrow" size={16} sw={2.2}/></a>
                 </div>
               </div>

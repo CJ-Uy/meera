@@ -21,6 +21,18 @@
 	--gold-050: #F7EBD3;
 	--green: #7FB85C;
 	--green-050: #EAF3E0;
+	--cream-3: #EFE4D2;
+	--paper: #FFFFFF;
+	--rose: #E08769;
+	--accent: #2E9C8E;
+	--r-sm: 10px;
+	--r-md: 16px;
+	--r-lg: 24px;
+	--r-xl: 34px;
+	--r-pill: 999px;
+	--sh-sm: 0 1px 2px rgba(28, 51, 73, 0.05), 0 4px 12px -6px rgba(28, 51, 73, 0.1);
+	--sh-md: 0 2px 4px rgba(28, 51, 73, 0.04), 0 14px 34px -14px rgba(28, 51, 73, 0.18);
+	--sh-lg: 0 4px 8px rgba(28, 51, 73, 0.05), 0 30px 60px -22px rgba(28, 51, 73, 0.28);
 	--navy-deep: #16293B;
 	--meera-tan: #efb16d;
 	--meera-cream: #fff8ee;
@@ -116,4 +128,30 @@ body {
 @keyframes tdot {
 	0%, 60%, 100% { transform: translateY(0); opacity: .4; }
 	30%           { transform: translateY(-4px); opacity: 1; }
+}
+
+@keyframes mound-shake {
+	0%, 100% { transform: translateX(0) rotate(0deg); }
+	15%      { transform: translateX(-8px) rotate(-2.5deg); }
+	30%      { transform: translateX(8px) rotate(2.5deg); }
+	50%      { transform: translateX(-5px) rotate(-1deg); }
+	70%      { transform: translateX(5px) rotate(1deg); }
+	85%      { transform: translateX(-2px); }
+}
+
+@keyframes mound-layer-in {
+	from { transform: scaleX(.06); opacity: 0; }
+	60%  { transform: scaleX(1.04); }
+	to   { transform: scaleX(1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: .01ms !important;
+		animation-iteration-count: 1 !important;
+		scroll-behavior: auto !important;
+		transition-duration: .01ms !important;
+	}
 }

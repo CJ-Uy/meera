@@ -1,4 +1,4 @@
-/* ===== Meera app: assembly + tweaks + demo modal ===== */
+/* ===== Meera app: assembly + tweaks + demo env + booking modal ===== */
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "heroLayout": "split",
@@ -7,13 +7,12 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
 }/*EDITMODE-END*/;
 
 const ACCENTS = {
-  "#2E9C8E": ["#2E9C8E","#26867A","#E4F1EE"],   // teal
-  "#E79B6B": ["#E79B6B","#D9844F","#FBEADD"],   // warm orange
-  "#1C3349": ["#1C3349","#16293B","#E7ECF0"],   // deep navy
-  "#D9A65A": ["#C99845","#B98427","#F7EBD3"],   // gold
+  "#2E9C8E": ["#2E9C8E","#26867A","#E4F1EE"],
+  "#E79B6B": ["#E79B6B","#D9844F","#FBEADD"],
+  "#1C3349": ["#1C3349","#16293B","#E7ECF0"],
+  "#D9A65A": ["#C99845","#B98427","#F7EBD3"],
 };
 
-/* inject responsive + accent CSS once */
 function useResponsiveCSS(){
   React.useEffect(()=>{
     if(document.getElementById("meera-resp")) return;
@@ -21,7 +20,6 @@ function useResponsiveCSS(){
     s.textContent=`
     @media (max-width:980px){
       .wrap{padding:0 24px;}
-      .hero-split-grid{display:contents;}
       .section .wrap[style*="grid-template-columns: 1.02fr"]{grid-template-columns:1fr !important;gap:36px !important;}
       .handoff-copy{order:-1;}
       .section .wrap[style*="grid-template-columns: .82fr"]{grid-template-columns:1fr !important;gap:34px !important;}
@@ -48,7 +46,7 @@ function useResponsiveCSS(){
   },[]);
 }
 
-/* ---- demo booking modal ---- */
+/* ── Demo booking modal (kept for CTA section) ── */
 function DemoModal({open,onClose}){
   const [sent,setSent]=React.useState(false);
   React.useEffect(()=>{
@@ -75,13 +73,13 @@ function DemoModal({open,onClose}){
               </div>
             </div>
             <form onSubmit={e=>{e.preventDefault();setSent(true);}} style={{padding:"20px 26px 26px",display:"grid",gap:12}}>
-              <Inp label="Full name" ph="Alex Rivera"/>
-              <Inp label="Work email" ph="alex@university.edu" type="email"/>
+              <DemoInp label="Full name" ph="Alex Rivera"/>
+              <DemoInp label="Work email" ph="alex@university.edu" type="email"/>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                <Inp label="Organization" ph="Northvale University"/>
+                <DemoInp label="Organization" ph="Northvale University"/>
                 <div>
-                  <label style={lblS}>I work in</label>
-                  <select style={{...inpS,appearance:"none"}}>
+                  <label style={demoLblS}>I work in</label>
+                  <select style={{...demoInpS,appearance:"none"}}>
                     <option>Student services</option><option>University IT</option>
                     <option>Enterprise IT</option><option>Help desk</option><option>Other</option>
                   </select>
@@ -94,7 +92,7 @@ function DemoModal({open,onClose}){
         ) : (
           <div style={{padding:"34px 30px 38px",textAlign:"center"}}>
             <img src="assets/meera-celebrate.png" alt="" style={{width:150,margin:"0 auto 10px"}}/>
-            <h3 style={{fontSize:22,marginBottom:8}}>You’re on the list!</h3>
+            <h3 style={{fontSize:22,marginBottom:8}}>You're on the list!</h3>
             <p className="lede" style={{fontSize:15.5,marginBottom:22}}>Meera will reach out within one business day to set up your walkthrough.</p>
             <button onClick={onClose} className="btn btn-ghost">Close</button>
           </div>
@@ -103,17 +101,18 @@ function DemoModal({open,onClose}){
     </div>
   );
 }
-const lblS={display:"block",fontSize:12,fontWeight:600,color:"var(--ink-2)",marginBottom:6};
-const inpS={width:"100%",padding:"11px 13px",borderRadius:10,border:"1.5px solid var(--line-2)",fontSize:14,
+const demoLblS={display:"block",fontSize:12,fontWeight:600,color:"var(--ink-2)",marginBottom:6};
+const demoInpS={width:"100%",padding:"11px 13px",borderRadius:10,border:"1.5px solid var(--line-2)",fontSize:14,
   fontFamily:"inherit",color:"var(--ink)",background:"#fff"};
-function Inp({label,ph,type="text"}){
-  return <div><label style={lblS}>{label}</label><input type={type} placeholder={ph} style={inpS} required/></div>;
+function DemoInp({label,ph,type="text"}){
+  return <div><label style={demoLblS}>{label}</label><input type={type} placeholder={ph} style={demoInpS} required/></div>;
 }
 
-/* ---- root ---- */
+/* ── Root App ── */
 function App(){
   const [t,setTweak]=useTweaks(TWEAK_DEFAULTS);
-  const [demo,setDemo]=React.useState(false);
+  const [bookOpen,setBookOpen]=React.useState(false);
+  const [demoOpen,setDemoOpen]=React.useState(false);
   useResponsiveCSS();
   useReveal();
 
@@ -123,31 +122,46 @@ function App(){
     r.setProperty("--accent",a[0]); r.setProperty("--accent-600",a[1]); r.setProperty("--accent-050",a[2]);
   },[t.accent]);
 
-  const openDemo=()=>setDemo(true);
+  /* Lock scroll on landing when demo is open */
+  React.useEffect(()=>{
+    document.body.style.overflow = demoOpen ? "hidden" : "";
+    return ()=>{ document.body.style.overflow=""; };
+  },[demoOpen]);
+
+  const tweaksPanel = (
+    <TweaksPanel title="Tweaks">
+      {!demoOpen && <React.Fragment>
+        <TweakSection label="Hero" />
+        <TweakRadio label="Layout" value={t.heroLayout} options={["split","centered","stage"]}
+          onChange={v=>setTweak("heroLayout",v)} />
+        <TweakToggle label="Floating chips" value={t.heroChips} onChange={v=>setTweak("heroChips",v)} />
+      </React.Fragment>}
+      <TweakSection label="Brand accent" />
+      <TweakColor label="Primary" value={t.accent}
+        options={["#2E9C8E","#E79B6B","#1C3349","#D9A65A"]}
+        onChange={v=>setTweak("accent",v)} />
+    </TweaksPanel>
+  );
+
   return (
     <React.Fragment>
-      <Nav onDemo={openDemo}/>
-      <Hero layout={t.heroLayout} chips={t.heroChips} onDemo={openDemo}/>
+      {/* Landing page (always in DOM; hidden behind fixed DemoEnv when open) */}
+      <Nav onDemo={()=>setDemoOpen(true)}/>
+      <Hero layout={t.heroLayout} chips={t.heroChips} onDemo={()=>setDemoOpen(true)}/>
       <MeerorSection/>
       <HandoffSection/>
       <LookoutSection/>
       <UseCases/>
       <Benefits/>
       <BrandSection/>
-      <CTA onDemo={openDemo}/>
+      <CTA onDemo={()=>setBookOpen(true)}/>
       <Footer/>
-      <DemoModal open={demo} onClose={()=>setDemo(false)}/>
+      <DemoModal open={bookOpen} onClose={()=>setBookOpen(false)}/>
 
-      <TweaksPanel title="Tweaks">
-        <TweakSection label="Hero" />
-        <TweakRadio label="Layout" value={t.heroLayout} options={["split","centered","stage"]}
-          onChange={v=>setTweak("heroLayout",v)} />
-        <TweakToggle label="Floating chips" value={t.heroChips} onChange={v=>setTweak("heroChips",v)} />
-        <TweakSection label="Brand accent" />
-        <TweakColor label="Primary" value={t.accent}
-          options={["#2E9C8E","#E79B6B","#1C3349","#D9A65A"]}
-          onChange={v=>setTweak("accent",v)} />
-      </TweaksPanel>
+      {/* Demo environment — fixed overlay */}
+      {demoOpen && <DemoEnv onExit={()=>setDemoOpen(false)} />}
+
+      {tweaksPanel}
     </React.Fragment>
   );
 }

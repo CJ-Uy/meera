@@ -385,4 +385,4 @@ _demoStyle.textContent = `
 `;
 document.head.appendChild(_demoStyle);
 
-Object.assign(window, { MeerorDemo, ChatTicketDemo });
+Object.assign(window, { MeerorDemo, ChatTicketDemo, Bubble, Typing, TicketCard, Field });
