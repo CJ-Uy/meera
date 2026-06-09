@@ -8,8 +8,12 @@ import {
 	isDesktopScreenFrameCaptureAvailable,
 	prepareUploadedImage,
 	shouldAutoCaptureSharedScreen,
+	shouldExtractScreenElements,
 } from "@/features/ai/image-input";
 import type { AiChatMessage, AiChatResponse, AiImageAttachment, AiToolCall } from "@/features/ai/ai-types";
+import { buildCandidatesFromOcr } from "@/features/ai/grounding/candidates";
+import { runOcrWords, warmUpOcr } from "@/features/ai/grounding/ocr";
+import type { GroundingCandidate } from "@/features/ai/grounding/types";
 import { useAiChat, type AssistantToolCallContext } from "@/features/ai/use-ai-chat";
 import { useAiOverlayActions } from "@/features/ai/use-ai-overlay-actions";
 import { refineOverlayToolCalls } from "@/features/ai/visual-grounding";
@@ -99,13 +103,15 @@ function ChatMessage({ message }: { message: AiChatMessage }) {
 export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 	const { overlayAvailable, executeToolCalls, clearVisualGuidance } = useAiOverlayActions();
 	const handleAssistantToolCalls = useCallback(
-		async (toolCalls: AiToolCall[], { images, prompt }: AssistantToolCallContext) => {
+		async (toolCalls: AiToolCall[], { images, prompt, grounding }: AssistantToolCallContext) => {
 			const frame = images.find((image) => image.source === "screen");
+			// Selection grounding (ocr/uia) already yields exact rects — skip the vision refine pass for it.
+			const exactlyGrounded = grounding === "ocr" || grounding === "uia";
 			const refined = await refineOverlayToolCalls({
 				toolCalls,
 				frame,
 				prompt,
-				enabled: GROUNDING_REFINE_ENABLED,
+				enabled: GROUNDING_REFINE_ENABLED && !exactlyGrounded,
 				deps: { cropFrame: cropAndUpscaleScreenFrame, requestRefine: requestRefineGrounding },
 			});
 			return executeToolCalls(refined);
@@ -119,6 +125,7 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 	const [attachmentError, setAttachmentError] = useState<string | null>(null);
 	const [autoScreenContext, setAutoScreenContext] = useState(true);
 	const [lastAutoCapture, setLastAutoCapture] = useState(false);
+	const [isGrounding, setIsGrounding] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -134,6 +141,11 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 	useEffect(() => {
 		if (isOpen) messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
 	}, [chat.messages.length, chat.isSending, isOpen]);
+
+	// Pre-create the OCR worker (and fetch language data) on open so the first grounded request is fast.
+	useEffect(() => {
+		if (isOpen) warmUpOcr();
+	}, [isOpen]);
 
 	useEffect(() => {
 		if (!isOpen) return;
@@ -185,7 +197,7 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 
 	const submit = async (event: FormEvent) => {
 		event.preventDefault();
-		if (chat.isSending) return;
+		if (chat.isSending || isGrounding) return;
 		setAttachmentError(null);
 		setLastAutoCapture(false);
 
@@ -218,7 +230,23 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 
 		setDraft("");
 		setAttachments([]);
-		const sent = await chat.sendMessage(draftToSend, images);
+
+		// Extract on-screen text elements so the model can SELECT a target (exact rect) instead of guessing coords.
+		let candidates: GroundingCandidate[] = [];
+		const screenFrame = images.find((image) => image.source === "screen");
+		if (screenFrame?.width && screenFrame.height && shouldExtractScreenElements(draftToSend)) {
+			setIsGrounding(true);
+			try {
+				const words = await runOcrWords(screenFrame.dataUrl);
+				candidates = buildCandidatesFromOcr(words, { imageWidth: screenFrame.width, imageHeight: screenFrame.height });
+			} catch {
+				candidates = [];
+			} finally {
+				setIsGrounding(false);
+			}
+		}
+
+		const sent = await chat.sendMessage(draftToSend, images, candidates);
 		if (!sent) {
 			setDraft(draftToSend);
 			setAttachments(images);
@@ -297,7 +325,7 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 				{chat.messages.map((message) => (
 					<ChatMessage message={message} key={message.id} />
 				))}
-				{chat.isSending ? (
+				{chat.isSending || isGrounding ? (
 					<div className="flex justify-start">
 						<p className="m-0 rounded-full border border-[var(--line)] bg-white px-4 py-2 font-['DM_Mono'] text-xs text-[var(--muted)] shadow-sm">
 							Meera is reading the screen...
@@ -376,7 +404,7 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 						<button
 							className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-full bg-[var(--teal)] px-4 text-xs font-bold text-white shadow-[0_10px_24px_rgba(46,156,142,0.22)] transition hover:-translate-y-0.5 hover:bg-[var(--teal-600)] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-45"
 							type="submit"
-							disabled={chat.isSending || (!draft.trim() && attachments.length === 0)}
+							disabled={chat.isSending || isGrounding || (!draft.trim() && attachments.length === 0)}
 						>
 							{chat.isSending ? "Sending" : "Send"}
 							<SendIcon />

@@ -1,6 +1,23 @@
 # Meera Overlay Grounding — Improvement Plan
 
-Status: **draft / proposed** (assessment + plan, June 2026). No production code changed yet.
+Status: **Stage B in progress** — OCR-anchored selection grounding is implemented on `feat/improve-overlay`.
+
+## Implemented so far (OCR-anchored Set-of-Marks selection)
+
+The happy path no longer asks the model for coordinates:
+
+1. On an overlay request with a screen frame, the renderer runs **local OCR** (Tesseract.js, `src/features/ai/grounding/ocr.ts`) and builds clean line-level **candidates** with image-space rects (`grounding/candidates.ts`).
+2. Candidates ride along on `POST /api/ai/chat` (`groundingCandidates`). The server asks **`llama-3.3-70b-versatile`** (a TEXT model) to SELECT a candidate id + action via the `select_overlay_target` tool (`grounding/select.ts`, wired in `groq-client.ts`).
+3. The chosen candidate's rect becomes the overlay — exact by construction. The response is tagged `grounding: "ocr"`, so the renderer **skips the Scout zoom-refine pass**.
+4. **Fallbacks (no regression):** no candidates / target not in the OCR list (e.g. an icon) → the request falls through to the existing Scout vision path, refine and all. OCR failure → empty candidates → same fallback.
+
+Also: overlays now **persist until the next request** instead of expiring after 6 s (`ai-tools.ts` `ttl` default 0); Ollama env remnants removed; `GROQ_SELECTION_MODEL` documented in `.env.example`.
+
+Still TODO: UI Automation source for native apps, Set-of-Marks vision fallback (numbered boxes for icon-only targets), overlay connector/dim polish, multi-display capture, click-to-act.
+
+---
+
+## Original assessment + plan
 
 ## Goal
 

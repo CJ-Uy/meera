@@ -6,10 +6,12 @@ import type {
 	AiChatInputMessage,
 	AiChatMessage,
 	AiChatResponse,
+	AiGroundingMode,
 	AiImageAttachment,
 	AiProviderStatus,
 	AiToolCall,
 } from "@/features/ai/ai-types";
+import type { GroundingCandidate } from "@/features/ai/grounding/types";
 
 const initialMessages: AiChatMessage[] = [
 	{
@@ -31,7 +33,7 @@ function requestHistory(messages: AiChatMessage[]): AiChatInputMessage[] {
 		.map((message) => ({ role: message.role, content: message.content }));
 }
 
-export type AssistantToolCallContext = { images: AiImageAttachment[]; prompt: string };
+export type AssistantToolCallContext = { images: AiImageAttachment[]; prompt: string; grounding?: AiGroundingMode };
 
 export function useAiChat(
 	handleToolCalls: (toolCalls: AiToolCall[], context: AssistantToolCallContext) => Promise<AiActionResult[]>,
@@ -70,7 +72,7 @@ export function useAiChat(
 	}, []);
 
 	const sendMessage = useCallback(
-		async (content: string, images: AiImageAttachment[] = []) => {
+		async (content: string, images: AiImageAttachment[] = [], groundingCandidates: GroundingCandidate[] = []) => {
 			if (isSending) return false;
 			const normalizedContent = content.trim() || (images.length ? "Please analyze the attached image." : "");
 			if (!normalizedContent) return false;
@@ -90,11 +92,11 @@ export function useAiChat(
 				const response = await fetch("/api/ai/chat", {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ messages: requestMessages }),
+					body: JSON.stringify({ messages: requestMessages, ...(groundingCandidates.length ? { groundingCandidates } : {}) }),
 				});
 				const body = (await response.json()) as AiChatResponse & { error?: string };
 				if (!response.ok) throw new Error(body.error || "AI chat request failed.");
-				const actionResults = await handleToolCalls(body.toolCalls ?? [], { images, prompt: normalizedContent });
+				const actionResults = await handleToolCalls(body.toolCalls ?? [], { images, prompt: normalizedContent, grounding: body.grounding });
 				setMessages((current) => [
 					...current,
 					{

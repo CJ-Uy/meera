@@ -1,5 +1,8 @@
+import type { GroundingCandidate } from "@/features/ai/grounding/types";
+
 export type AiChatRole = "user" | "assistant";
 export type AiImageSource = "upload" | "screen";
+export type AiGroundingMode = "ocr" | "uia" | "vision" | "text";
 
 export type AiScreenFrameMetadata = {
 	displayId?: number;
@@ -50,12 +53,16 @@ export type AiChatMessage = AiChatInputMessage & {
 
 export type AiChatRequest = {
 	messages: AiChatInputMessage[];
+	/** Detected on-screen elements for selection-based grounding (image-space normalized rects). */
+	groundingCandidates?: GroundingCandidate[];
 };
 
 export type AiChatResponse = {
 	message: string;
 	model: string;
 	toolCalls: AiToolCall[];
+	/** How the overlay coordinates were grounded. "ocr"/"uia" are exact and skip the vision refine pass. */
+	grounding?: AiGroundingMode;
 };
 
 export type AiProviderName = "groq";
@@ -79,6 +86,7 @@ export const AI_LIMITS = {
 	maxMessageLength: 8_000,
 	maxImagesPerMessage: 4,
 	maxImageDataUrlLength: 8_000_000,
+	maxGroundingCandidates: 150,
 } as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -157,10 +165,32 @@ function isInputMessage(value: unknown): value is AiChatInputMessage {
 	return value.images.every(isImageAttachment) && (value.role === "user" || value.images.length === 0);
 }
 
+function isNormalizedFraction(value: unknown): value is number {
+	return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
+}
+
+function isGroundingCandidate(value: unknown): value is GroundingCandidate {
+	if (!isRecord(value)) return false;
+	if (typeof value.id !== "string" || value.id.length === 0 || value.id.length > 16) return false;
+	if (typeof value.text !== "string" || value.text.length > 200) return false;
+	if (typeof value.role !== "string" || value.role.length > 40) return false;
+	if (value.source !== "ocr" && value.source !== "uia") return false;
+	return (
+		isNormalizedFraction(value.x) &&
+		isNormalizedFraction(value.y) &&
+		isNormalizedFraction(value.width) &&
+		isNormalizedFraction(value.height)
+	);
+}
+
 export function isAiChatRequest(value: unknown): value is AiChatRequest {
 	if (!isRecord(value) || !Array.isArray(value.messages)) return false;
 	if (value.messages.length === 0 || value.messages.length > AI_LIMITS.maxMessages) return false;
 	if (!value.messages.every(isInputMessage)) return false;
+	if (value.groundingCandidates !== undefined) {
+		if (!Array.isArray(value.groundingCandidates) || value.groundingCandidates.length > AI_LIMITS.maxGroundingCandidates) return false;
+		if (!value.groundingCandidates.every(isGroundingCandidate)) return false;
+	}
 	return value.messages.at(-1)?.role === "user";
 }
 
