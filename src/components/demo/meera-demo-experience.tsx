@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNod
 type TopView = "student" | "admin";
 type AdminDept = "it" | "registrar" | "health" | "studsvcs" | "finance";
 type Persona = "student" | AdminDept;
-type StudentView = "site" | "embedded" | "screenshare" | "chat" | "mound";
+type StudentView = "site" | "mound";
 type AdminView = "inbox" | "crossdept";
 type Tint = "teal" | "sand" | "gold" | "green" | "ink" | "rose";
 
@@ -173,11 +173,8 @@ export function MeeraDemoExperience() {
 
 	const stage = useMemo(() => {
 		if (isStudent) {
-			if (studentView === "embedded") return <StudentEmbedded key={resetKey} />;
-			if (studentView === "screenshare") return <StudentScreenshare key={resetKey} />;
-			if (studentView === "chat") return <StudentChat key={resetKey} preIssue={preIssue} />;
-			if (studentView === "mound") return <StudentMound key={resetKey} preIssue={preIssue} onChatNormally={() => setStudentView("chat")} />;
-			return <StudentMeeraSite key={resetKey} onIssue={(issue) => { setPreIssue(issue); setStudentView("chat"); setResetKey((key) => key + 1); }} />;
+			if (studentView === "mound") return <StudentMound key={resetKey} preIssue={preIssue} />;
+			return <StudentMeeraSite key={resetKey} onIssue={(issue) => { setPreIssue(issue); setStudentView("mound"); setResetKey((key) => key + 1); }} />;
 		}
 		return adminView === "crossdept" ? <AdminCrossDept key={resetKey} dept={adminDept} /> : <AdminLookout key={resetKey} dept={adminDept} />;
 	}, [adminDept, adminView, isStudent, preIssue, resetKey, studentView]);
@@ -216,31 +213,18 @@ export function MeeraDemoExperience() {
 						<a href="/" className="inline-flex items-center gap-[5px] rounded-[7px] border border-transparent bg-transparent px-2.5 py-[5px] text-[12.5px] font-semibold" style={{ color: "var(--rose)" }}>X Exit</a>
 					</div>
 				</div>
-				<div className="flex items-center gap-1 overflow-x-auto border-t px-4 pb-[7px] pt-[5px]" style={{ borderColor: "var(--line-2)", background: "var(--cream)" }}>
-					{isStudent ? (
-						<>
-							<SubLabel>WHERE</SubLabel>
-							<SubTab active={studentView === "site"} onClick={() => setStudentView("site")}>Meera site</SubTab>
-							<SubTab active={studentView === "embedded"} onClick={() => setStudentView("embedded")}>Embedded</SubTab>
-							<Divider />
-							<SubLabel>HOW</SubLabel>
-							<SubTab active={studentView === "screenshare"} onClick={() => setStudentView("screenshare")}>Screenshare</SubTab>
-							<SubTab active={studentView === "chat"} onClick={() => setStudentView("chat")}>Chat</SubTab>
-							<SubTab active={studentView === "mound"} onClick={() => setStudentView("mound")}>Build the Mound</SubTab>
-						</>
-					) : (
-						<>
-							<SubLabel>DEPT</SubLabel>
-							{adminDepts.map((dept) => (
-								<SubTab key={dept.id} active={adminDept === dept.id} onClick={() => switchAdminDept(dept.id)}>{dept.label}</SubTab>
-							))}
-							<Divider />
-							<SubLabel>VIEW</SubLabel>
-							<SubTab active={adminView === "inbox"} onClick={() => setAdminView("inbox")}>Inbox</SubTab>
-							<SubTab active={adminView === "crossdept"} onClick={() => setAdminView("crossdept")}>Cross-dept</SubTab>
-						</>
-					)}
-				</div>
+				{!isStudent ? (
+					<div className="flex items-center gap-1 overflow-x-auto border-t px-4 pb-[7px] pt-[5px]" style={{ borderColor: "var(--line-2)", background: "var(--cream)" }}>
+						<SubLabel>DEPT</SubLabel>
+						{adminDepts.map((dept) => (
+							<SubTab key={dept.id} active={adminDept === dept.id} onClick={() => switchAdminDept(dept.id)}>{dept.label}</SubTab>
+						))}
+						<Divider />
+						<SubLabel>VIEW</SubLabel>
+						<SubTab active={adminView === "inbox"} onClick={() => setAdminView("inbox")}>Inbox</SubTab>
+						<SubTab active={adminView === "crossdept"} onClick={() => setAdminView("crossdept")}>Cross-dept</SubTab>
+					</div>
+				) : null}
 			</header>
 			<div className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">{stage}</div>
 		</main>
@@ -261,24 +245,6 @@ function Divider() {
 
 function Card({ children, className = "", style }: { children: ReactNode; className?: string; style?: CSSProperties }) {
 	return <div className={`rounded-[24px] border bg-white ${className}`} style={{ borderColor: "var(--line)", boxShadow: "var(--sh-md)", ...style }}>{children}</div>;
-}
-
-function PortalShell({ children, active = "Registration", className = "" }: { children: ReactNode; active?: string; className?: string }) {
-	const items = ["Dashboard", "Registration", "Financials", "Records", "Help"];
-	return (
-		<div className={`grid min-h-[520px] grid-cols-[140px_minmax(0,1fr)] overflow-hidden rounded-none bg-[#FCFAF6] md:grid-cols-[154px_minmax(0,1fr)] ${className}`}>
-			<aside className="bg-[#1C3349] p-3 text-[#cdd8e0] md:p-4">
-				<div className="mb-5 flex items-center gap-2">
-					<span className="grid size-7 place-items-center rounded-lg bg-[#34506b] text-sm font-[800] text-white">N</span>
-					<span className="text-[13px] font-bold text-white">Northvale</span>
-				</div>
-				{items.map((item) => (
-					<div key={item} className="mb-1 rounded-lg px-2.5 py-2 text-[12px] font-semibold" style={{ background: active === item ? "#28425b" : "transparent", color: active === item ? "#fff" : "#9fb0bd" }}>{item}</div>
-				))}
-			</aside>
-			<section className="min-w-0 p-5 md:p-7">{children}</section>
-		</div>
-	);
 }
 
 const siteChips = ["Can't register", "Wi-Fi won't connect", "Tuition hold", "Reset my password"];
@@ -315,144 +281,6 @@ function StudentMeeraSite({ onIssue }: { onIssue: (issue: string) => void }) {
 	);
 }
 
-const embedSteps: ChatItem[] = [
-	{ kind: "meera", text: "Hi! What's going on today? I can help with registration, holds, or anything else.", delay: 0 },
-	{ kind: "user", text: "I have a tuition hold and can't register for classes.", delay: 1300 },
-	{ kind: "meera", text: "Got it - let me check your account right now.", delay: 900 },
-	{ kind: "checks", delay: 650 },
-	{ kind: "meera", text: "Found it: a $310 financial hold. I'll create a ticket for the Bursar's Office - you'll hear back within 24 hours.", delay: 1800 },
-	{ kind: "ticket", delay: 600 },
-];
-
-function StudentEmbedded() {
-	const [open, setOpen] = useState(false);
-	const [count, setCount] = useState(0);
-	const [checks, setChecks] = useState(0);
-	const scrollRef = useAutoScroll<HTMLDivElement>([count, checks]);
-
-	useEffect(() => {
-		const timer = window.setTimeout(() => setOpen(true), 900);
-		return () => window.clearTimeout(timer);
-	}, []);
-	useScriptAdvance(open ? embedSteps : [], count, setCount);
-	useEffect(() => {
-		const index = embedSteps.findIndex((item) => item.kind === "checks");
-		if (count > index && checks < diagnosticChecks.length) {
-			const timer = window.setTimeout(() => setChecks((current) => current + 1), 520);
-			return () => window.clearTimeout(timer);
-		}
-	}, [checks, count]);
-
-	return (
-		<div className="relative min-h-[calc(100vh-94px)]">
-			<PortalShell active="Financials" className="min-h-[calc(100vh-94px)]">
-				<p className="font-['DM_Mono'] text-[11px] uppercase tracking-[0.1em]" style={{ color: "var(--muted)" }}>FINANCIALS &amp; HOLDS</p>
-				<h2 className="mt-2 text-2xl font-[800]">Your Account</h2>
-				<Card className="mt-5 max-w-md p-5">
-					<div className="flex items-center justify-between">
-						<span className="font-bold">Outstanding Balance</span>
-						<span className="text-xl font-[800] text-[#C0532F]">$310.00</span>
-					</div>
-					<div className="mt-3 flex items-center gap-2"><Pill tint="rose">Financial hold</Pill><span className="text-sm" style={{ color: "var(--muted)" }}>blocks registration</span></div>
-				</Card>
-				<div className="mt-5 flex max-w-md gap-3 rounded-2xl border p-4" style={{ background: "var(--teal-050)", borderColor: "var(--teal-100)" }}>
-					<MeerkatMark size={30} />
-					<div>
-						<div className="text-sm font-bold">Add Meera to any site in one line</div>
-						<code className="mt-1 block font-['DM_Mono'] text-[10px]" style={{ color: "var(--teal-700)" }}>&lt;script src=&quot;meera.js&quot; data-key=&quot;northvale&quot;&gt;</code>
-						<p className="mt-1 text-xs" style={{ color: "var(--ink-2)" }}>It wears your brand - students never leave your portal.</p>
-					</div>
-				</div>
-			</PortalShell>
-			{!open ? <button type="button" onClick={() => setOpen(true)} className="absolute bottom-6 right-6 grid size-14 place-items-center rounded-full text-white shadow-xl" style={{ background: "var(--teal)" }}><Icon name="chat" size={24} /></button> : null}
-			{open ? (
-				<Card className="absolute bottom-5 right-5 w-[min(320px,calc(100%_-_2.5rem))] overflow-hidden p-0" style={{ borderColor: "var(--teal-100)", boxShadow: "var(--sh-lg)" }}>
-					<div className="flex items-center gap-3 p-3" style={{ background: "var(--teal)" }}>
-						<MeerkatMark size={32} />
-						<div className="flex-1"><div className="text-sm font-bold text-white">Meera</div><div className="font-['DM_Mono'] text-[10px] text-white/75">powered by Northvale</div></div>
-						<button type="button" onClick={() => setOpen(false)} className="text-lg leading-none text-white/75">x</button>
-					</div>
-					<div ref={scrollRef} className="flex h-64 flex-col gap-2 overflow-y-auto bg-[#FCFAF6] p-3">
-						{embedSteps.slice(0, count).map((item, index) => <ChatRender key={index} item={item} checksShown={checks} compact />)}
-						{count < embedSteps.length && embedSteps[count]?.kind === "meera" ? <Typing /> : null}
-					</div>
-					<div className="flex gap-2 border-t p-2" style={{ borderColor: "var(--line)" }}><input className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-xs outline-none" style={{ borderColor: "var(--line-2)" }} placeholder="Type a message..." /><Button variant="primary" className="min-h-8 px-3"><Icon name="arrow" size={14} /></Button></div>
-				</Card>
-			) : null}
-		</div>
-	);
-}
-
-const screenSteps = [
-	{ key: "term", title: "Choose your enrollment term", body: "Open this dropdown and pick the term you are registering for.", conf: 99, box: { top: 96, left: 28, width: 252, height: 48 } },
-	{ key: "file", title: "Upload your transcript", body: "Attach the transcript PDF. That is the missing document.", conf: 95, box: { top: 154, left: 28, width: 252, height: 48 } },
-	{ key: "agree", title: "Accept the registration terms", body: "Tick this box. Submit stays locked until you do.", conf: 98, box: { top: 214, left: 28, width: 288, height: 36 } },
-	{ key: "submit", title: "Submit your request", body: "Everything is ready. Submit finishes the registration request.", conf: 97, box: { top: 264, left: 28, width: 252, height: 48 } },
-];
-
-function StudentScreenshare() {
-	const [step, setStep] = useState(0);
-	const [playing, setPlaying] = useState(true);
-	const current = screenSteps[step];
-	useEffect(() => {
-		if (!playing) return;
-		const timer = window.setTimeout(() => setStep((value) => (value + 1) % screenSteps.length), 2800);
-		return () => window.clearTimeout(timer);
-	}, [playing, step]);
-	const done = (key: string) => screenSteps.findIndex((item) => item.key === key) < step;
-
-	return (
-		<div className="grid min-h-[calc(100vh-94px)] grid-cols-1 lg:grid-cols-[minmax(0,1fr)_270px]">
-			<div className="relative overflow-hidden">
-				<PortalShell>
-					<div className="relative min-h-[385px] max-w-[620px]">
-						<p className="font-['DM_Mono'] text-[11px] uppercase tracking-[0.08em]" style={{ color: "var(--muted)" }}>Fall 2026 - course registration</p>
-						<h2 className="mb-5 mt-1 text-xl font-[800]">Submit your registration request</h2>
-						<FormField label={done("term") ? "Fall 2026 - Full-time" : "Select enrollment term"} icon={done("term") ? "check" : "chevronD"} done={done("term")} />
-						<FormField label={done("file") ? "transcript_2026.pdf" : "Upload transcript (PDF)"} icon={done("file") ? "check" : "doc"} done={done("file")} dashed={!done("file")} />
-						<label className="mb-4 flex items-center gap-3 text-[13px]" style={{ color: "var(--ink-2)" }}><span className="grid size-5 place-items-center rounded-md border" style={{ background: done("agree") ? "var(--teal)" : "#fff", borderColor: done("agree") ? "var(--teal)" : "var(--line-2)", color: "#fff" }}>{done("agree") ? <Icon name="check" size={13} stroke={2.4} /> : null}</span>I accept the registration terms and academic policies</label>
-						<button type="button" className="w-[252px] rounded-full px-5 py-3 text-sm font-bold" style={{ background: done("agree") ? "var(--teal)" : "#E4DCCD", color: done("agree") ? "#fff" : "#A99" }}>Submit Request</button>
-						<div className="pointer-events-none absolute rounded-xl" style={{ top: current.box.top, left: current.box.left, width: current.box.width, height: current.box.height, boxShadow: "0 0 0 9999px rgba(22,41,59,.44)", zIndex: 5, transition: "all .5s cubic-bezier(.4,.8,.2,1)" }}>
-							<span className="absolute inset-[-3px] rounded-[14px] border-[2.5px]" style={{ borderColor: "var(--teal)" }} />
-							<span className="absolute inset-[-3px] rounded-[14px] border-[2.5px]" style={{ borderColor: "var(--teal)", animation: "pulse-ring 1.8s ease-out infinite" }} />
-						</div>
-						<Card className="absolute left-[330px] top-[84px] z-10 w-[240px] overflow-hidden p-0" style={{ borderColor: "var(--teal-100)", boxShadow: "var(--sh-lg)" }}>
-							<div className="flex items-center gap-2 p-3">
-								<MeerkatMark size={30} />
-								<div className="flex-1"><div className="text-sm font-bold">Meera</div><div className="font-['DM_Mono'] text-[10px]" style={{ color: "var(--muted)" }}>step {step + 1} / {screenSteps.length}</div></div>
-								<Pill tint="teal">{current.conf}%</Pill>
-							</div>
-							<div className="px-3 pb-3"><div className="text-sm font-bold">{current.title}</div><p className="mt-1 text-xs leading-5" style={{ color: "var(--ink-2)" }}>{current.body}</p></div>
-							<div className="flex items-center gap-2 border-t bg-[#FCFAF6] p-3" style={{ borderColor: "var(--line)" }}>
-								<div className="flex flex-1 gap-1">{screenSteps.map((_, index) => <span key={index} className="h-1 rounded-full transition-all" style={{ width: index === step ? 18 : 5, background: index === step ? "var(--teal)" : index < step ? "var(--teal-100)" : "var(--line-2)" }} />)}</div>
-								<Button variant="primary" className="min-h-7 px-3 text-xs" onClick={() => { setPlaying(false); setStep((value) => (value + 1) % screenSteps.length); }}>Next</Button>
-							</div>
-						</Card>
-					</div>
-				</PortalShell>
-			</div>
-			<aside className="border-l bg-white p-5" style={{ borderColor: "var(--line)" }}>
-				<p className="font-['DM_Mono'] text-[10px] uppercase tracking-[0.12em]" style={{ color: "var(--muted)" }}>What Meera sees</p>
-				<div className="mt-4 grid gap-2">{["Enrollment term", "Transcript upload", "Terms accepted", "Ready to submit"].map((label, index) => <SideStatus key={label} label={label} status={index < step ? "done" : index === step ? "ready" : "locked"} />)}</div>
-				<div className="my-5 h-px" style={{ background: "var(--line)" }} />
-				<p className="font-['DM_Mono'] text-[10px] uppercase tracking-[0.12em]" style={{ color: "var(--muted)" }}>Detected blockers</p>
-				<div className="mt-3 rounded-xl border p-3" style={{ background: step < screenSteps.length - 1 ? "#FBE7E0" : "var(--green-050)", borderColor: step < screenSteps.length - 1 ? "#F3D2C6" : "#C9E8B3", color: step < screenSteps.length - 1 ? "#A8431F" : "#5E9438" }}><div className="flex gap-2 text-sm font-bold"><Icon name={step < screenSteps.length - 1 ? "alert" : "check"} size={16} />{step < screenSteps.length - 1 ? `${screenSteps.length - step} steps remaining` : "All clear"}</div></div>
-				<div className="my-5 h-px" style={{ background: "var(--line)" }} />
-				<Confidence value={current.conf} label={`step ${step + 1}`} />
-				<div className="mt-8"><Button className="w-full" onClick={() => setPlaying((value) => !value)}><Icon name={playing ? "clock" : "play"} size={14} />{playing ? "Auto-guiding" : "Resume"}</Button></div>
-			</aside>
-		</div>
-	);
-}
-
-function FormField({ label, icon, done, dashed = false }: { label: string; icon: IconName; done: boolean; dashed?: boolean }) {
-	return <div className="mb-3 flex w-[252px] items-center justify-between rounded-[10px] border-[1.5px] bg-white px-3 py-3 text-[13px] font-semibold" style={{ borderColor: "var(--line-2)", borderStyle: dashed ? "dashed" : "solid", color: done ? "var(--ink)" : "var(--muted)" }}><span className="flex items-center gap-2">{icon === "doc" ? <Icon name="doc" size={15} /> : null}{label}</span><Icon name={icon} size={15} className={done ? "text-[#7FB85C]" : ""} /></div>;
-}
-
-function SideStatus({ label, status }: { label: string; status: "done" | "ready" | "locked" }) {
-	return <div className="flex items-center gap-2 rounded-xl p-2.5" style={{ background: status === "done" ? "var(--green-050)" : status === "ready" ? "var(--teal-050)" : "#F8F5F0" }}><span className="grid size-4 place-items-center rounded-full" style={{ background: status === "done" ? "var(--green)" : status === "ready" ? "var(--teal)" : "var(--line-2)", color: "#fff" }}>{status === "done" ? <Icon name="check" size={9} stroke={2.4} /> : status === "locked" ? <Icon name="lock" size={9} /> : null}</span><span className="text-xs font-bold" style={{ color: status === "done" ? "var(--teal-700)" : "var(--ink-2)" }}>{label}</span></div>;
-}
-
 type ChatItem = { kind: "meera" | "user" | "faq" | "checks" | "quickfix" | "identity" | "ticket" | "closer"; text?: string; delay?: number };
 const diagnosticChecks = [
 	{ label: "Advisor approval on file", ok: true },
@@ -476,15 +304,7 @@ const fullChat: ChatItem[] = [
 	{ kind: "closer", delay: 450 },
 ];
 
-function StudentChat({ preIssue }: { preIssue: string | null }) {
-	return <ChatStage mode="chat" preIssue={preIssue} />;
-}
-
-function StudentMound({ preIssue, onChatNormally }: { preIssue: string | null; onChatNormally: () => void }) {
-	return <ChatStage mode="mound" preIssue={preIssue} onChatNormally={onChatNormally} />;
-}
-
-function ChatStage({ mode, preIssue, onChatNormally }: { mode: "chat" | "mound"; preIssue: string | null; onChatNormally?: () => void }) {
+function StudentMound({ preIssue }: { preIssue: string | null }) {
 	const [count, setCount] = useState(0);
 	const [checks, setChecks] = useState(0);
 	const [fixChoice, setFixChoice] = useState<"fixed" | "stuck" | null>(null);
@@ -515,16 +335,15 @@ function ChatStage({ mode, preIssue, onChatNormally }: { mode: "chat" | "mound";
 		<div className="flex min-h-[calc(100vh-94px)] flex-col">
 			<div className="flex items-center gap-3 border-b bg-white px-5 py-3" style={{ borderColor: "var(--line)" }}>
 				<MeerkatMark size={38} />
-				<div className="flex-1"><div className="font-bold">Meera</div><div className="flex items-center gap-1.5 font-['DM_Mono'] text-[11px]" style={{ color: "var(--green)" }}><span className="size-1.5 rounded-full" style={{ background: "var(--green)" }} />{mode === "mound" ? "Build the Mound - case meter live" : "online - help.northvale.edu"}</div></div>
-				{mode === "mound" ? <Button onClick={onChatNormally} className="hidden sm:inline-flex">Just chat normally</Button> : <Confidence value={94} />}
+				<div className="flex-1"><div className="font-bold">Meera</div><div className="flex items-center gap-1.5 font-['DM_Mono'] text-[11px]" style={{ color: "var(--green)" }}><span className="size-1.5 rounded-full" style={{ background: "var(--green)" }} />Build the Mound - case meter live</div></div>
 			</div>
-			<div className={`grid min-h-0 flex-1 ${mode === "mound" ? "lg:grid-cols-[minmax(0,1fr)_260px]" : ""}`}>
+			<div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_260px]">
 				<div ref={scrollRef} className="mx-auto flex w-full max-w-[720px] flex-col gap-3 overflow-y-auto px-4 py-5">
-					{visible.map((item, index) => <ChatRender key={index} item={item} checksShown={checks} onFixChoice={setFixChoice} fixChoice={fixChoice} mode={mode} />)}
+					{visible.map((item, index) => <ChatRender key={index} item={item} checksShown={checks} onFixChoice={setFixChoice} fixChoice={fixChoice} />)}
 					{fixChoice === "fixed" && count > qIndex ? <ResolvedState /> : null}
 					{showTyping ? <Typing /> : null}
 				</div>
-				{mode === "mound" ? <CaseMeter stage={stage} damage={damage} fixed={fixChoice === "fixed"} /> : null}
+				<CaseMeter stage={stage} damage={damage} fixed={fixChoice === "fixed"} />
 			</div>
 			<div className="border-t bg-white p-3" style={{ borderColor: "var(--line)" }}>
 				<div className="mx-auto flex max-w-[720px] gap-2"><textarea className="h-11 min-w-0 flex-1 resize-none rounded-2xl border px-4 py-2 text-sm outline-none" style={{ borderColor: "var(--line-2)" }} placeholder="Reply to Meera..." /><Button variant="primary" className="rounded-2xl px-4"><Icon name="arrow" size={16} /></Button></div>
@@ -551,7 +370,7 @@ function useAutoScroll<T extends HTMLElement>(deps: unknown[]) {
 	return ref;
 }
 
-function ChatRender({ item, checksShown, onFixChoice, fixChoice, mode, compact = false }: { item: ChatItem; checksShown: number; onFixChoice?: (choice: "fixed" | "stuck") => void; fixChoice?: "fixed" | "stuck" | null; mode?: "chat" | "mound"; compact?: boolean }) {
+function ChatRender({ item, checksShown, onFixChoice, fixChoice, compact = false }: { item: ChatItem; checksShown: number; onFixChoice?: (choice: "fixed" | "stuck") => void; fixChoice?: "fixed" | "stuck" | null; compact?: boolean }) {
 	if (item.kind === "user") return <Bubble side="right" compact={compact}>{item.text}</Bubble>;
 	if (item.kind === "meera") return <Bubble side="left" compact={compact}>{item.text}</Bubble>;
 	if (item.kind === "faq") return <FaqCard compact={compact} />;
@@ -560,7 +379,7 @@ function ChatRender({ item, checksShown, onFixChoice, fixChoice, mode, compact =
 	if (item.kind === "identity" && fixChoice === "stuck") return <IdentityCard />;
 	if (item.kind === "ticket") return <TicketCard compact={compact} />;
 	if (item.kind === "closer" && fixChoice === "stuck") return <HandoffCloser />;
-	if (mode === "mound" && item.kind === "closer" && fixChoice === "fixed") return <ResolvedState />;
+	if (item.kind === "closer" && fixChoice === "fixed") return <ResolvedState />;
 	return null;
 }
 
