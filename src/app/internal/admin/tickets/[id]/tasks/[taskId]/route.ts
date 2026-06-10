@@ -1,0 +1,15 @@
+import { updateTaskSchema } from "@/features/admin/api/schemas";
+import { emptyOk, parseJsonBody } from "@/features/admin/api/route-utils";
+import { authorizeInternalAdmin } from "../../../../_helpers";
+
+type RouteContext = { params: Promise<{ id: string; taskId: string }> };
+
+export async function PATCH(request: Request, context: RouteContext) {
+	const auth = authorizeInternalAdmin(request);
+	if ("response" in auth) return auth.response;
+	const parsed = await parseJsonBody(request, updateTaskSchema);
+	if ("response" in parsed) return parsed.response;
+	const { id, taskId } = await context.params;
+	await auth.db.updateTask(id, taskId, parsed.data.patch);
+	return emptyOk();
+}

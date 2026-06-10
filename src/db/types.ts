@@ -1,4 +1,6 @@
 import type { users } from "./schema";
+import type { AdminDataSource, TicketPatch } from "@/features/admin/store/data-source";
+import type { AdminSnapshot } from "@/features/admin/types";
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -13,4 +15,20 @@ export interface DatabaseAdapter {
 	listUsers(): Promise<User[]>;
 	createUser(input: CreateUserInput): Promise<User>;
 	getUserById(id: string): Promise<User | null>;
+	loadAdminSnapshot(): Promise<AdminSnapshot>;
+	claimTicket: AdminDataSource["claimTicket"];
+	releaseTicket: AdminDataSource["releaseTicket"];
+	addNote: AdminDataSource["addNote"];
+	setSeverity: AdminDataSource["setSeverity"];
+	setComplexity: AdminDataSource["setComplexity"];
+	updateTicket(id: string, patch: TicketPatch): Promise<void>;
+	resolveTicket: AdminDataSource["resolveTicket"];
+	ingestKb: AdminDataSource["ingestKb"];
+	createKbNode: AdminDataSource["createKbNode"];
+	deleteKbNode: AdminDataSource["deleteKbNode"];
+	escalateCrossDept: AdminDataSource["escalateCrossDept"];
+	respondCrossDept: AdminDataSource["respondCrossDept"];
+	addTask: AdminDataSource["addTask"];
+	updateTask: AdminDataSource["updateTask"];
+	seedAdminSnapshot(snapshot: AdminSnapshot): Promise<void>;
 }
