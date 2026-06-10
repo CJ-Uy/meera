@@ -30,6 +30,13 @@ describe("Meera demo experience", () => {
 		expect(source).not.toContain("StudentScreenshare");
 		expect(source).not.toContain("PortalShell");
 	});
+
+	it("uses a top admin navbar and department dropdown instead of the old sidebar rail", () => {
+		expect(source).toContain("const adminNavItems");
+		expect(source).toContain('aria-label="Admin sections"');
+		expect(source).toContain('aria-label="Department"');
+		expect(source).not.toContain("function AdminRail(");
+	});
 });
 
 describe("Mound Battle view", () => {

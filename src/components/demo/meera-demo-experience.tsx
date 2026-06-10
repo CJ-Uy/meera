@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { asset, Button, Card, Confidence, Icon, IconChip, MeerkatMark, Pill, type IconName, type Tint } from "./shared";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useSpeech, useVoiceInput } from "@/features/ai/voice";
+import { asset, Button, Card, Confidence, Icon, IconChip, MeerkatMark, Pill, SpeechControl, VoiceInputControl, type IconName, type Tint } from "./shared";
 import { BattleView } from "./battle";
 
 type AdminDept = "it" | "registrar" | "health" | "studsvcs" | "finance";
 type Persona = "student" | AdminDept;
 type StudentView = "site" | "mound";
-type AdminView = "inbox" | "crossdept";
+type AdminView = "inbox" | "insights" | "knowledge" | "routing" | "team";
 
 const adminDepts: { id: AdminDept; label: string }[] = [
 	{ id: "it", label: "IT" },
@@ -16,6 +17,14 @@ const adminDepts: { id: AdminDept; label: string }[] = [
 	{ id: "health", label: "Health" },
 	{ id: "studsvcs", label: "Student Svcs" },
 	{ id: "finance", label: "Finance" },
+];
+
+const adminNavItems: { id: AdminView; label: string; icon: IconName }[] = [
+	{ id: "inbox", label: "Inbox", icon: "inbox" },
+	{ id: "insights", label: "Insights", icon: "trend" },
+	{ id: "knowledge", label: "Knowledge", icon: "book" },
+	{ id: "routing", label: "Routing", icon: "route" },
+	{ id: "team", label: "Team", icon: "users" },
 ];
 
 function DemoTopBar({ children }: { children?: ReactNode }) {
@@ -58,11 +67,16 @@ export function AdminExperience() {
 
 	function switchAdminDept(next: AdminDept) {
 		setAdminDept(next);
-		setAdminView("inbox");
 		setResetKey((key) => key + 1);
 	}
 
-	const stage = adminView === "crossdept" ? <AdminCrossDept key={resetKey} dept={adminDept} /> : <AdminLookout key={resetKey} dept={adminDept} />;
+	const stage = {
+		inbox: <AdminLookout key={resetKey} dept={adminDept} />,
+		insights: <AdminInsights key={resetKey} dept={adminDept} />,
+		knowledge: <AdminKnowledge key={resetKey} dept={adminDept} />,
+		routing: <AdminCrossDept key={resetKey} dept={adminDept} />,
+		team: <AdminTeam key={resetKey} dept={adminDept} />,
+	}[adminView];
 
 	return (
 		<main className="fixed inset-0 z-[100] flex flex-col" style={{ background: "var(--cream)", color: "var(--ink)" }}>
@@ -71,38 +85,59 @@ export function AdminExperience() {
 					<span className="mx-1 h-[18px] w-px shrink-0" style={{ background: "var(--line-2)" }} />
 					<span className="font-['DM_Mono'] text-[11px] uppercase tracking-[0.12em]" style={{ color: "var(--muted)" }}>Admin</span>
 				</DemoTopBar>
-				<div className="flex items-center gap-1 overflow-x-auto border-b px-4 pb-[7px] pt-[5px]" style={{ borderColor: "var(--line-2)", background: "var(--cream)" }}>
-					<SubLabel>DEPT</SubLabel>
-					{adminDepts.map((dept) => (
-						<SubTab key={dept.id} active={adminDept === dept.id} onClick={() => switchAdminDept(dept.id)}>{dept.label}</SubTab>
-					))}
-					<Divider />
-					<SubLabel>VIEW</SubLabel>
-					<SubTab active={adminView === "inbox"} onClick={() => setAdminView("inbox")}>Inbox</SubTab>
-					<SubTab active={adminView === "crossdept"} onClick={() => setAdminView("crossdept")}>Cross-dept</SubTab>
-				</div>
+				<AdminNav activeView={adminView} department={adminDept} onViewChange={setAdminView} onDepartmentChange={switchAdminDept} />
 			</header>
 			<div className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">{stage}</div>
 		</main>
 	);
 }
 
-function SubLabel({ children }: { children: ReactNode }) {
-	return <span className="shrink-0 pr-0.5 font-['DM_Mono'] text-[10px] uppercase tracking-[0.12em]" style={{ color: "var(--muted)" }}>{children}</span>;
-}
-
-function SubTab({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
-	return <button type="button" onClick={onClick} className="shrink-0 rounded-[7px] border px-3 py-1 text-[12.5px] font-semibold whitespace-nowrap transition" style={{ background: active ? "var(--teal-050)" : "transparent", color: active ? "var(--teal-700)" : "var(--ink-2)", borderColor: active ? "var(--teal-100)" : "transparent" }}>{children}</button>;
-}
-
-function Divider() {
-	return <span className="mx-[5px] h-3.5 w-px shrink-0" style={{ background: "var(--line-2)" }} />;
+function AdminNav({ activeView, department, onViewChange, onDepartmentChange }: { activeView: AdminView; department: AdminDept; onViewChange: (view: AdminView) => void; onDepartmentChange: (department: AdminDept) => void }) {
+	return (
+		<div className="flex min-h-[54px] items-center gap-3 border-b bg-white px-3 sm:px-5" style={{ borderColor: "var(--line)" }}>
+			<nav className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto py-2" aria-label="Admin sections">
+				{adminNavItems.map((item) => {
+					const active = item.id === activeView;
+					return (
+						<button
+							key={item.id}
+							type="button"
+							onClick={() => onViewChange(item.id)}
+							aria-current={active ? "page" : undefined}
+							className="inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-[12.5px] font-bold transition hover:bg-[#F8F5F0] sm:px-4"
+							style={{ background: active ? "var(--teal-050)" : "transparent", borderColor: active ? "var(--teal-100)" : "transparent", color: active ? "var(--teal-700)" : "var(--ink-2)", boxShadow: active ? "inset 0 -2px 0 var(--teal)" : "none" }}
+						>
+							<Icon name={item.icon} size={15} stroke={active ? 2.2 : 1.8} />
+							{item.label}
+						</button>
+					);
+				})}
+			</nav>
+			<label className="relative flex shrink-0 items-center gap-2 rounded-xl border bg-[#FCFAF6] py-2 pl-3 pr-8 text-[12.5px] font-bold" style={{ borderColor: "var(--line-2)", color: "var(--ink-2)" }}>
+				<Icon name="building" size={15} className="text-[#2E9C8E]" />
+				<span className="hidden font-['DM_Mono'] text-[9px] uppercase tracking-[0.1em] lg:inline" style={{ color: "var(--muted)" }}>Department</span>
+				<select
+					value={department}
+					onChange={(event) => onDepartmentChange(event.target.value as AdminDept)}
+					className="appearance-none bg-transparent pr-1 font-bold outline-none"
+					aria-label="Department"
+				>
+					{adminDepts.map((dept) => <option key={dept.id} value={dept.id}>{dept.label}</option>)}
+				</select>
+				<Icon name="chevronD" size={13} className="pointer-events-none absolute right-3" />
+			</label>
+		</div>
+	);
 }
 
 const siteChips = ["Can't register", "Wi-Fi won't connect", "Tuition hold", "Reset my password"];
 
 function StudentMeeraSite({ onIssue }: { onIssue: (issue: string) => void }) {
 	const [value, setValue] = useState("");
+	const appendTranscript = useCallback((text: string) => {
+		setValue((current) => (current.trim() ? `${current} ${text}` : text));
+	}, []);
+	const voice = useVoiceInput(appendTranscript);
 	return (
 		<div className="min-h-[calc(100vh-94px)]">
 			<div className="flex items-center gap-3 border-b bg-white px-5 py-3" style={{ borderColor: "var(--line)" }}>
@@ -118,11 +153,13 @@ function StudentMeeraSite({ onIssue }: { onIssue: (issue: string) => void }) {
 				<h1 className="text-4xl font-[800] leading-tight tracking-[-0.03em]">Hi! What can I help you with?</h1>
 				<p className="mx-auto mt-4 max-w-xl text-base leading-7" style={{ color: "var(--ink-2)" }}>Tell me what's going on - no need to pick a department. I'll figure out who to loop in.</p>
 				<Card className="mt-8 p-1 text-left" style={{ borderColor: "var(--line-2)" }}>
-					<textarea value={value} onChange={(event) => setValue(event.target.value)} placeholder="Describe what's going on..." className="min-h-20 w-full resize-none rounded-[22px] bg-transparent p-4 text-[15px] outline-none" />
-					<div className="flex justify-end px-2 pb-2">
+					<textarea value={value} onChange={(event) => setValue(event.target.value)} placeholder={voice.isRecording ? "Listening..." : "Describe what's going on..."} className="min-h-20 w-full resize-none rounded-[22px] bg-transparent p-4 text-[15px] outline-none" />
+					<div className="flex items-center justify-between gap-2 px-2 pb-2">
+						<VoiceInputControl isRecording={voice.isRecording} isTranscribing={voice.isTranscribing} onClick={voice.toggle} />
 						<Button variant="primary" onClick={() => onIssue(value || "I need help")}>Ask Meera <Icon name="arrow" size={15} stroke={2.2} /></Button>
 					</div>
 				</Card>
+				{voice.error ? <p className="mt-2 text-sm font-semibold" style={{ color: "var(--rose)" }}>{voice.error}</p> : null}
 				<p className="mt-7 font-['DM_Mono'] text-[10px] uppercase tracking-[0.12em]" style={{ color: "var(--muted)" }}>Or pick a common issue</p>
 				<div className="mt-3 flex flex-wrap justify-center gap-2">
 					{siteChips.map((chip) => <button key={chip} type="button" onClick={() => onIssue(chip)} className="rounded-full border bg-white px-4 py-2 text-[13px] font-bold transition hover:-translate-y-0.5" style={{ borderColor: "var(--line)" }}>{chip}</button>)}
@@ -164,6 +201,12 @@ function StudentMound({ preIssue }: { preIssue: string | null }) {
 	const [checks, setChecks] = useState(0);
 	const [fixChoice, setFixChoice] = useState<"fixed" | "stuck" | null>(null);
 	const [damage, setDamage] = useState(false);
+	const [replyDraft, setReplyDraft] = useState("");
+	const { speakingId, speak } = useSpeech();
+	const appendReplyTranscript = useCallback((text: string) => {
+		setReplyDraft((current) => (current.trim() ? `${current} ${text}` : text));
+	}, []);
+	const voice = useVoiceInput(appendReplyTranscript);
 	const script = useMemo(() => preIssue ? fullChat.map((item, index) => index === 1 ? { ...item, text: preIssue } : item) : fullChat, [preIssue]);
 	const qIndex = script.findIndex((item) => item.kind === "quickfix");
 	const scrollRef = useAutoScroll<HTMLDivElement>([count, checks, fixChoice]);
@@ -199,14 +242,21 @@ function StudentMound({ preIssue }: { preIssue: string | null }) {
 				<>
 					<div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_280px]">
 						<div ref={scrollRef} className="mx-auto flex w-full max-w-[720px] flex-col gap-3 overflow-y-auto px-4 py-5">
-							{visible.map((item, index) => <ChatRender key={index} item={item} checksShown={checks} onFixChoice={setFixChoice} fixChoice={fixChoice} />)}
+							{visible.map((item, index) => <ChatRender key={index} item={item} checksShown={checks} onFixChoice={setFixChoice} fixChoice={fixChoice} speakId={`classic-${index}`} speakingId={speakingId} onSpeak={(id, text) => void speak(id, text)} />)}
 							{fixChoice === "fixed" && count > qIndex ? <ResolvedState /> : null}
 							{showTyping ? <Typing /> : null}
 						</div>
 						<CaseMeter stage={stage} damage={damage} fixed={fixChoice === "fixed"} />
 					</div>
 					<div className="border-t bg-white p-3" style={{ borderColor: "var(--line)" }}>
-						<div className="mx-auto flex max-w-[720px] gap-2"><textarea className="h-11 min-w-0 flex-1 resize-none rounded-2xl border px-4 py-2 text-sm outline-none" style={{ borderColor: "var(--line-2)" }} placeholder="Reply to Meera..." /><Button variant="primary" className="rounded-2xl px-4"><Icon name="arrow" size={16} /></Button></div>
+						<div className="mx-auto max-w-[720px]">
+							<div className="flex gap-2">
+								<textarea value={replyDraft} onChange={(event) => setReplyDraft(event.target.value)} className="h-11 min-w-0 flex-1 resize-none rounded-2xl border px-4 py-2 text-sm outline-none" style={{ borderColor: "var(--line-2)" }} placeholder={voice.isRecording ? "Listening..." : "Reply to Meera..."} />
+								<VoiceInputControl compact isRecording={voice.isRecording} isTranscribing={voice.isTranscribing} onClick={voice.toggle} className="size-11 px-0" />
+								<Button variant="primary" className="rounded-2xl px-4"><Icon name="arrow" size={16} /></Button>
+							</div>
+							{voice.error ? <p className="mt-2 mb-0 text-[11px] font-semibold" style={{ color: "var(--rose)" }}>{voice.error}</p> : null}
+						</div>
 					</div>
 				</>
 			)}
@@ -260,9 +310,18 @@ function useAutoScroll<T extends HTMLElement>(deps: unknown[]) {
 	return ref;
 }
 
-function ChatRender({ item, checksShown, onFixChoice, fixChoice, compact = false }: { item: ChatItem; checksShown: number; onFixChoice?: (choice: "fixed" | "stuck") => void; fixChoice?: "fixed" | "stuck" | null; compact?: boolean }) {
+type SpeakHandler = (id: string, text: string) => void;
+type SpeakProps = { speakId?: string; speakingId?: string | null; onSpeak?: SpeakHandler; speakText?: string };
+
+function OutputSpeech({ speakId, speakingId, onSpeak, speakText }: SpeakProps) {
+	const text = speakText?.trim();
+	if (!speakId || !onSpeak || !text) return null;
+	return <SpeechControl isSpeaking={speakingId === speakId} onClick={() => onSpeak(speakId, text)} />;
+}
+
+function ChatRender({ item, checksShown, onFixChoice, fixChoice, compact = false, speakId, speakingId, onSpeak }: { item: ChatItem; checksShown: number; onFixChoice?: (choice: "fixed" | "stuck") => void; fixChoice?: "fixed" | "stuck" | null; compact?: boolean } & SpeakProps) {
 	if (item.kind === "user") return <Bubble side="right" compact={compact}>{item.text}</Bubble>;
-	if (item.kind === "meera") return <Bubble side="left" compact={compact}>{item.text}</Bubble>;
+	if (item.kind === "meera") return <Bubble side="left" compact={compact} speakId={speakId} speakingId={speakingId} onSpeak={onSpeak} speakText={item.text}>{item.text}</Bubble>;
 	if (item.kind === "faq") return <FaqCard compact={compact} />;
 	if (item.kind === "checks") return <ChecksCard shown={checksShown} compact={compact} />;
 	if (item.kind === "quickfix") return <QuickFixCard onChoice={(choice) => onFixChoice?.(choice)} choice={fixChoice ?? null} />;
@@ -273,9 +332,9 @@ function ChatRender({ item, checksShown, onFixChoice, fixChoice, compact = false
 	return null;
 }
 
-function Bubble({ side, children, compact = false }: { side: "left" | "right"; children: ReactNode; compact?: boolean }) {
+function Bubble({ side, children, compact = false, speakId, speakingId, onSpeak, speakText }: { side: "left" | "right"; children: ReactNode; compact?: boolean } & SpeakProps) {
 	const right = side === "right";
-	return <div className={`flex ${right ? "justify-end" : "justify-start"}`} style={{ animation: "fadeUp .3s ease" }}><div className={`${compact ? "max-w-[84%] px-3 py-2 text-xs" : "max-w-[78%] px-4 py-3 text-sm"} leading-6 shadow-sm`} style={{ borderRadius: right ? "16px 4px 16px 16px" : "4px 16px 16px 16px", background: right ? "var(--ink)" : "#fff", color: right ? "#fff" : "var(--ink)", border: right ? "none" : "1px solid var(--line)" }}>{children}</div></div>;
+	return <div className={`flex ${right ? "justify-end" : "justify-start"}`} style={{ animation: "fadeUp .3s ease" }}><div className={`${compact ? "max-w-[84%] px-3 py-2 text-xs" : "max-w-[78%] px-4 py-3 text-sm"} leading-6 shadow-sm`} style={{ borderRadius: right ? "16px 4px 16px 16px" : "4px 16px 16px 16px", background: right ? "var(--ink)" : "#fff", color: right ? "#fff" : "var(--ink)", border: right ? "none" : "1px solid var(--line)" }}><div>{children}</div>{right ? null : <div className="mt-2"><OutputSpeech speakId={speakId} speakingId={speakingId} onSpeak={onSpeak} speakText={speakText} /></div>}</div></div>;
 }
 
 function FaqCard({ compact = false }: { compact?: boolean }) {
@@ -471,10 +530,9 @@ function AdminLookout({ dept }: { dept: Exclude<Persona, "student"> }) {
 	const [selected, setSelected] = useState(0);
 	const ticket = data.tickets[selected];
 	return (
-		<div className="flex min-h-[calc(100vh-94px)] flex-col">
+		<div className="flex min-h-0 flex-1 flex-col">
 			<div className="flex items-center gap-3 border-b bg-white px-5 py-3" style={{ borderColor: "var(--line)" }}><IconChip name="eye" tint="teal" size={30} /><span className="font-[800]">Meera Lookout</span><Pill>{data.label}</Pill><span className="ml-auto font-['DM_Mono'] text-[11px]" style={{ color: "var(--muted)" }}>{data.tickets.length} open - needs review</span></div>
-			<div className="grid flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[176px_300px_minmax(0,1fr)]">
-				<AdminRail data={data} />
+			<div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto md:grid-cols-[minmax(260px,320px)_minmax(0,1fr)] md:overflow-hidden">
 				<div className="border-r bg-white" style={{ borderColor: "var(--line)" }}><div className="flex items-center justify-between px-4 py-3"><span className="text-sm font-bold">Ticket queue</span><span className="font-['DM_Mono'] text-[11px]" style={{ color: "var(--muted)" }}>urgency down</span></div>{data.tickets.map((item, index) => <QueueButton key={item.id} ticket={item} active={index === selected} onClick={() => setSelected(index)} />)}</div>
 				<AdminDetail ticket={ticket} />
 			</div>
@@ -482,8 +540,54 @@ function AdminLookout({ dept }: { dept: Exclude<Persona, "student"> }) {
 	);
 }
 
-function AdminRail({ data }: { data: DeptData }) {
-	return <aside className="hidden overflow-y-auto border-r bg-[#FCFAF6] p-3 lg:block" style={{ borderColor: "var(--line)" }}>{(["Inbox", "Insights", "Knowledge", "Routing", "Team"] as const).map((label, index) => <div key={label} className="mb-1 flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-semibold" style={{ background: index === 0 ? "var(--teal-050)" : "transparent", color: index === 0 ? "var(--teal-700)" : "var(--ink-2)" }}><Icon name={(index === 0 ? "inbox" : index === 1 ? "trend" : index === 2 ? "book" : index === 3 ? "route" : "users")} size={16} />{label}</div>)}<div className="my-4 h-px" style={{ background: "var(--line)" }} /><p className="px-3 font-['DM_Mono'] text-[10px] uppercase tracking-[0.1em]" style={{ color: "var(--muted)" }}>Resolved by Meera</p><div className="px-3 pt-2"><div className="text-3xl font-[800]">{data.resolved}</div><p className="text-xs" style={{ color: "var(--muted)" }}>without a human this week</p></div><div className="my-4 h-px" style={{ background: "var(--line)" }} /><p className="px-3 font-['DM_Mono'] text-[10px] uppercase tracking-[0.1em]" style={{ color: "var(--muted)" }}>Recurring issues</p><div className="mt-3 grid gap-2">{data.recurring.map((item) => <div key={item.label} className="flex items-center gap-2 text-xs"><span className="size-2 rounded-full" style={{ background: `var(--${item.tint})` }} /><span className="flex-1 font-bold">{item.label}</span><span className="font-['DM_Mono']">{item.count}</span><span className="w-9 text-right font-['DM_Mono']" style={{ color: item.down ? "var(--green)" : "var(--rose)" }}>{item.trend}</span></div>)}</div><div className="my-4 h-px" style={{ background: "var(--line)" }} /><p className="px-3 font-['DM_Mono'] text-[10px] uppercase tracking-[0.1em]" style={{ color: "var(--muted)" }}>KB suggestions</p><div className="mt-3 grid gap-3">{data.kb.map((item) => <div key={item.title} className="flex gap-2 text-xs"><Icon name="sparkle" size={12} className="text-[#2E9C8E]" /><div className="flex-1"><div className="font-bold leading-snug">{item.title}</div><div className="font-['DM_Mono']" style={{ color: "var(--muted)" }}>{item.reason}</div></div><Pill tint={item.status === "new" ? "teal" : "sand"}>{item.status}</Pill></div>)}</div></aside>;
+function AdminInsights({ dept }: { dept: Exclude<Persona, "student"> }) {
+	const data = deptData[dept];
+	const averageConfidence = Math.round(data.tickets.reduce((total, ticket) => total + ticket.conf, 0) / data.tickets.length);
+	return (
+		<AdminPageShell eyebrow="Operations pulse" title={`${data.label} insights`} description="Patterns worth acting on, separated from the live ticket queue so review stays focused.">
+			<div className="grid gap-3 sm:grid-cols-3">
+				<MetricCard label="Resolved by Meera" value={data.resolved} note="without a human this week" tint="teal" />
+				<MetricCard label="Needs review" value={String(data.tickets.length)} note="open tickets in this queue" tint="sand" />
+				<MetricCard label="AI confidence" value={`${averageConfidence}%`} note="average across open tickets" tint="green" />
+			</div>
+			<Card className="mt-5 overflow-hidden p-0">
+				<div className="flex items-center gap-3 border-b px-5 py-4" style={{ borderColor: "var(--line)" }}><IconChip name="trend" tint="teal" size={34} /><div><div className="font-[800]">Recurring issues</div><p className="text-xs" style={{ color: "var(--muted)" }}>Compared with the previous seven days</p></div></div>
+				<div className="grid md:grid-cols-3">
+					{data.recurring.map((item) => <div key={item.label} className="border-b p-5 last:border-b-0 md:border-b-0 md:border-r md:last:border-r-0" style={{ borderColor: "var(--line)" }}><div className="mb-5 flex items-center justify-between"><span className="size-2.5 rounded-full" style={{ background: `var(--${item.tint})` }} /><span className="font-['DM_Mono'] text-xs font-medium" style={{ color: item.down ? "var(--green)" : "var(--rose)" }}>{item.trend}</span></div><div className="text-3xl font-[800]">{item.count}</div><div className="mt-1 text-sm font-bold">{item.label}</div></div>)}
+				</div>
+			</Card>
+		</AdminPageShell>
+	);
+}
+
+function AdminKnowledge({ dept }: { dept: Exclude<Persona, "student"> }) {
+	const data = deptData[dept];
+	return (
+		<AdminPageShell eyebrow="Knowledge studio" title={`${data.label} knowledge`} description="Turn repeated questions into clear, reusable guidance for students and staff.">
+			<div className="grid gap-4 lg:grid-cols-2">
+				{data.kb.map((item, index) => <Card key={item.title} className="group p-5 transition hover:-translate-y-0.5"><div className="flex items-start gap-4"><IconChip name="book" tint={index === 0 ? "teal" : "sand"} size={42} /><div className="min-w-0 flex-1"><div className="mb-2 flex flex-wrap items-center gap-2"><Pill tint={item.status === "new" ? "teal" : "sand"}>{item.status}</Pill><span className="font-['DM_Mono'] text-[10px]" style={{ color: "var(--muted)" }}>{item.reason}</span></div><h2 className="text-base font-[800] leading-snug">{item.title}</h2><p className="mt-2 text-sm leading-6" style={{ color: "var(--ink-2)" }}>Meera found a repeatable answer pattern in this department&apos;s recent conversations.</p><Button className="mt-4">Review article <Icon name="arrow" size={14} /></Button></div></div></Card>)}
+			</div>
+		</AdminPageShell>
+	);
+}
+
+function AdminTeam({ dept }: { dept: Exclude<Persona, "student"> }) {
+	const data = deptData[dept];
+	return (
+		<AdminPageShell eyebrow="Queue ownership" title={`${data.label} team`} description="A quick view of who owns the work currently surfaced by Meera.">
+			<div className="grid gap-4 lg:grid-cols-3">
+				{data.tickets.map((ticket, index) => <Card key={ticket.id} className="p-5"><div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-full font-[800]" style={{ background: index === 0 ? "var(--teal-050)" : index === 1 ? "var(--sand-050)" : "var(--green-050)", color: "var(--ink)" }}>{ticket.dept.split(/[\s-]/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("")}</span><div className="min-w-0"><div className="truncate text-sm font-[800]">{ticket.dept}</div><div className="font-['DM_Mono'] text-[10px]" style={{ color: "var(--muted)" }}>owns #{ticket.id}</div></div></div><div className="my-4 h-px" style={{ background: "var(--line)" }} /><p className="text-sm font-bold leading-6">{ticket.title}</p><div className="mt-4 flex items-center justify-between"><Pill tint="teal">{ticket.tag}</Pill><Urgency urgency={ticket.urgency} /></div></Card>)}
+			</div>
+		</AdminPageShell>
+	);
+}
+
+function AdminPageShell({ eyebrow, title, description, children }: { eyebrow: string; title: string; description: string; children: ReactNode }) {
+	return <div className="mx-auto w-[min(1100px,calc(100%_-_2rem))] py-7 sm:py-9"><p className="font-['DM_Mono'] text-[10px] uppercase tracking-[0.13em]" style={{ color: "var(--teal-700)" }}>{eyebrow}</p><h1 className="mt-2 text-3xl font-[800] tracking-[-0.03em]">{title}</h1><p className="mb-6 mt-2 max-w-2xl text-sm leading-6" style={{ color: "var(--ink-2)" }}>{description}</p>{children}</div>;
+}
+
+function MetricCard({ label, value, note, tint }: { label: string; value: string; note: string; tint: Tint }) {
+	return <Card className="relative overflow-hidden p-5"><span className="absolute inset-y-0 left-0 w-1" style={{ background: `var(--${tint})` }} /><p className="font-['DM_Mono'] text-[10px] uppercase tracking-[0.1em]" style={{ color: "var(--muted)" }}>{label}</p><div className="mt-2 text-4xl font-[800] tracking-[-0.04em]">{value}</div><p className="mt-1 text-xs" style={{ color: "var(--muted)" }}>{note}</p></Card>;
 }
 
 function QueueButton({ ticket, active, onClick }: { ticket: Ticket; active: boolean; onClick: () => void }) {

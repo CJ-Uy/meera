@@ -23,11 +23,13 @@ export const iconPaths = {
 	inbox: <path d="m4 13 2.5-7h11L20 13v6H4zM4 13h5l1.5 2.5h3L15 13h5" />,
 	layers: <path d="m12 3 9 5-9 5-9-5zM3 13l9 5 9-5M3 16.5l9 5 9-5" />,
 	lock: <path d="M6 11h12v9H6zM9 11V8a3 3 0 0 1 6 0v3M12 15v2" />,
+	mic: <><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></>,
 	play: <path d="m7 5 12 7-12 7z" />,
 	plug: <path d="M9 3v5M15 3v5M7 8h10v3a5 5 0 0 1-10 0zM12 16v5" />,
 	refresh: <path d="M4 12a8 8 0 0 1 14-5.3L20 8M20 4v4h-4M20 12a8 8 0 0 1-14 5.3L4 16M4 20v-4h4" />,
 	route: <path d="M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM18 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM6 15v-4a4 4 0 0 1 4-4h8" />,
 	shield: <path d="m12 3 7 3v5c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6zM9 12l2 2 4-4" />,
+	speaker: <path d="M4 9v6h4l5 4V5L8 9H4zM16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12" />,
 	sparkle: <path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z" />,
 	ticket: <path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v1.5a2 2 0 0 0 0 5V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1.5a2 2 0 0 0 0-5zM13 7v10" />,
 	trend: <path d="m4 17 5-5 3 3 7-7M15 8h5v5" />,
@@ -127,6 +129,70 @@ export function Button({
 	return (
 		<button type="button" onClick={onClick} className={`inline-flex min-h-9 items-center justify-center gap-2 rounded-full border px-4 text-sm font-bold transition hover:-translate-y-0.5 ${className}`} style={style}>
 			{children}
+		</button>
+	);
+}
+
+export function VoiceInputControl({
+	isRecording,
+	isTranscribing,
+	onClick,
+	className = "",
+	compact = false,
+}: {
+	isRecording: boolean;
+	isTranscribing: boolean;
+	onClick: () => void;
+	className?: string;
+	compact?: boolean;
+}) {
+	return (
+		<button
+			type="button"
+			disabled={isTranscribing}
+			aria-label={isRecording ? "Stop recording" : "Record voice input"}
+			title="Voice input"
+			onClick={onClick}
+			className={`inline-flex min-h-9 items-center justify-center gap-2 rounded-full border px-3 text-sm font-bold transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-55 ${className}`}
+			style={{
+				background: isRecording ? "var(--rose)" : "#fff",
+				borderColor: isRecording ? "var(--rose)" : "var(--line-2)",
+				color: isRecording ? "#fff" : "var(--ink)",
+				boxShadow: isRecording ? "0 10px 24px rgba(224,135,105,.2)" : "none",
+			}}
+		>
+			<Icon name="mic" size={compact ? 14 : 15} stroke={2} />
+			<span className={compact ? "sr-only" : ""}>{isTranscribing ? "..." : isRecording ? "Stop" : "Voice"}</span>
+		</button>
+	);
+}
+
+export function SpeechControl({
+	isSpeaking,
+	onClick,
+	className = "",
+	compact = false,
+}: {
+	isSpeaking: boolean;
+	onClick: () => void;
+	className?: string;
+	compact?: boolean;
+}) {
+	return (
+		<button
+			type="button"
+			aria-label={isSpeaking ? "Stop speaking" : "Play message aloud"}
+			title={isSpeaking ? "Stop speaking" : "Play message aloud"}
+			onClick={onClick}
+			className={`inline-flex min-h-8 items-center justify-center gap-1.5 rounded-full border px-2.5 text-[11px] font-bold transition hover:-translate-y-0.5 ${className}`}
+			style={{
+				background: isSpeaking ? "var(--teal-050)" : "#fff",
+				borderColor: isSpeaking ? "var(--teal-100)" : "var(--line-2)",
+				color: isSpeaking ? "var(--teal-700)" : "var(--ink-2)",
+			}}
+		>
+			<Icon name="speaker" size={compact ? 13 : 14} stroke={2} />
+			<span className={compact ? "sr-only" : ""}>{isSpeaking ? "Stop" : "Listen"}</span>
 		</button>
 	);
 }

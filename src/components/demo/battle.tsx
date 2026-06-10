@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
-import { asset, Button, Card, Icon, IconChip, Pill } from "./shared";
+import { useCallback, useRef, useState, type ReactNode } from "react";
+import { useSpeech, useVoiceInput } from "@/features/ai/voice";
+import { asset, Button, Card, Icon, IconChip, Pill, SpeechControl, VoiceInputControl } from "./shared";
 
 // --- Hardcoded quest -------------------------------------------------------
 // This is a pure frontend mockup: no AI, no backend. Each step is one "turn".
@@ -80,10 +81,17 @@ export function BattleView() {
 	const [busy, setBusy] = useState(false);
 	const [flash, setFlash] = useState<Target | null>(null);
 	const [floater, setFloater] = useState<{ target: Target; amount: number; key: number } | null>(null);
+	const [customMove, setCustomMove] = useState("");
 	const seqRef = useRef(0);
+	const { speakingId, speak } = useSpeech();
+	const appendTranscript = useCallback((text: string) => {
+		setCustomMove((current) => (current.trim() ? `${current} ${text}` : text));
+	}, []);
+	const voice = useVoiceInput(appendTranscript);
 
 	const step = QUEST[stepIndex];
 	const enemySprite = phase === "won" ? ENEMY_SPRITES.defeated : flash === "enemy" ? ENEMY_SPRITES.hurt : flash === "mira" ? ENEMY_SPRITES.attack : ENEMY_SPRITES.idle;
+	const dialogueSpeechId = `battle-dialogue-${stepIndex}-${phase}-${dialogue}`;
 
 	function reset() {
 		setEnemyHp(MAX_HP);
@@ -94,6 +102,7 @@ export function BattleView() {
 		setBusy(false);
 		setFlash(null);
 		setFloater(null);
+		setCustomMove("");
 	}
 
 	function play(choice: Choice) {
@@ -189,8 +198,13 @@ export function BattleView() {
 			<div className="shrink-0 border-t bg-white px-4 py-3" style={{ borderColor: "var(--line)" }}>
 				<div className="mx-auto max-w-[900px]">
 					<div className="relative rounded-2xl border-2 px-4 py-3 text-[15px] font-semibold leading-6" style={{ borderColor: "var(--ink)", background: "#FFFDF8", color: "var(--ink)", boxShadow: "0 4px 0 0 rgba(28,51,73,.14), inset 0 0 0 3px #F5ECDD" }}>
-						<span className="mr-2 inline-block" style={{ color: "var(--teal)", animation: "tdot 1s infinite" }}>▶</span>
-						{dialogue}
+						<div className="flex items-start gap-3">
+							<p className="m-0 min-w-0 flex-1">
+								<span className="mr-2 inline-block" style={{ color: "var(--teal)", animation: "tdot 1s infinite" }}>▶</span>
+								{dialogue}
+							</p>
+							<SpeechControl compact isSpeaking={speakingId === dialogueSpeechId} onClick={() => void speak(dialogueSpeechId, dialogue)} className="shrink-0" />
+						</div>
 					</div>
 
 					{/* Command box — multiple choice */}
@@ -221,9 +235,19 @@ export function BattleView() {
 
 			{/* Chat input stays at the bottom */}
 			<div className="shrink-0 border-t bg-white p-3" style={{ borderColor: "var(--line)" }}>
-				<div className="mx-auto flex max-w-[900px] gap-2">
-					<input className="h-11 min-w-0 flex-1 rounded-2xl border px-4 text-sm outline-none" style={{ borderColor: "var(--line-2)" }} placeholder="…or type your own move" />
-					<Button variant="primary" className="rounded-2xl px-4"><Icon name="arrow" size={16} /></Button>
+				<div className="mx-auto max-w-[900px]">
+					<div className="flex gap-2">
+						<input
+							value={customMove}
+							onChange={(event) => setCustomMove(event.target.value)}
+							className="h-11 min-w-0 flex-1 rounded-2xl border px-4 text-sm outline-none"
+							style={{ borderColor: "var(--line-2)" }}
+							placeholder={voice.isRecording ? "Listening..." : "…or type your own move"}
+						/>
+						<VoiceInputControl compact isRecording={voice.isRecording} isTranscribing={voice.isTranscribing} onClick={voice.toggle} className="size-11 px-0" />
+						<Button variant="primary" className="rounded-2xl px-4"><Icon name="arrow" size={16} /></Button>
+					</div>
+					{voice.error ? <p className="mt-2 mb-0 text-[11px] font-semibold" style={{ color: "var(--rose)" }}>{voice.error}</p> : null}
 				</div>
 			</div>
 		</div>
