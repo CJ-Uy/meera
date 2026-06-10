@@ -1,5 +1,5 @@
 import path from "node:path";
-import { app, BrowserWindow, desktopCapturer, ipcMain, screen, session, shell } from "electron";
+import { app, BrowserWindow, desktopCapturer, ipcMain, Menu, nativeImage, screen, session, shell, Tray } from "electron";
 import type { Display } from "electron";
 import { isOverlayCommand, type OverlayCommand, type OverlayDisplayTarget } from "../src/features/overlay/overlay-protocol";
 
@@ -9,8 +9,8 @@ const preloadPath = path.join(__dirname, "preload.cjs");
 const overlayWindows = new Map<number, BrowserWindow>();
 const readyOverlayDisplays = new Set<number>();
 const smokeAppliedEvents: string[] = [];
-let mainWindow: BrowserWindow | null = null;
 let assistantWindow: BrowserWindow | null = null;
+let tray: Tray | null = null;
 let assistantIsOpen = false;
 let smokeStarted = false;
 
@@ -44,7 +44,7 @@ function delay(ms: number) {
 }
 
 function isTrustedSender(sender: Electron.WebContents) {
-	return sender === mainWindow?.webContents || sender === assistantWindow?.webContents;
+	return sender === assistantWindow?.webContents;
 }
 
 function restrictNavigation(browserWindow: BrowserWindow) {
@@ -173,27 +173,32 @@ async function withMeeraWindowsHidden<T>(task: () => Promise<T>) {
 	}
 }
 
-function createMainWindow() {
-	mainWindow = new BrowserWindow({
-		width: 1280,
-		height: 900,
-		show: !isSmokeTest,
-		backgroundColor: "#f7f7f5",
-		title: "Meera Support",
-		webPreferences: {
-			preload: preloadPath,
-			contextIsolation: true,
-			nodeIntegration: false,
-			sandbox: true,
-		},
-	});
+function showAssistantWindow() {
+	if (!assistantWindow || assistantWindow.isDestroyed()) return;
+	positionAssistantWindow();
+	assistantWindow.show();
+	assistantWindow.focus();
+}
 
-	restrictNavigation(mainWindow);
-	void mainWindow.loadURL(appUrl);
-	mainWindow.on("closed", () => {
-		mainWindow = null;
-		if (!isSmokeTest) app.quit();
-	});
+function createTray() {
+	if (isSmokeTest) return;
+	try {
+		const iconImage = nativeImage
+			.createFromPath(path.join(__dirname, "..", "public", "assets", "meera-avatar.png"))
+			.resize({ width: 18, height: 18 });
+		tray = new Tray(iconImage.isEmpty() ? nativeImage.createEmpty() : iconImage);
+		tray.setToolTip("Meera");
+		tray.setContextMenu(
+			Menu.buildFromTemplate([
+				{ label: "Show Meera", click: showAssistantWindow },
+				{ type: "separator" },
+				{ label: "Quit Meera", click: () => app.quit() },
+			]),
+		);
+		tray.on("click", showAssistantWindow);
+	} catch (error) {
+		console.error("Failed to create the Meera tray icon.", error);
+	}
 }
 
 function createAssistantWindow() {
@@ -417,9 +422,9 @@ app.whenReady().then(() => {
 	if (process.platform === "win32") app.setAppUserModelId("com.meera.support");
 	configureIpc();
 	configureMediaCapture();
-	createMainWindow();
 	recreateOverlayWindows();
 	createAssistantWindow();
+	createTray();
 	screen.on("display-added", () => {
 		recreateOverlayWindows();
 		positionAssistantWindow();

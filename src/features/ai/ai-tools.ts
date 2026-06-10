@@ -193,7 +193,9 @@ function annotationId(value: unknown, toolName: string) {
 	return optionalString(value, 100) ?? `ai-${toolName}-${Date.now()}`;
 }
 
-function ttl(value: unknown, fallback = 6_000) {
+// Default 0 = persist until the next request clears it. A guide overlay that vanishes after a few
+// seconds is worse than one that stays put while the user reads and acts. Explicit ttlMs is still honored.
+function ttl(value: unknown, fallback = 0) {
 	return Math.round(clamp(value, fallback, 0, 60_000));
 }
 

@@ -7,6 +7,13 @@ import {
 	resolveProviderResponse,
 } from "@/features/ai/ai-provider-utils";
 import { AI_OVERLAY_TOOLS } from "@/features/ai/ai-tools";
+import {
+	buildSelectionMessages,
+	parseSelection,
+	SELECT_OVERLAY_TARGET_TOOL,
+	SELECTION_SYSTEM_PROMPT,
+	selectionToToolCalls,
+} from "@/features/ai/grounding/select";
 import type {
 	AiChatRequest,
 	AiChatResponse,
@@ -37,7 +44,11 @@ type GroqChatResponse = {
 const DEFAULT_BASE_URL = "https://api.groq.com/openai/v1";
 const DEFAULT_CHAT_MODEL = "llama-3.1-8b-instant";
 const DEFAULT_VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+// Stronger text reasoner used to SELECT an element from the candidate list (no coordinate regression).
+const DEFAULT_SELECTION_MODEL = "llama-3.3-70b-versatile";
 const DEFAULT_TIMEOUT_MS = 30_000;
+const SELECTION_TIMEOUT_MS = 12_000;
+const SELECTION_MAX_TOKENS = 256;
 const DEFAULT_MAX_TOKENS = 512;
 const GROQ_RETRY_DELAY_MS = 400;
 const GROQ_FIRST_ATTEMPT_TIMEOUT_MS = 10_000;
@@ -70,6 +81,7 @@ function config() {
 		apiKey: process.env.GROQ_API_KEY?.trim(),
 		chatModel: process.env.GROQ_CHAT_MODEL?.trim() || DEFAULT_CHAT_MODEL,
 		visionModel: process.env.GROQ_VISION_MODEL?.trim() || DEFAULT_VISION_MODEL,
+		selectionModel: process.env.GROQ_SELECTION_MODEL?.trim() || DEFAULT_SELECTION_MODEL,
 		timeoutMs: positiveInteger(process.env.GROQ_REQUEST_TIMEOUT_MS, DEFAULT_TIMEOUT_MS),
 		maxTokens: positiveInteger(process.env.GROQ_MAX_TOKENS, DEFAULT_MAX_TOKENS),
 	};
@@ -228,9 +240,72 @@ async function requestGroqChat(request: AiChatRequest, usesVision: boolean) {
 	throw lastError ?? new Error("Groq chat request failed.");
 }
 
+/**
+ * Selection-based grounding: ask the strong TEXT model to pick which detected element the user means.
+ * The chosen candidate's rect supplies exact coordinates, so this never regresses pixel positions.
+ * Returns null (so the caller falls back to the vision path) on any failure or when the target is not
+ * among the candidates — e.g. an icon with no OCR text.
+ */
+async function groundedSelectionResponse(request: AiChatRequest): Promise<AiChatResponse | null> {
+	const candidates = request.groundingCandidates;
+	if (!candidates || candidates.length === 0) return null;
+	const prompt = request.messages.at(-1)?.content ?? "";
+	if (!prompt.trim()) return null;
+
+	const settings = config();
+	const history = request.messages.slice(0, -1).map((message) => ({ role: message.role, content: message.content }));
+	const [selectionMessage] = buildSelectionMessages(prompt, candidates, history);
+
+	let data: GroqChatResponse;
+	try {
+		const response = await groqFetch(
+			"/chat/completions",
+			{
+				method: "POST",
+				body: JSON.stringify({
+					model: settings.selectionModel,
+					messages: [
+						{ role: "system", content: SELECTION_SYSTEM_PROMPT },
+						{ role: "user", content: selectionMessage.content },
+					],
+					tools: [SELECT_OVERLAY_TARGET_TOOL],
+					tool_choice: { type: "function", function: { name: "select_overlay_target" } },
+					temperature: 0,
+					max_completion_tokens: SELECTION_MAX_TOKENS,
+					stream: false,
+				}),
+			},
+			Math.min(settings.timeoutMs, SELECTION_TIMEOUT_MS),
+		);
+		if (!response.ok) return null;
+		data = (await response.json()) as GroqChatResponse;
+	} catch {
+		return null;
+	}
+
+	const choice = data.choices?.[0];
+	const selection = parseSelection(choice?.message?.tool_calls, choice?.message?.content);
+	const toolCalls = selectionToToolCalls(selection, candidates);
+	console.log(
+		`[Meera grounding] candidates=${candidates.length} action=${selection?.action ?? "?"} elementId=${selection?.elementId || "-"} matched=${toolCalls.length > 0}`,
+	);
+	if (toolCalls.length === 0) return null;
+
+	return {
+		message: selection?.message?.trim() || "I marked that on your desktop.",
+		model: data.model || settings.selectionModel,
+		toolCalls,
+		grounding: "ocr",
+		selectedElementId: selection?.elementId,
+	};
+}
+
 export async function chatWithGroq(request: AiChatRequest): Promise<AiChatResponse> {
 	const immediateResponse = immediateOverlayResponse(request);
 	if (immediateResponse) return immediateResponse;
+
+	const grounded = await groundedSelectionResponse(request);
+	if (grounded) return grounded;
 
 	const { data, model } = await requestGroqChat(request, isVisionRequest(request));
 	const choice = data.choices?.[0];

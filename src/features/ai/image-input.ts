@@ -220,6 +220,11 @@ export function shouldCalibrateOverlayFrame(prompt: string) {
 	return OVERLAY_CALIBRATION_PATTERNS.some((pattern) => pattern.test(prompt));
 }
 
+/** Whether to run OCR and ground via element selection — i.e. the user wants something marked on screen. */
+export function shouldExtractScreenElements(prompt: string) {
+	return OVERLAY_CALIBRATION_PATTERNS.some((pattern) => pattern.test(prompt));
+}
+
 export async function calibrateScreenFrameForOverlay(image: AiImageAttachment): Promise<AiImageAttachment> {
 	if (image.source !== "screen" || image.screen?.calibrationGrid) return image;
 	const width = image.width;
