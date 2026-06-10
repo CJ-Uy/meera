@@ -67,7 +67,7 @@ export type AiChatResponse = {
 	selectedElementId?: string;
 };
 
-export type AiProviderName = "groq";
+export type AiProviderName = "groq" | "workers-ai";
 
 export type AiProviderStatus = {
 	available: boolean;
