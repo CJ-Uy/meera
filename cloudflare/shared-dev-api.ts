@@ -335,7 +335,8 @@ const sharedDevApi = {
 			if (!input || typeof input.adminId !== "string") return json({ error: "Valid adminId is required." }, { status: 400 });
 			const id = decodeURIComponent(ticketClaim[1]);
 			const ticket = await env.DB.prepare("SELECT status FROM tickets WHERE id = ? LIMIT 1").bind(id).first<{ status: string }>();
-			await env.DB.prepare("UPDATE tickets SET claimed_by = ?, status = ? WHERE id = ?").bind(input.adminId, ticket?.status === "New" ? "In progress" : ticket?.status, id).run();
+			if (!ticket) return new Response(null, { status: 204, headers: corsHeaders });
+			await env.DB.prepare("UPDATE tickets SET claimed_by = ?, status = ? WHERE id = ?").bind(input.adminId, ticket.status === "New" ? "In progress" : ticket.status, id).run();
 			return new Response(null, { status: 204, headers: corsHeaders });
 		}
 

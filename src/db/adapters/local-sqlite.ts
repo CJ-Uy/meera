@@ -154,7 +154,8 @@ export class LocalSqliteDatabaseAdapter implements DatabaseAdapter {
 
 	async claimTicket(id: string, adminId: string): Promise<void> {
 		const [ticket] = this.db.select().from(tickets).where(eq(tickets.id, id)).limit(1).all();
-		this.db.update(tickets).set({ claimedBy: adminId, status: ticket?.status === "New" ? "In progress" : ticket?.status }).where(eq(tickets.id, id)).run();
+		if (!ticket) return;
+		this.db.update(tickets).set({ claimedBy: adminId, status: ticket.status === "New" ? "In progress" : ticket.status }).where(eq(tickets.id, id)).run();
 	}
 
 	async releaseTicket(id: string): Promise<void> {

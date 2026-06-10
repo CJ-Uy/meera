@@ -72,7 +72,8 @@ export class D1DatabaseAdapter implements DatabaseAdapter {
 
 	async claimTicket(id: string, adminId: string): Promise<void> {
 		const [ticket] = await this.db.select().from(tickets).where(eq(tickets.id, id)).limit(1);
-		await this.db.update(tickets).set({ claimedBy: adminId, status: ticket?.status === "New" ? "In progress" : ticket?.status }).where(eq(tickets.id, id));
+		if (!ticket) return;
+		await this.db.update(tickets).set({ claimedBy: adminId, status: ticket.status === "New" ? "In progress" : ticket.status }).where(eq(tickets.id, id));
 	}
 
 	async releaseTicket(id: string): Promise<void> {
