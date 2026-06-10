@@ -9,52 +9,68 @@ export type PositionedKbNode = KbNode & {
 	};
 };
 
-const KIND_ORDER: KbNode["kind"][] = ["department", "faq", "procedure", "entity"];
-const ROW_GAP = 180;
-const COLUMN_GAP = 280;
-
-function departmentColumn(node: KbNode, departments: readonly DepartmentCode[]) {
-	if (node.kind === "department") {
-		const code = node.id.replace("dept-", "") as DepartmentCode;
-		const index = departments.indexOf(code);
-		return index === -1 ? departments.length : index;
-	}
-	if (node.dept === "shared") return departments.length;
-	const index = departments.indexOf(node.dept);
-	return index === -1 ? departments.length : index;
+/** Which cluster a node belongs to: its department code, or "shared". */
+function clusterKey(node: KbNode): string {
+	if (node.kind === "department") return node.id.replace("dept-", "");
+	return node.dept === "shared" ? "shared" : node.dept;
 }
 
-function kindRow(kind: KbNode["kind"]) {
-	const index = KIND_ORDER.indexOf(kind);
-	return index === -1 ? KIND_ORDER.length : index;
-}
+const CLUSTER_RADIUS = 460; // distance of each department hub from the canvas centre
+const TWO_PI = Math.PI * 2;
 
+/**
+ * Force-directed-style radial layout: each department is a hub with its FAQs,
+ * procedures, and entities orbiting around it, and the shared cluster anchors
+ * the middle. Reads as a node-and-edge network rather than a flow chart, and is
+ * fully deterministic so the canvas never jitters between renders.
+ */
 export function computeKbGraphLayout(nodes: KbNode[], departments: readonly DepartmentCode[]): PositionedKbNode[] {
-	const sorted = [...nodes].sort((a, b) => {
-		const deptDelta = departmentColumn(a, departments) - departmentColumn(b, departments);
-		if (deptDelta !== 0) return deptDelta;
-		const rowDelta = kindRow(a.kind) - kindRow(b.kind);
-		if (rowDelta !== 0) return rowDelta;
-		return a.id.localeCompare(b.id);
-	});
+	const groups = new Map<string, KbNode[]>();
+	for (const node of nodes) {
+		const key = clusterKey(node);
+		const bucket = groups.get(key);
+		if (bucket) bucket.push(node);
+		else groups.set(key, [node]);
+	}
 
-	const rowCounts = new Map<string, number>();
+	const keys = [...groups.keys()];
+	const nonShared = keys
+		.filter((key) => key !== "shared")
+		.sort((a, b) => departments.indexOf(a as DepartmentCode) - departments.indexOf(b as DepartmentCode));
+	const hasShared = keys.includes("shared");
 
-	return sorted.map((node) => {
-		const column = departmentColumn(node, departments);
-		const row = kindRow(node.kind);
-		const rowKey = `${column}:${row}`;
-		const offset = rowCounts.get(rowKey) ?? 0;
-		rowCounts.set(rowKey, offset + 1);
+	// Place each cluster centre.
+	const centres = new Map<string, { x: number; y: number }>();
+	if (nonShared.length <= 1) {
+		if (nonShared.length === 1) centres.set(nonShared[0], { x: 0, y: 0 });
+		if (hasShared) centres.set("shared", nonShared.length === 1 ? { x: 0, y: -CLUSTER_RADIUS } : { x: 0, y: 0 });
+	} else {
+		nonShared.forEach((key, index) => {
+			const angle = (index / nonShared.length) * TWO_PI - Math.PI / 2;
+			centres.set(key, { x: Math.cos(angle) * CLUSTER_RADIUS, y: Math.sin(angle) * CLUSTER_RADIUS });
+		});
+		if (hasShared) centres.set("shared", { x: 0, y: 0 });
+	}
 
-		return {
-			...node,
-			position: {
-				x: column * COLUMN_GAP + offset * 72,
-				y: row * ROW_GAP,
-			},
-		};
-	});
+	const positioned: PositionedKbNode[] = [];
+	for (const [key, members] of groups) {
+		const centre = centres.get(key) ?? { x: 0, y: 0 };
+		const hub = members.find((node) => node.kind === "department");
+		const orbiters = members.filter((node) => node.kind !== "department").sort((a, b) => a.kind.localeCompare(b.kind) || a.label.localeCompare(b.label));
+
+		if (hub) positioned.push({ ...hub, position: centre });
+
+		const orbitRadius = 130 + Math.min(orbiters.length, 8) * 12;
+		orbiters.forEach((node, index) => {
+			const angle = (index / Math.max(1, orbiters.length)) * TWO_PI - Math.PI / 2;
+			positioned.push({
+				...node,
+				position: { x: centre.x + Math.cos(angle) * orbitRadius, y: centre.y + Math.sin(angle) * orbitRadius },
+			});
+		});
+	}
+
+	return positioned;
 }
 
 export function filterKbGraphForDepartment(nodes: KbNode[], edges: KbEdge[], department: DepartmentCode) {

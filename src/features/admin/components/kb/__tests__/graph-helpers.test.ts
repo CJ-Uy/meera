@@ -36,14 +36,26 @@ describe("KB graph helpers", () => {
 		]);
 	});
 
-	it("computes deterministic layered positions by department and kind", () => {
+	it("computes a deterministic radial layout with children orbiting their department hub", () => {
 		const positioned = computeKbGraphLayout(nodes, DEPARTMENT_CODES);
-		const byId = Object.fromEntries(positioned.map((node) => [node.id, node.position]));
+		const distance = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y);
 
-		expect(byId["dept-IT"]).toEqual({ x: 0, y: 0 });
-		expect(byId["faq-it-1"].y).toBe(180);
-		expect(byId["proc-it-1"].y).toBe(360);
-		expect(byId["ent-student-portal"].y).toBe(540);
-		expect(byId["dept-REG"].x).toBeGreaterThan(byId["dept-IT"].x);
+		// Every node is placed with finite coordinates.
+		expect(positioned).toHaveLength(nodes.length);
+		for (const node of positioned) {
+			expect(Number.isFinite(node.position.x)).toBe(true);
+			expect(Number.isFinite(node.position.y)).toBe(true);
+		}
+
+		// Deterministic across runs (no physics jitter).
+		const again = computeKbGraphLayout(nodes, DEPARTMENT_CODES);
+		expect(again.map((node) => node.position)).toEqual(positioned.map((node) => node.position));
+
+		const byId = Object.fromEntries(positioned.map((node) => [node.id, node.position]));
+		// Department hubs sit at distinct cluster centres.
+		expect(byId["dept-IT"]).not.toEqual(byId["dept-REG"]);
+		// IT's FAQ orbits its own hub and is nearer to it than to the Registrar hub.
+		expect(distance(byId["faq-it-1"], byId["dept-IT"])).toBeLessThan(220);
+		expect(distance(byId["faq-it-1"], byId["dept-IT"])).toBeLessThan(distance(byId["faq-it-1"], byId["dept-REG"]));
 	});
 });
