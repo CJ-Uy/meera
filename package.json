@@ -15,6 +15,8 @@
 		"desktop:start": "pnpm build && pnpm desktop:build && concurrently -k -n web,desktop -c blue,green \"pnpm start\" \"pnpm desktop:launch\"",
 		"desktop:smoke": "pnpm desktop:build && node scripts/desktop-smoke.mjs",
 		"dev:cf": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+		"ai:models": "node --env-file=.env.local scripts/workers-ai-playground.mjs --list",
+		"ai:chat": "node --env-file=.env.local scripts/workers-ai-playground.mjs",
 		"deploy": "pnpm deploy:prod",
 		"deploy:dev": "opennextjs-cloudflare build && opennextjs-cloudflare deploy --env dev",
 		"deploy:shared-api": "wrangler deploy --config wrangler.shared-dev-api.jsonc",

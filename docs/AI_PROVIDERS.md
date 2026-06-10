@@ -1,5 +1,51 @@
 # AI In Meera
 
+## Workers AI Local Playground
+
+Meera includes a standalone local playground for experimenting with Cloudflare Workers AI models.
+This is intentionally separate from app wiring: `src/features/ai/*` and `POST /api/ai/chat` continue
+to use Groq only.
+
+Full developer guide: [CF_AI_GATEWAY.md](./CF_AI_GATEWAY.md).
+
+Quickstart:
+
+```powershell
+pnpm ai:models
+pnpm ai:chat "workers-ai/@cf/meta/llama-3.1-8b-instruct" "hello"
+```
+
+The playground reads `.env.local` and calls the OpenAI-compatible API with `fetch`; no Wrangler login
+or Workers binding is required. By default, `WORKERS_AI_BASE_URL` points at the AI Gateway compat URL:
+
+```text
+https://gateway.ai.cloudflare.com/v1/<account_id>/<gateway_id>/compat
+```
+
+When using that gateway compat URL, Workers AI model ids use the `workers-ai/` prefix, for example
+`workers-ai/@cf/meta/llama-3.1-8b-instruct`. If you switch `WORKERS_AI_BASE_URL` to the direct Workers
+AI OpenAI-compatible endpoint, drop that prefix and use `@cf/meta/llama-3.1-8b-instruct`.
+
+If `WORKERS_AI_API_KEY` is blank, create a Cloudflare API token from **My Profile -> API Tokens** with
+the account-level **Workers AI: Read** permission, then paste it into `.env.local`. If the gateway is
+configured as authenticated, also set `WORKERS_AI_GATEWAY_AUTH_TOKEN`.
+
+Equivalent `curl`:
+
+```powershell
+curl -X POST "$env:WORKERS_AI_BASE_URL/chat/completions" `
+  -H "Authorization: Bearer $env:WORKERS_AI_API_KEY" `
+  -H "Content-Type: application/json" `
+  --data '{"model":"workers-ai/@cf/meta/llama-3.1-8b-instruct","messages":[{"role":"user","content":"hello"}],"max_tokens":512,"stream":false}'
+```
+
+Cloudflare model catalog: https://developers.cloudflare.com/workers-ai/models/
+
+Notes: Workers AI's OpenAI-compatible surface is a subset. Use `max_tokens`, do not rely on
+`parallel_tool_calls`, and use only Workers AI `@cf/...` model ids. Requests made with the shared local
+token spend compute on the owner's account; AI Gateway logging, rate limits, and metadata can be used
+later to cap or attribute usage.
+
 Meera uses **Groq** as its only AI provider. All provider calls stay behind the server-side
 `POST /api/ai/chat` route — the browser and Electron renderer never receive provider credentials.
 
