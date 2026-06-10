@@ -109,7 +109,7 @@ export function adminReducer(state: AdminStoreState, action: AdminAction): Admin
 			return {
 				...state,
 				kb: { ...state.kb, nodes: [...state.kb.nodes, action.node] },
-				tickets: withTicket(state.tickets, action.node.meta?.sourceTicket ?? "", (ticket) => ({ ...ticket, kbIngested: true })),
+				tickets: withTicket(state.tickets, action.node.meta?.sourceTicketId ?? action.node.meta?.sourceTicket ?? "", (ticket) => ({ ...ticket, kbIngested: true })),
 			};
 		case "createKbNode":
 			return { ...state, kb: { nodes: [...state.kb.nodes, action.node], edges: [...state.kb.edges, ...action.edges] } };

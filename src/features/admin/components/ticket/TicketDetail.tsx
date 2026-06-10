@@ -1,6 +1,11 @@
 "use client";
 
 import { Confidence, Icon, IconChip, Pill, type IconName } from "@/components/demo/shared";
+import { KbIngestPrompt } from "@/features/admin/components/kb/KbIngestPrompt";
+import { AdminThread } from "@/features/admin/components/thread/AdminThread";
+import { DibsButton } from "@/features/admin/components/thread/DibsButton";
+import { NoteComposer } from "@/features/admin/components/thread/NoteComposer";
+import { useAdmin } from "@/features/admin/store/admin-store";
 import { DEPARTMENT_LABELS, type DemoTicket, type Severity } from "@/features/admin/types";
 
 function severityTint(severity: Severity): "default" | "teal" | "sand" | "rose" | "green" {
@@ -22,6 +27,9 @@ function DetailBlock({ icon, label, children }: { icon: IconName; label: string;
 }
 
 export function TicketDetail({ ticket }: { ticket: DemoTicket }) {
+	const { admins } = useAdmin();
+	const claimedByName = ticket.claimedBy ? admins.find((admin) => admin.id === ticket.claimedBy)?.name ?? "Unknown admin" : null;
+
 	return (
 		<section className="border-b p-5" style={{ borderColor: "var(--line)" }}>
 			<div className="mb-5 flex items-start gap-3">
@@ -30,13 +38,15 @@ export function TicketDetail({ ticket }: { ticket: DemoTicket }) {
 					<h1 className="text-xl font-[800] leading-tight">{ticket.title}</h1>
 					<p className="font-['DM_Mono'] text-[11px]" style={{ color: "var(--muted)" }}>#{ticket.id} · {ticket.student} · routed to {DEPARTMENT_LABELS[ticket.ownerDept]}</p>
 				</div>
+				<DibsButton ticket={ticket} />
 				<Confidence value={Math.round(ticket.confidence * 100)} label="AI confidence" />
 			</div>
 			<div className="mb-4 flex flex-wrap gap-2">
 				<Pill tint={severityTint(ticket.severity)}>{ticket.severity} severity</Pill>
 				<Pill tint="teal">{ticket.complexity} complexity</Pill>
 				<Pill>{ticket.status}</Pill>
-				<Pill tint={ticket.claimedBy ? "green" : "default"}>{ticket.claimedBy ? "Claimed" : "Unclaimed"}</Pill>
+				<Pill tint={ticket.claimedBy ? "green" : "default"}>{claimedByName ? `Claimed by ${claimedByName}` : "Unclaimed"}</Pill>
+				{ticket.kbIngested ? <Pill tint="green">In knowledge base</Pill> : null}
 				{ticket.cross ? <Pill tint="sand">Cross-dept</Pill> : null}
 				{ticket.edited ? <Pill tint="green">Edited by staff</Pill> : null}
 			</div>
@@ -59,6 +69,9 @@ export function TicketDetail({ ticket }: { ticket: DemoTicket }) {
 					</div>
 				</div>
 			) : null}
+			<KbIngestPrompt ticket={ticket} />
+			<AdminThread ticket={ticket} />
+			<NoteComposer ticketId={ticket.id} />
 		</section>
 	);
 }

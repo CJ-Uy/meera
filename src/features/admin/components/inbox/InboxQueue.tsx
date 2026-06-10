@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon, Pill } from "@/components/demo/shared";
+import { useAdmin } from "@/features/admin/store/admin-store";
 import type { DemoTicket, Severity } from "@/features/admin/types";
 
 function severityTint(severity: Severity): "default" | "teal" | "sand" | "rose" | "green" {
@@ -10,6 +11,9 @@ function severityTint(severity: Severity): "default" | "teal" | "sand" | "rose" 
 }
 
 export function QueueRow({ ticket, active, onClick }: { ticket: DemoTicket; active: boolean; onClick: () => void }) {
+	const { admins } = useAdmin();
+	const claimedByName = ticket.claimedBy ? admins.find((admin) => admin.id === ticket.claimedBy)?.name ?? "Unknown admin" : null;
+
 	return (
 		<button type="button" onClick={onClick} className="block w-full border-t px-4 py-3 text-left transition hover:bg-[#FCFAF6]" style={{ borderColor: "var(--line)", background: active ? "var(--teal-050)" : "transparent", borderLeft: active ? "3px solid var(--teal)" : "3px solid transparent" }}>
 			<div className="mb-1 flex items-center gap-2">
@@ -20,7 +24,7 @@ export function QueueRow({ ticket, active, onClick }: { ticket: DemoTicket; acti
 			<div className="mt-2 flex flex-wrap items-center gap-2">
 				<Pill tint="teal"><Icon name="sparkle" size={10} />{ticket.tag}</Pill>
 				<Pill>{ticket.status}</Pill>
-				<Pill tint={ticket.claimedBy ? "green" : "default"}>{ticket.claimedBy ? "Claimed" : "Unclaimed"}</Pill>
+				<Pill tint={ticket.claimedBy ? "green" : "default"}>{claimedByName ? `Claimed by ${claimedByName}` : "Unclaimed"}</Pill>
 				{ticket.cross ? <Pill tint="sand">Cross-dept</Pill> : null}
 				{ticket.edited ? <Pill tint="green">Edited</Pill> : null}
 			</div>
