@@ -62,10 +62,10 @@ export function useAiChat(
 				if (active) {
 					setStatus({
 						available: false,
-						provider: "groq",
-						providerLabel: "Groq",
-						chatModel: "llama-3.1-8b-instant",
-						visionModel: "meta-llama/llama-4-scout-17b-16e-instruct",
+						provider: "workers-ai",
+						providerLabel: "Cloudflare Workers AI",
+						chatModel: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+						visionModel: "@cf/meta/llama-3.2-11b-vision-instruct",
 						models: [],
 						error: statusError instanceof Error ? statusError.message : "Could not check AI provider status.",
 					});

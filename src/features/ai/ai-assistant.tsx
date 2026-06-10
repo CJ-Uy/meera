@@ -536,7 +536,7 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 			</form>
 
 			<footer className="flex items-center justify-between gap-3 border-t border-[var(--line)] bg-[var(--cream)] px-4 py-3 font-['DM_Mono'] text-[10px] text-[var(--muted)]">
-				<span className="truncate">{chat.status?.visionModel ?? "meta-llama/llama-4-scout-17b-16e-instruct"} for images</span>
+				<span className="truncate">{chat.status?.visionModel ?? "@cf/meta/llama-3.2-11b-vision-instruct"} for images</span>
 				<span className="shrink-0">{overlayAvailable ? "Desktop overlays ready" : "Electron overlays unavailable"}</span>
 			</footer>
 		</section>
