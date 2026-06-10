@@ -38,6 +38,8 @@ export const iconPaths = {
 	sword: <path d="M14.5 3.5 21 3l-.5 6.5-8 8M6.5 13.5 3 17l4 4 3.5-3.5M14.5 9.5l-5 5M5 19l-1 1" />,
 	heart: <path d="M12 20S4 14.5 4 9a4 4 0 0 1 8-1 4 4 0 0 1 8 1c0 5.5-8 11-8 11z" />,
 	x: <path d="M6 6l12 12M18 6 6 18" />,
+	bell: <path d="M6 9a6 6 0 1 1 12 0c0 4 1.4 5 2 6H4c.6-1 2-2 2-6zM9.5 19a2.5 2.5 0 0 0 5 0" />,
+	gear: <><circle cx="12" cy="12" r="3.1" /><path d="M12 2.6v3M12 18.4v3M2.6 12h3M18.4 12h3M5 5l2.1 2.1M16.9 16.9 19 19M19 5l-2.1 2.1M7.1 16.9 5 19" /></>,
 } as const;
 
 export type IconName = keyof typeof iconPaths;

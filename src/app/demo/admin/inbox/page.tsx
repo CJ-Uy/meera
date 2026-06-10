@@ -8,10 +8,6 @@ import { InboxQueue } from "@/features/admin/components/inbox/InboxQueue";
 import { PriorityMatrix, type PriorityMatrixSelection } from "@/features/admin/components/inbox/PriorityMatrix";
 import { SearchBar } from "@/features/admin/components/inbox/SearchBar";
 import { sortTickets, type InboxSortMode } from "@/features/admin/components/inbox/sort";
-import { ChatReview } from "@/features/admin/components/ticket/ChatReview";
-import { EditTicketForm } from "@/features/admin/components/ticket/EditTicketForm";
-import { ResolveControls } from "@/features/admin/components/ticket/ResolveControls";
-import { SeverityComplexityControls } from "@/features/admin/components/ticket/SeverityComplexityControls";
 import { TicketDetail } from "@/features/admin/components/ticket/TicketDetail";
 import { DEPARTMENT_LABELS, type DemoTicket } from "@/features/admin/types";
 import { useAdmin } from "@/features/admin/store/admin-store";
@@ -74,7 +70,7 @@ export default function AdminInboxPage() {
 				<Pill>{DEPARTMENT_LABELS[admin.activeDepartment]}</Pill>
 				<span className="ml-auto font-['DM_Mono'] text-[11px]" style={{ color: "var(--muted)" }}>{visibleTickets.length} of {departmentTickets.length} tickets</span>
 			</div>
-			<div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto md:grid-cols-[minmax(280px,340px)_minmax(0,1fr)] xl:grid-cols-[minmax(280px,340px)_minmax(0,1fr)_360px] md:overflow-hidden">
+			<div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto md:grid-cols-[minmax(280px,360px)_minmax(0,1fr)] md:overflow-hidden">
 				<div className="border-r bg-white md:overflow-y-auto" style={{ borderColor: "var(--line)" }}>
 					<div className="grid gap-2.5 px-4 py-3">
 						<div className="flex items-center justify-between">
@@ -102,16 +98,14 @@ export default function AdminInboxPage() {
 					<InboxQueue tickets={visibleTickets} selectedTicketId={selected?.id ?? null} onSelect={admin.selectTicket} />
 				</div>
 				<div className="min-h-0 overflow-y-auto bg-[#FCFAF6]">
-					{selected ? <TicketDetail ticket={selected} /> : <Card className="m-5 p-5">No tickets for this department match the current inbox controls.</Card>}
+					{selected ? (
+						<div className="mx-auto w-full max-w-[880px]">
+							<TicketDetail key={selected.id} ticket={selected} />
+						</div>
+					) : (
+						<Card className="m-5 p-5">No tickets for this department match the current inbox controls.</Card>
+					)}
 				</div>
-				{selected ? (
-					<aside className="grid content-start gap-4 border-l bg-[#FCFAF6] p-4 md:overflow-y-auto" style={{ borderColor: "var(--line)" }}>
-						<ChatReview ticket={selected} />
-						<SeverityComplexityControls ticket={selected} />
-						<EditTicketForm ticket={selected} />
-						<ResolveControls ticket={selected} />
-					</aside>
-				) : null}
 			</div>
 		</div>
 	);

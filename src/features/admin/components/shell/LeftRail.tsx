@@ -7,9 +7,11 @@ import { Icon, type IconName } from "@/components/demo/shared";
 
 const navItems: { href: string; label: string; icon: IconName }[] = [
 	{ href: "/demo/admin/inbox", label: "Inbox", icon: "inbox" },
+	{ href: "/demo/admin/notifications", label: "Notifications", icon: "bell" },
 	{ href: "/demo/admin/insights", label: "Insights", icon: "trend" },
 	{ href: "/demo/admin/knowledge", label: "Knowledge", icon: "book" },
 	{ href: "/demo/admin/team", label: "Team", icon: "users" },
+	{ href: "/demo/admin/settings", label: "Settings", icon: "gear" },
 ];
 
 export function LeftRail() {

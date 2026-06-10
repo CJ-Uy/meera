@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Confidence, Icon, IconChip, Pill, type IconName } from "@/components/demo/shared";
+import { Collapsible } from "@/features/admin/components/inbox/Collapsible";
 import { AcceptRejectPanel } from "@/features/admin/components/crossdept/AcceptRejectPanel";
 import { CollaborationWorkspace } from "@/features/admin/components/crossdept/CollaborationWorkspace";
 import { CrossDeptBadge } from "@/features/admin/components/crossdept/CrossDeptBadge";
@@ -11,12 +12,19 @@ import { AdminThread } from "@/features/admin/components/thread/AdminThread";
 import { DibsButton } from "@/features/admin/components/thread/DibsButton";
 import { NoteComposer } from "@/features/admin/components/thread/NoteComposer";
 import { useAdmin } from "@/features/admin/store/admin-store";
-import { DEPARTMENT_LABELS, type DemoTicket, type Severity } from "@/features/admin/types";
+import { DEPARTMENT_LABELS, type Complexity, type DemoTicket, type Severity } from "@/features/admin/types";
+
+const severities: Severity[] = ["Low", "Medium", "High", "Critical"];
+const complexities: Complexity[] = ["Low", "Medium", "High"];
 
 function severityTint(severity: Severity): "default" | "teal" | "sand" | "rose" | "green" {
 	if (severity === "Critical" || severity === "High") return "rose";
 	if (severity === "Medium") return "sand";
 	return "green";
+}
+
+function formatTime(at: number) {
+	return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(at));
 }
 
 function StudentContact({ email }: { email: string }) {
@@ -54,7 +62,7 @@ function StudentContact({ email }: { email: string }) {
 	);
 }
 
-function DetailBlock({ icon, label, children }: { icon: IconName; label: string; children: React.ReactNode }) {
+function ViewBlock({ icon, label, children }: { icon: IconName; label: string; children: React.ReactNode }) {
 	return (
 		<div className="mb-4">
 			<div className="mb-2 flex items-center gap-2 font-['DM_Mono'] text-[10px] uppercase tracking-[0.1em]" style={{ color: "var(--muted)" }}>
@@ -66,39 +74,166 @@ function DetailBlock({ icon, label, children }: { icon: IconName; label: string;
 	);
 }
 
+function EditField({ label, children }: { label: string; children: React.ReactNode }) {
+	return (
+		<label className="mb-3 grid gap-1.5">
+			<span className="font-['DM_Mono'] text-[10px] uppercase tracking-[0.1em]" style={{ color: "var(--muted)" }}>{label}</span>
+			{children}
+		</label>
+	);
+}
+
+const inputClass = "rounded-xl border bg-[#FCFAF6] px-3 py-2 text-sm font-semibold leading-6 outline-none transition focus:border-[var(--teal)]";
+
 export function TicketDetail({ ticket }: { ticket: DemoTicket }) {
-	const { admins } = useAdmin();
-	const claimedByName = ticket.claimedBy ? admins.find((admin) => admin.id === ticket.claimedBy)?.name ?? "Unknown admin" : null;
+	const admin = useAdmin();
+	const [editing, setEditing] = useState(false);
+	const [title, setTitle] = useState(ticket.title);
+	const [severity, setSeverity] = useState(ticket.severity);
+	const [complexity, setComplexity] = useState(ticket.complexity);
+	const [aiSummary, setAiSummary] = useState(ticket.aiSummary);
+	const [collected, setCollected] = useState(ticket.collectedInformation);
+	const [missing, setMissing] = useState(ticket.missingInformation);
+	const [actions, setActions] = useState(ticket.suggestedActions.join("\n"));
+
+	const claimedByName = ticket.claimedBy ? admin.admins.find((person) => person.id === ticket.claimedBy)?.name ?? "Unknown admin" : null;
+	const resolved = ticket.status === "Resolved";
+
+	function save() {
+		void admin
+			.updateTicket(ticket.id, {
+				title: title.trim() || ticket.title,
+				severity,
+				complexity,
+				aiSummary,
+				collectedInformation: collected,
+				missingInformation: missing,
+				suggestedActions: actions.split("\n").map((line) => line.trim()).filter(Boolean),
+				edited: true,
+			})
+			.then(() => setEditing(false));
+	}
+
+	function cancel() {
+		setTitle(ticket.title);
+		setSeverity(ticket.severity);
+		setComplexity(ticket.complexity);
+		setAiSummary(ticket.aiSummary);
+		setCollected(ticket.collectedInformation);
+		setMissing(ticket.missingInformation);
+		setActions(ticket.suggestedActions.join("\n"));
+		setEditing(false);
+	}
 
 	return (
-		<section className="border-b p-5" style={{ borderColor: "var(--line)" }}>
-			<div className="mb-5 flex items-start gap-3">
+		<section className="p-5">
+			<div className="mb-4 flex items-start gap-3">
 				<IconChip name="ticket" tint="sand" size={44} />
 				<div className="min-w-0 flex-1">
-					<h1 className="text-xl font-[800] leading-tight">{ticket.title}</h1>
-					<p className="font-['DM_Mono'] text-[11px]" style={{ color: "var(--muted)" }}>#{ticket.id} · {ticket.student} · routed to {DEPARTMENT_LABELS[ticket.ownerDept]}</p>
+					{editing ? (
+						<input value={title} onChange={(event) => setTitle(event.target.value)} className={`w-full text-lg font-[800] ${inputClass}`} />
+					) : (
+						<h1 className="text-xl font-[800] leading-tight">{ticket.title}</h1>
+					)}
+					<p className="mt-1 font-['DM_Mono'] text-[11px]" style={{ color: "var(--muted)" }}>#{ticket.id} · routed to {DEPARTMENT_LABELS[ticket.ownerDept]}</p>
 				</div>
-				<DibsButton ticket={ticket} />
 				<Confidence value={Math.round(ticket.confidence * 100)} label="AI confidence" />
 			</div>
-			<StudentContact email={ticket.student} />
-				<div className="mb-4 flex flex-wrap gap-2">
-				<Pill tint={severityTint(ticket.severity)}>{ticket.severity} severity</Pill>
-				<Pill tint="teal">{ticket.complexity} complexity</Pill>
-				<Pill>{ticket.status}</Pill>
-				<Pill tint={ticket.claimedBy ? "green" : "default"}>{claimedByName ? `Claimed by ${claimedByName}` : "Unclaimed"}</Pill>
-				{ticket.kbIngested ? <Pill tint="green">In knowledge base</Pill> : null}
-				{ticket.edited ? <Pill tint="green">Edited by staff</Pill> : null}
+
+			<div className="mb-4 flex flex-wrap items-center gap-2">
+				<DibsButton ticket={ticket} />
+				{editing ? (
+					<>
+						<button type="button" onClick={save} className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-[800] text-white transition hover:-translate-y-0.5" style={{ background: "var(--teal)" }}>
+							<Icon name="check" size={14} />Save changes
+						</button>
+						<button type="button" onClick={cancel} className="rounded-full border px-4 py-2 text-sm font-[800] transition hover:bg-[var(--cream)]" style={{ borderColor: "var(--line-2)", color: "var(--ink-2)" }}>Cancel</button>
+					</>
+				) : (
+					<button type="button" onClick={() => setEditing(true)} className="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-[800] transition hover:bg-[var(--cream)]" style={{ borderColor: "var(--line-2)", color: "var(--ink-2)" }}>
+						<Icon name="wand" size={14} />Edit triage
+					</button>
+				)}
+				<span className="flex-1" />
+				{resolved ? (
+					<Pill tint="green">Resolved</Pill>
+				) : (
+					<button type="button" onClick={() => void admin.resolveTicket(ticket.id)} className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-[800] text-white transition hover:-translate-y-0.5" style={{ background: "var(--ink)" }}>
+						<Icon name="flag" size={14} />Mark resolved
+					</button>
+				)}
 			</div>
+
+			<StudentContact email={ticket.student} />
+
+			{editing ? (
+				<div className="mb-4 grid gap-3 rounded-2xl border p-3 sm:grid-cols-2" style={{ borderColor: "var(--line)", background: "#FCFAF6" }}>
+					<label className="grid gap-1 text-[11px] font-bold" style={{ color: "var(--muted)" }}>
+						Severity
+						<select value={severity} onChange={(event) => setSeverity(event.target.value as Severity)} className="rounded-xl border bg-white px-3 py-2 text-sm font-bold outline-none" style={{ borderColor: "var(--line-2)", color: "var(--ink-2)" }}>
+							{severities.map((option) => <option key={option} value={option}>{option}</option>)}
+						</select>
+					</label>
+					<label className="grid gap-1 text-[11px] font-bold" style={{ color: "var(--muted)" }}>
+						Complexity
+						<select value={complexity} onChange={(event) => setComplexity(event.target.value as Complexity)} className="rounded-xl border bg-white px-3 py-2 text-sm font-bold outline-none" style={{ borderColor: "var(--line-2)", color: "var(--ink-2)" }}>
+							{complexities.map((option) => <option key={option} value={option}>{option}</option>)}
+						</select>
+					</label>
+				</div>
+			) : (
+				<div className="mb-4 flex flex-wrap gap-2">
+					<Pill tint={severityTint(ticket.severity)}>{ticket.severity} severity</Pill>
+					<Pill tint="teal">{ticket.complexity} complexity</Pill>
+					<Pill>{ticket.status}</Pill>
+					<Pill tint={ticket.claimedBy ? "green" : "default"}>{claimedByName ? `Claimed by ${claimedByName}` : "Unclaimed"}</Pill>
+					{ticket.kbIngested ? <Pill tint="green">In knowledge base</Pill> : null}
+					{ticket.edited ? <Pill tint="green">Edited by staff</Pill> : null}
+				</div>
+			)}
+
 			{ticket.cross ? <div className="mb-4"><CrossDeptBadge ticket={ticket} /></div> : null}
-			<DetailBlock icon="sparkle" label="AI summary">{ticket.aiSummary}</DetailBlock>
-			<DetailBlock icon="layers" label="Collected information">{ticket.collectedInformation}</DetailBlock>
-			<DetailBlock icon="alert" label="Missing information">{ticket.missingInformation}</DetailBlock>
-			<DetailBlock icon="wand" label="Suggested actions">
-				<ul className="grid gap-1 pl-4">
-					{ticket.suggestedActions.map((action) => <li key={action}>{action}</li>)}
-				</ul>
-			</DetailBlock>
+
+			{editing ? (
+				<>
+					<EditField label="AI summary"><textarea value={aiSummary} onChange={(event) => setAiSummary(event.target.value)} className={`min-h-20 ${inputClass}`} /></EditField>
+					<EditField label="Collected information"><textarea value={collected} onChange={(event) => setCollected(event.target.value)} className={`min-h-16 ${inputClass}`} /></EditField>
+					<EditField label="Missing information"><textarea value={missing} onChange={(event) => setMissing(event.target.value)} className={`min-h-16 ${inputClass}`} /></EditField>
+					<EditField label="Suggested actions, one per line"><textarea value={actions} onChange={(event) => setActions(event.target.value)} className={`min-h-24 ${inputClass}`} /></EditField>
+				</>
+			) : (
+				<>
+					<ViewBlock icon="sparkle" label="AI summary">{ticket.aiSummary}</ViewBlock>
+					<ViewBlock icon="layers" label="Collected information">{ticket.collectedInformation}</ViewBlock>
+					<ViewBlock icon="alert" label="Missing information">{ticket.missingInformation}</ViewBlock>
+					<ViewBlock icon="wand" label="Suggested actions">
+						<ul className="grid gap-1 pl-4">
+							{ticket.suggestedActions.map((action) => <li key={action}>{action}</li>)}
+						</ul>
+					</ViewBlock>
+				</>
+			)}
+
+			<div className="mb-4">
+				<Collapsible title={`Chat transcript · ${ticket.conversation.length} messages`}>
+					<div className="grid gap-2">
+						{ticket.conversation.length === 0 ? (
+							<p className="text-sm font-bold" style={{ color: "var(--muted)" }}>No transcript captured.</p>
+						) : (
+							ticket.conversation.map((message) => (
+								<div key={`${message.at}-${message.role}`} className="rounded-2xl border p-3" style={{ borderColor: "var(--line)", background: message.role === "meera" ? "var(--teal-050)" : "#fff" }}>
+									<div className="mb-1 flex items-center justify-between gap-2 font-['DM_Mono'] text-[10px] uppercase" style={{ color: "var(--muted)" }}>
+										<span>{message.role}</span>
+										<span>{formatTime(message.at)}</span>
+									</div>
+									<p className="text-sm leading-6" style={{ color: "var(--ink-2)" }}>{message.text}</p>
+								</div>
+							))
+						)}
+					</div>
+				</Collapsible>
+			</div>
+
 			<AcceptRejectPanel ticket={ticket} />
 			<EscalateCrossDept ticket={ticket} />
 			<KbIngestPrompt ticket={ticket} />
