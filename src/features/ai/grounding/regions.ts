@@ -33,11 +33,13 @@ export type RegionFilterOptions = {
 };
 
 export const DEFAULT_REGION_FILTER: RegionFilterOptions = {
-	minAreaFraction: 0.012,
+	minAreaFraction: 0.02,
 	maxAreaFraction: 0.85,
-	minFill: 0.3,
-	maxRegions: 18,
-	closeIterations: 2,
+	minFill: 0.25,
+	maxRegions: 24,
+	// No morphological close: dilation bridges the thin gutters between side-by-side tiles and stops
+	// XY-cut from separating them. The column/row projection sums already tolerate a photo's interior holes.
+	closeIterations: 0,
 };
 
 // Below this absolute busyness, treat the whole frame as flat UI (no regions) regardless of Otsu — stops
