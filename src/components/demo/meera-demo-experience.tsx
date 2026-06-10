@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { asset, Button, Card, Confidence, Icon, IconChip, MeerkatMark, Pill, type IconName, type Tint } from "./shared";
+import { BattleView } from "./battle";
 
-type TopView = "student" | "admin";
 type AdminDept = "it" | "registrar" | "health" | "studsvcs" | "finance";
 type Persona = "student" | AdminDept;
 type StudentView = "site" | "mound";
 type AdminView = "inbox" | "crossdept";
-type Tint = "teal" | "sand" | "gold" | "green" | "ink" | "rose";
-
-const asset = (name: string) => `/assets/${name}`;
 
 const adminDepts: { id: AdminDept; label: string }[] = [
 	{ id: "it", label: "IT" },
@@ -19,146 +18,43 @@ const adminDepts: { id: AdminDept; label: string }[] = [
 	{ id: "finance", label: "Finance" },
 ];
 
-const iconPaths = {
-	alert: <path d="M12 4l9 16H3zM12 10v4M12 17.5v.01" />,
-	arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
-	bolt: <path d="M13 3 5 13h5l-1 8 8-10h-5z" />,
-	book: <path d="M5 5.5A1.5 1.5 0 0 1 6.5 4H19v15H6.5A1.5 1.5 0 0 0 5 20.5zM19 16H6.5A1.5 1.5 0 0 0 5 17.5" />,
-	building: <path d="M5 21V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v16M14 9h4a1 1 0 0 1 1 1v11M3 21h18M8 8h2M8 12h2M8 16h2" />,
-	chat: <path d="M4 5.5h16v10H9l-4 3.5v-3.5H4z" />,
-	check: <path d="m5 12.5 4.2 4.2L19 7" />,
-	chevronD: <path d="m6 9 6 6 6-6" />,
-	clock: <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7.5V12l3 2" />,
-	doc: <path d="M6 3h8l4 4v14H6zM14 3v4h4M9 13h6M9 17h6" />,
-	eye: <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />,
-	flag: <path d="M6 21V4M6 4h11l-2 4 2 4H6" />,
-	headset: <path d="M4 13v-1a8 8 0 1 1 16 0v1M4 13a2 2 0 0 1 2 2v2a2 2 0 0 1-4 0v-2a2 2 0 0 1 2-2zM20 13a2 2 0 0 0-2 2v2a2 2 0 0 0 4 0v-2a2 2 0 0 0-2-2zM18 17v1.5a2.5 2.5 0 0 1-2.5 2.5H13" />,
-	inbox: <path d="m4 13 2.5-7h11L20 13v6H4zM4 13h5l1.5 2.5h3L15 13h5" />,
-	layers: <path d="m12 3 9 5-9 5-9-5zM3 13l9 5 9-5M3 16.5l9 5 9-5" />,
-	lock: <path d="M6 11h12v9H6zM9 11V8a3 3 0 0 1 6 0v3M12 15v2" />,
-	play: <path d="m7 5 12 7-12 7z" />,
-	plug: <path d="M9 3v5M15 3v5M7 8h10v3a5 5 0 0 1-10 0zM12 16v5" />,
-	refresh: <path d="M4 12a8 8 0 0 1 14-5.3L20 8M20 4v4h-4M20 12a8 8 0 0 1-14 5.3L4 16M4 20v-4h4" />,
-	route: <path d="M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM18 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM6 15v-4a4 4 0 0 1 4-4h8" />,
-	shield: <path d="m12 3 7 3v5c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6zM9 12l2 2 4-4" />,
-	sparkle: <path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z" />,
-	ticket: <path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v1.5a2 2 0 0 0 0 5V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1.5a2 2 0 0 0 0-5zM13 7v10" />,
-	trend: <path d="m4 17 5-5 3 3 7-7M15 8h5v5" />,
-	users: <path d="M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM3.5 19a5.5 5.5 0 0 1 11 0M16 5.5a3.5 3.5 0 0 1 0 7M17 14c2.2.5 3.5 2.2 3.5 5" />,
-	wand: <path d="m5 19 9-9M14 7l3-3 1 1-3 3zM17 4l.5-1.5M20 6l1.5-.5M19 9l1.5.5" />,
-};
-
-type IconName = keyof typeof iconPaths;
-
-function Icon({ name, size = 20, stroke = 1.7, className = "" }: { name: IconName; size?: number; stroke?: number; className?: string }) {
+function DemoTopBar({ children }: { children?: ReactNode }) {
 	return (
-		<svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-			{iconPaths[name]}
-		</svg>
-	);
-}
-
-function MeerkatMark({ size = 34 }: { size?: number }) {
-	return (
-		<span
-			className="inline-flex shrink-0 items-end justify-center overflow-hidden"
-			style={{
-				width: size,
-				height: size,
-				borderRadius: "36% 36% 42% 42%/40% 40% 44% 44%",
-				background: "linear-gradient(160deg,#FBEADD,#F4D9C2)",
-				border: "1.5px solid #EBC9A8",
-				boxShadow: "inset 0 -2px 6px rgba(217,132,79,.12)",
-			}}
-		>
-			<img src={asset("meera-avatar.png")} alt="" aria-hidden="true" className="mb-[-6%] w-[112%] max-w-none translate-x-[1%]" />
-		</span>
-	);
-}
-
-function IconChip({ name, tint = "teal", size = 40 }: { name: IconName; tint?: Tint; size?: number }) {
-	const map: Record<Tint, [string, string]> = {
-		teal: ["var(--teal-050)", "var(--teal-700)"],
-		sand: ["var(--sand-050)", "var(--sand-600)"],
-		gold: ["var(--gold-050)", "#A9781F"],
-		green: ["var(--green-050)", "#5E9438"],
-		ink: ["#EAEFF3", "var(--ink)"],
-		rose: ["#FBE7E0", "#C0532F"],
-	};
-	const [background, color] = map[tint];
-
-	return (
-		<span className="inline-flex shrink-0 items-center justify-center" style={{ width: size, height: size, borderRadius: 13, background, color }}>
-			<Icon name={name} size={Math.round(size / 2)} stroke={1.9} />
-		</span>
-	);
-}
-
-function Confidence({ value = 96, label = "confidence" }: { value?: number; label?: string }) {
-	return (
-		<span className="inline-flex items-center gap-2 whitespace-nowrap">
-			<span className="font-['DM_Mono'] text-[10px] uppercase tracking-[0.06em]" style={{ color: "var(--muted)" }}>{label}</span>
-			<span className="h-1.5 w-14 overflow-hidden rounded-full bg-[#E7EEEC]">
-				<span className="block h-full rounded-full" style={{ width: `${value}%`, background: "linear-gradient(90deg,var(--teal),var(--green))" }} />
-			</span>
-			<span className="font-['DM_Mono'] text-[11px] font-medium" style={{ color: "var(--teal-700)" }}>{value}%</span>
-		</span>
-	);
-}
-
-function Pill({ children, tint = "default" }: { children: ReactNode; tint?: "default" | "teal" | "sand" | "rose" | "green" }) {
-	const styles = {
-		default: ["#fff", "var(--line)", "var(--ink-2)"],
-		teal: ["var(--teal-050)", "var(--teal-100)", "var(--teal-700)"],
-		sand: ["var(--sand-050)", "#F3D2C6", "var(--sand-600)"],
-		rose: ["#FBE7E0", "#F3D2C6", "#C0532F"],
-		green: ["var(--green-050)", "#C9E8B3", "#5E9438"],
-	} satisfies Record<string, [string, string, string]>;
-	const [background, borderColor, color] = styles[tint];
-	return <span className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold" style={{ background, borderColor, color }}>{children}</span>;
-}
-
-function Button({
-	children,
-	onClick,
-	variant = "ghost",
-	className = "",
-}: {
-	children: ReactNode;
-	onClick?: () => void;
-	variant?: "primary" | "ghost" | "dark";
-	className?: string;
-}) {
-	const style: CSSProperties =
-		variant === "primary"
-			? { background: "var(--teal)", color: "#fff", boxShadow: "0 10px 24px rgba(46,156,142,.22)" }
-			: variant === "dark"
-				? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" }
-				: { background: "#fff", color: "var(--ink)", borderColor: "var(--line-2)" };
-	return (
-		<button type="button" onClick={onClick} className={`inline-flex min-h-9 items-center justify-center gap-2 rounded-full border px-4 text-sm font-bold transition hover:-translate-y-0.5 ${className}`} style={style}>
+		<div className="flex h-[50px] shrink-0 items-center gap-2.5 border-b bg-white px-4" style={{ borderColor: "var(--line)" }}>
+			<Link href="/" className="inline-flex shrink-0 items-center gap-[7px]" aria-label="Meera home">
+				<MeerkatMark size={28} />
+				<span className="text-[15px] font-[800] tracking-[-0.03em]">Meera</span>
+			</Link>
 			{children}
-		</button>
+		</div>
 	);
 }
 
-export function MeeraDemoExperience() {
-	const [topView, setTopView] = useState<TopView>("student");
+export function StudentExperience() {
 	const [studentView, setStudentView] = useState<StudentView>("site");
-	const [adminDept, setAdminDept] = useState<AdminDept>("it");
-	const [adminView, setAdminView] = useState<AdminView>("inbox");
 	const [preIssue, setPreIssue] = useState<string | null>(null);
 	const [resetKey, setResetKey] = useState(0);
-	const isStudent = topView === "student";
 
-	function switchTop(next: TopView) {
-		setTopView(next);
-		setStudentView("site");
-		setAdminDept("it");
-		setAdminView("inbox");
-		setPreIssue(null);
-		setResetKey((key) => key + 1);
-	}
+	const stage = useMemo(() => {
+		if (studentView === "mound") return <StudentMound key={resetKey} preIssue={preIssue} />;
+		return <StudentMeeraSite key={resetKey} onIssue={(issue) => { setPreIssue(issue); setStudentView("mound"); setResetKey((key) => key + 1); }} />;
+	}, [preIssue, resetKey, studentView]);
+
+	return (
+		<main className="fixed inset-0 z-[100] flex flex-col" style={{ background: "var(--cream)", color: "var(--ink)" }}>
+			<DemoTopBar>
+				<span className="mx-1 h-[18px] w-px shrink-0" style={{ background: "var(--line-2)" }} />
+				<span className="font-['DM_Mono'] text-[11px] uppercase tracking-[0.12em]" style={{ color: "var(--muted)" }}>Student</span>
+			</DemoTopBar>
+			<div className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">{stage}</div>
+		</main>
+	);
+}
+
+export function AdminExperience() {
+	const [adminDept, setAdminDept] = useState<AdminDept>("it");
+	const [adminView, setAdminView] = useState<AdminView>("inbox");
+	const [resetKey, setResetKey] = useState(0);
 
 	function switchAdminDept(next: AdminDept) {
 		setAdminDept(next);
@@ -166,65 +62,25 @@ export function MeeraDemoExperience() {
 		setResetKey((key) => key + 1);
 	}
 
-	function reset() {
-		setPreIssue(null);
-		setResetKey((key) => key + 1);
-	}
-
-	const stage = useMemo(() => {
-		if (isStudent) {
-			if (studentView === "mound") return <StudentMound key={resetKey} preIssue={preIssue} />;
-			return <StudentMeeraSite key={resetKey} onIssue={(issue) => { setPreIssue(issue); setStudentView("mound"); setResetKey((key) => key + 1); }} />;
-		}
-		return adminView === "crossdept" ? <AdminCrossDept key={resetKey} dept={adminDept} /> : <AdminLookout key={resetKey} dept={adminDept} />;
-	}, [adminDept, adminView, isStudent, preIssue, resetKey, studentView]);
+	const stage = adminView === "crossdept" ? <AdminCrossDept key={resetKey} dept={adminDept} /> : <AdminLookout key={resetKey} dept={adminDept} />;
 
 	return (
 		<main className="fixed inset-0 z-[100] flex flex-col" style={{ background: "var(--cream)", color: "var(--ink)" }}>
-			<header className="shrink-0 border-b bg-white" style={{ borderColor: "var(--line)" }}>
-				<div className="flex h-[50px] items-center gap-2.5 px-4">
-					<a href="/" className="inline-flex shrink-0 items-center gap-[7px]" aria-label="Meera home">
-						<MeerkatMark size={28} />
-						<span className="text-[15px] font-[800] tracking-[-0.03em]">Meera</span>
-					</a>
+			<header className="shrink-0">
+				<DemoTopBar>
 					<span className="mx-1 h-[18px] w-px shrink-0" style={{ background: "var(--line-2)" }} />
-					<div className="flex shrink-0 gap-0.5 rounded-full p-[3px]" style={{ background: "var(--cream-2)" }} role="tablist" aria-label="Demo view">
-						{(["student", "admin"] as const).map((item) => {
-							const active = topView === item;
-							return (
-								<button
-									key={item}
-									type="button"
-									role="tab"
-									aria-selected={active}
-									onClick={() => switchTop(item)}
-									className="rounded-full px-[18px] py-[5px] text-[13px] font-bold transition"
-									style={{ background: active ? "#fff" : "transparent", color: active ? "var(--ink)" : "var(--muted)", boxShadow: active ? "var(--sh-sm)" : "none" }}
-								>
-									{item === "student" ? "Student" : "Admin"}
-								</button>
-							);
-						})}
-					</div>
-					<span className="shrink-0 rounded-full px-[9px] py-0.5 font-['DM_Mono'] text-[9.5px] uppercase tracking-[0.16em]" style={{ color: "var(--teal-700)", background: "var(--teal-050)" }}>· DEMO ·</span>
-					<span className="flex-1" />
-					<div className="flex shrink-0 gap-[3px]">
-						<button type="button" onClick={reset} className="inline-flex items-center gap-[5px] rounded-[7px] border border-transparent bg-transparent px-2.5 py-[5px] text-[12.5px] font-semibold" style={{ color: "var(--muted)" }}><Icon name="refresh" size={13} /> Reset</button>
-						<a href="/" className="inline-flex items-center gap-[5px] rounded-[7px] border border-transparent bg-transparent px-2.5 py-[5px] text-[12.5px] font-semibold" style={{ color: "var(--rose)" }}>X Exit</a>
-					</div>
+					<span className="font-['DM_Mono'] text-[11px] uppercase tracking-[0.12em]" style={{ color: "var(--muted)" }}>Admin</span>
+				</DemoTopBar>
+				<div className="flex items-center gap-1 overflow-x-auto border-b px-4 pb-[7px] pt-[5px]" style={{ borderColor: "var(--line-2)", background: "var(--cream)" }}>
+					<SubLabel>DEPT</SubLabel>
+					{adminDepts.map((dept) => (
+						<SubTab key={dept.id} active={adminDept === dept.id} onClick={() => switchAdminDept(dept.id)}>{dept.label}</SubTab>
+					))}
+					<Divider />
+					<SubLabel>VIEW</SubLabel>
+					<SubTab active={adminView === "inbox"} onClick={() => setAdminView("inbox")}>Inbox</SubTab>
+					<SubTab active={adminView === "crossdept"} onClick={() => setAdminView("crossdept")}>Cross-dept</SubTab>
 				</div>
-				{!isStudent ? (
-					<div className="flex items-center gap-1 overflow-x-auto border-t px-4 pb-[7px] pt-[5px]" style={{ borderColor: "var(--line-2)", background: "var(--cream)" }}>
-						<SubLabel>DEPT</SubLabel>
-						{adminDepts.map((dept) => (
-							<SubTab key={dept.id} active={adminDept === dept.id} onClick={() => switchAdminDept(dept.id)}>{dept.label}</SubTab>
-						))}
-						<Divider />
-						<SubLabel>VIEW</SubLabel>
-						<SubTab active={adminView === "inbox"} onClick={() => setAdminView("inbox")}>Inbox</SubTab>
-						<SubTab active={adminView === "crossdept"} onClick={() => setAdminView("crossdept")}>Cross-dept</SubTab>
-					</div>
-				) : null}
 			</header>
 			<div className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">{stage}</div>
 		</main>
@@ -241,10 +97,6 @@ function SubTab({ active, onClick, children }: { active: boolean; onClick: () =>
 
 function Divider() {
 	return <span className="mx-[5px] h-3.5 w-px shrink-0" style={{ background: "var(--line-2)" }} />;
-}
-
-function Card({ children, className = "", style }: { children: ReactNode; className?: string; style?: CSSProperties }) {
-	return <div className={`rounded-[24px] border bg-white ${className}`} style={{ borderColor: "var(--line)", boxShadow: "var(--sh-md)", ...style }}>{children}</div>;
 }
 
 const siteChips = ["Can't register", "Wi-Fi won't connect", "Tuition hold", "Reset my password"];
@@ -304,7 +156,10 @@ const fullChat: ChatItem[] = [
 	{ kind: "closer", delay: 450 },
 ];
 
+type MoundView = "classic" | "battle";
+
 function StudentMound({ preIssue }: { preIssue: string | null }) {
+	const [view, setView] = useState<MoundView>("classic");
 	const [count, setCount] = useState(0);
 	const [checks, setChecks] = useState(0);
 	const [fixChoice, setFixChoice] = useState<"fixed" | "stuck" | null>(null);
@@ -312,7 +167,7 @@ function StudentMound({ preIssue }: { preIssue: string | null }) {
 	const script = useMemo(() => preIssue ? fullChat.map((item, index) => index === 1 ? { ...item, text: preIssue } : item) : fullChat, [preIssue]);
 	const qIndex = script.findIndex((item) => item.kind === "quickfix");
 	const scrollRef = useAutoScroll<HTMLDivElement>([count, checks, fixChoice]);
-	useScriptAdvance(script, count, setCount, count > qIndex && fixChoice !== "stuck");
+	useScriptAdvance(view === "classic" ? script : [], count, setCount, count > qIndex && fixChoice !== "stuck");
 	useEffect(() => {
 		const checksIndex = script.findIndex((item) => item.kind === "checks");
 		if (count > checksIndex && checks < diagnosticChecks.length) {
@@ -335,19 +190,54 @@ function StudentMound({ preIssue }: { preIssue: string | null }) {
 		<div className="flex min-h-[calc(100vh-94px)] flex-col">
 			<div className="flex items-center gap-3 border-b bg-white px-5 py-3" style={{ borderColor: "var(--line)" }}>
 				<MeerkatMark size={38} />
-				<div className="flex-1"><div className="font-bold">Meera</div><div className="flex items-center gap-1.5 font-['DM_Mono'] text-[11px]" style={{ color: "var(--green)" }}><span className="size-1.5 rounded-full" style={{ background: "var(--green)" }} />Build the Mound - case meter live</div></div>
+				<div className="min-w-0 flex-1"><div className="font-bold">Meera</div><div className="flex items-center gap-1.5 font-['DM_Mono'] text-[11px]" style={{ color: "var(--green)" }}><span className="size-1.5 rounded-full" style={{ background: "var(--green)" }} />{view === "battle" ? "Mound Battle - turn-based mode" : "Case meter - live progress"}</div></div>
+				<ModeToggle view={view} onChange={setView} />
 			</div>
-			<div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_260px]">
-				<div ref={scrollRef} className="mx-auto flex w-full max-w-[720px] flex-col gap-3 overflow-y-auto px-4 py-5">
-					{visible.map((item, index) => <ChatRender key={index} item={item} checksShown={checks} onFixChoice={setFixChoice} fixChoice={fixChoice} />)}
-					{fixChoice === "fixed" && count > qIndex ? <ResolvedState /> : null}
-					{showTyping ? <Typing /> : null}
-				</div>
-				<CaseMeter stage={stage} damage={damage} fixed={fixChoice === "fixed"} />
-			</div>
-			<div className="border-t bg-white p-3" style={{ borderColor: "var(--line)" }}>
-				<div className="mx-auto flex max-w-[720px] gap-2"><textarea className="h-11 min-w-0 flex-1 resize-none rounded-2xl border px-4 py-2 text-sm outline-none" style={{ borderColor: "var(--line-2)" }} placeholder="Reply to Meera..." /><Button variant="primary" className="rounded-2xl px-4"><Icon name="arrow" size={16} /></Button></div>
-			</div>
+			{view === "battle" ? (
+				<BattleView />
+			) : (
+				<>
+					<div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_280px]">
+						<div ref={scrollRef} className="mx-auto flex w-full max-w-[720px] flex-col gap-3 overflow-y-auto px-4 py-5">
+							{visible.map((item, index) => <ChatRender key={index} item={item} checksShown={checks} onFixChoice={setFixChoice} fixChoice={fixChoice} />)}
+							{fixChoice === "fixed" && count > qIndex ? <ResolvedState /> : null}
+							{showTyping ? <Typing /> : null}
+						</div>
+						<CaseMeter stage={stage} damage={damage} fixed={fixChoice === "fixed"} />
+					</div>
+					<div className="border-t bg-white p-3" style={{ borderColor: "var(--line)" }}>
+						<div className="mx-auto flex max-w-[720px] gap-2"><textarea className="h-11 min-w-0 flex-1 resize-none rounded-2xl border px-4 py-2 text-sm outline-none" style={{ borderColor: "var(--line-2)" }} placeholder="Reply to Meera..." /><Button variant="primary" className="rounded-2xl px-4"><Icon name="arrow" size={16} /></Button></div>
+					</div>
+				</>
+			)}
+		</div>
+	);
+}
+
+function ModeToggle({ view, onChange }: { view: MoundView; onChange: (next: MoundView) => void }) {
+	const options: { id: MoundView; label: string; icon: IconName }[] = [
+		{ id: "classic", label: "Classic", icon: "sparkle" },
+		{ id: "battle", label: "Battle", icon: "sword" },
+	];
+	return (
+		<div className="flex shrink-0 gap-0.5 rounded-full p-[3px]" style={{ background: "var(--cream-2)" }} role="tablist" aria-label="Chat mode">
+			{options.map((option) => {
+				const active = view === option.id;
+				return (
+					<button
+						key={option.id}
+						type="button"
+						role="tab"
+						aria-selected={active}
+						onClick={() => onChange(option.id)}
+						className="inline-flex items-center gap-1.5 rounded-full px-3 py-[5px] text-[12.5px] font-bold transition"
+						style={{ background: active ? "#fff" : "transparent", color: active ? "var(--teal-700)" : "var(--muted)", boxShadow: active ? "var(--sh-sm)" : "none" }}
+					>
+						<Icon name={option.icon} size={13} />
+						<span className="hidden sm:inline">{option.label}</span>
+					</button>
+				);
+			})}
 		</div>
 	);
 }
@@ -435,11 +325,11 @@ function Typing() {
 }
 
 const caseLabels = ["Ready", "Student heard", "Researched", "Diagnosed", "Case packaged"];
-const moundLayers = [
-	{ label: "Student heard", icon: "chat" as IconName, width: 172, bg: "linear-gradient(135deg,var(--cream-3),var(--cream-2))", color: "var(--ink-2)" },
-	{ label: "Researched", icon: "book" as IconName, width: 146, bg: "linear-gradient(135deg,var(--teal-100),#aed4cf)", color: "var(--teal-700)" },
-	{ label: "Diagnosed", icon: "sparkle" as IconName, width: 120, bg: "linear-gradient(135deg,var(--teal),var(--teal-600))", color: "#fff" },
-	{ label: "Case packaged", icon: "ticket" as IconName, width: 96, bg: "linear-gradient(135deg,var(--teal-700),#12433c)", color: "#fff" },
+const moundLayers: { label: string; icon: IconName; note: string }[] = [
+	{ label: "Student heard", icon: "chat", note: "issue captured" },
+	{ label: "Researched", icon: "book", note: "knowledge base checked" },
+	{ label: "Diagnosed", icon: "sparkle", note: "root cause found" },
+	{ label: "Case packaged", icon: "ticket", note: "ready to resolve" },
 ];
 
 function getMoundStage(count: number, fixChoice: "fixed" | "stuck" | null, qIndex: number) {
@@ -452,26 +342,65 @@ function getMoundStage(count: number, fixChoice: "fixed" | "stuck" | null, qInde
 
 function CaseMeter({ stage, damage, fixed }: { stage: number; damage: boolean; fixed: boolean }) {
 	const conf = [0, 34, 61, 84, 97][stage] ?? 0;
-	const circle = 2 * Math.PI * 44;
+	const r = 46;
+	const circle = 2 * Math.PI * r;
+	const ringColor = damage ? "var(--sand)" : fixed ? "var(--green)" : "var(--teal)";
 	return (
-		<aside className="hidden border-l bg-white p-5 lg:flex lg:flex-col lg:items-center lg:gap-4" style={{ borderColor: "var(--line)", background: "linear-gradient(180deg, oklch(95% 0.02 185), #fff 52%)" }}>
-			<div className="font-['DM_Mono'] text-[10px] uppercase tracking-[0.14em]" style={{ color: "var(--teal-700)" }}>Case meter</div>
-			<div className="relative size-[104px]">
-				<svg width="104" height="104" viewBox="0 0 104 104">
-					<circle cx="52" cy="52" r="44" fill="none" stroke="var(--line-2)" strokeWidth="9" />
-					<circle cx="52" cy="52" r="44" fill="none" stroke={damage ? "var(--sand)" : "var(--teal)"} strokeWidth="9" strokeLinecap="round" strokeDasharray={circle} strokeDashoffset={circle * (1 - conf / 100)} transform="rotate(-90 52 52)" style={{ transition: "stroke-dashoffset .95s cubic-bezier(.2,.9,.3,1)" }} />
+		<aside className="hidden w-[280px] shrink-0 flex-col gap-5 border-l p-5 lg:flex" style={{ borderColor: "var(--line)", background: "linear-gradient(180deg, var(--teal-050), #fff 58%)" }}>
+			<div className="flex items-center justify-between">
+				<span className="font-['DM_Mono'] text-[10px] font-medium uppercase tracking-[0.16em]" style={{ color: "var(--teal-700)" }}>Case meter</span>
+				<Pill tint={fixed ? "green" : "teal"}>{fixed ? "Resolved" : "Live"}</Pill>
+			</div>
+
+			{/* Progress ring */}
+			<div className="relative mx-auto size-[136px]">
+				<svg width="136" height="136" viewBox="0 0 116 116" className="size-full">
+					<circle cx="58" cy="58" r={r} fill="none" stroke="var(--cream-3)" strokeWidth="11" />
+					<circle cx="58" cy="58" r={r} fill="none" stroke={ringColor} strokeWidth="11" strokeLinecap="round" strokeDasharray={circle} strokeDashoffset={circle * (1 - conf / 100)} transform="rotate(-90 58 58)" style={{ transition: "stroke-dashoffset .95s cubic-bezier(.2,.9,.3,1), stroke .4s" }} />
 				</svg>
-				<div className="absolute inset-0 grid place-items-center text-center">{fixed ? <img src={asset("meera-avatar.png")} alt="" className="w-10" style={{ animation: "bob 2.2s ease-in-out infinite" }} /> : <div><div className="text-2xl font-[800]" style={{ color: damage ? "var(--sand-600)" : "var(--teal-700)" }}>{conf}%</div><div className="font-['DM_Mono'] text-[9px]" style={{ color: "var(--muted)" }}>progress</div></div>}</div>
+				<div className="absolute inset-0 grid place-items-center text-center">
+					{fixed ? (
+						<img src={asset("meera-celebrate.png")} alt="" className="w-14" style={{ animation: "bob 2.4s ease-in-out infinite" }} />
+					) : (
+						<div>
+							<div className="text-[30px] font-[800] leading-none" style={{ color: damage ? "var(--sand-600)" : "var(--teal-700)" }}>{conf}<span className="text-base">%</span></div>
+							<div className="mt-1 font-['DM_Mono'] text-[9px] uppercase tracking-[0.12em]" style={{ color: "var(--muted)" }}>complete</div>
+						</div>
+					)}
+				</div>
 			</div>
-			<div className="flex w-full flex-col-reverse items-center gap-1.5" style={{ transform: "perspective(280px) rotateX(11deg)" }}>
+
+			{/* Steps */}
+			<div className="grid gap-1.5">
 				{moundLayers.map((layer, index) => {
-					const built = index < stage;
-					const isDamage = damage && index === stage - 1;
-					return <div key={layer.label} className="flex h-9 items-center justify-center gap-1.5 rounded-xl border text-[11px] font-bold transition-all" style={{ width: built ? layer.width : layer.width * .12, background: isDamage ? "var(--sand)" : built ? layer.bg : "var(--cream-2)", color: built ? layer.color : "transparent", opacity: built ? 1 : .16, borderColor: built ? "var(--teal-100)" : "var(--line)", animation: isDamage ? "mound-shake .7s ease" : built && index === stage - 1 ? "mound-layer-in .5s ease" : "none" }}><Icon name={isDamage ? "alert" : layer.icon} size={12} />{isDamage ? "Regrouping" : layer.label}</div>;
+					const done = index < stage;
+					const isCurrent = index === stage - 1;
+					const isDamage = damage && isCurrent;
+					const bg = isDamage ? "var(--sand-050)" : done ? "var(--teal-050)" : "#fff";
+					const border = isDamage ? "#F3D2C6" : done ? "var(--teal-100)" : "var(--line)";
+					return (
+						<div
+							key={layer.label}
+							className="flex items-center gap-2.5 rounded-2xl border px-3 py-2 transition-all"
+							style={{ background: bg, borderColor: border, opacity: done ? 1 : 0.55, animation: isDamage ? "mound-shake .7s ease" : isCurrent ? "mound-layer-in .5s ease" : "none" }}
+						>
+							<span className="grid size-7 shrink-0 place-items-center rounded-lg" style={{ background: isDamage ? "var(--sand)" : done ? "var(--teal)" : "var(--cream-2)", color: done || isDamage ? "#fff" : "var(--muted)" }}>
+								<Icon name={isDamage ? "alert" : done ? "check" : layer.icon} size={14} stroke={2.2} />
+							</span>
+							<div className="min-w-0">
+								<div className="text-[12.5px] font-bold leading-tight" style={{ color: done ? "var(--ink)" : "var(--muted)" }}>{layer.label}</div>
+								<div className="font-['DM_Mono'] text-[9.5px]" style={{ color: "var(--muted)" }}>{layer.note}</div>
+							</div>
+						</div>
+					);
 				})}
-				<div className="mt-1 h-1.5 w-[90%] rounded-b-full" style={{ background: "linear-gradient(90deg,var(--teal-100),var(--teal-050),var(--teal-100))" }} />
 			</div>
-			<div className="text-center"><div className="text-sm font-bold" style={{ color: damage ? "var(--sand-600)" : stage >= 4 ? "var(--teal-700)" : "var(--ink-2)" }}>{damage ? "Packing the case" : caseLabels[stage]}</div><div className="mt-2 flex justify-center gap-2">{[1, 2, 3, 4].map((i) => <span key={i} className="size-2 rounded-full" style={{ background: i <= stage ? "var(--teal)" : "var(--line-2)", boxShadow: i <= stage ? "0 0 8px var(--teal)" : "none" }} />)}</div></div>
+
+			{/* Status */}
+			<div className="mt-auto rounded-2xl border bg-white/70 p-3 text-center" style={{ borderColor: "var(--line)" }}>
+				<div className="text-[13px] font-bold" style={{ color: damage ? "var(--sand-600)" : stage >= 4 ? "var(--teal-700)" : "var(--ink-2)" }}>{damage ? "Regrouping…" : caseLabels[stage]}</div>
+				<div className="mt-2 flex justify-center gap-1.5">{[1, 2, 3, 4].map((i) => <span key={i} className="h-1.5 rounded-full transition-all" style={{ width: i <= stage ? 18 : 6, background: i <= stage ? "var(--teal)" : "var(--line-2)" }} />)}</div>
+			</div>
 		</aside>
 	);
 }
