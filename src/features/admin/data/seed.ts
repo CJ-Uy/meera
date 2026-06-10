@@ -184,6 +184,14 @@ const sourceFaqs = [
 	},
 ];
 
+function slugify(value: string) {
+	return value
+		.toLowerCase()
+		.trim()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "");
+}
+
 const departmentNodes: KbNode[] = DEPARTMENT_CODES.map((dept) => ({
 	id: `dept-${dept}`,
 	dept: "shared",
@@ -192,7 +200,7 @@ const departmentNodes: KbNode[] = DEPARTMENT_CODES.map((dept) => ({
 }));
 
 const faqNodes: KbNode[] = sourceFaqs.map((faq) => ({
-	id: faq.id,
+	id: `faq-${faq.dept.toLowerCase()}-${slugify(faq.question)}`,
 	dept: faq.dept,
 	kind: "faq",
 	label: faq.question,
@@ -205,18 +213,82 @@ const faqNodes: KbNode[] = sourceFaqs.map((faq) => ({
 	},
 }));
 
-const faqEdges: KbEdge[] = sourceFaqs.map((faq) => ({
-	id: `edge-${faq.dept}-${faq.id}`,
-	from: `dept-${faq.dept}`,
-	to: faq.id,
+const procedureTemplates: Record<DepartmentCode, { label: string; body: string; meta: Record<string, string> }[]> = {
+	IT: [
+		{ label: "Network authentication escalation", body: "Confirm device, location, network name, and account status before routing to the network specialist queue.", meta: { owner: "Help Desk Lead", sla: "Same business day" } },
+		{ label: "Student account lockout reset", body: "Validate student identity, check MFA delivery, then trigger the official reset workflow or escalate locked accounts.", meta: { owner: "Identity Access", sla: "4 hours" } },
+	],
+	REG: [
+		{ label: "Registration hold review", body: "Collect hold message, term, program, and deadline before checking official records or coordinating another office.", meta: { owner: "Records Analyst", sla: "1 business day" } },
+		{ label: "Manual enrollment override", body: "Verify course, section, prerequisite note, and approval evidence before opening an override task.", meta: { owner: "Registrar Coordinator", sla: "2 business days" } },
+	],
+	MED: [
+		{ label: "Clinic appointment triage", body: "Keep intake administrative, collect preferred times, and redirect urgent medical concerns to emergency guidance.", meta: { owner: "Clinic Admin", sla: "Same business day" } },
+		{ label: "Medical certificate request", body: "Collect absence date and requested document, then route issuance decisions to authorized clinic staff.", meta: { owner: "Health Services Lead", sla: "2 business days" } },
+	],
+	SS: [
+		{ label: "Campus access card review", body: "Collect building, time, reader behavior, and whether the ID works elsewhere before checking card permissions.", meta: { owner: "Campus Access Coordinator", sla: "Same business day" } },
+		{ label: "Facilities issue intake", body: "Capture location, safety urgency, and an optional photo before routing to the student services operations queue.", meta: { owner: "Student Services Lead", sla: "1 business day" } },
+	],
+	FIN: [
+		{ label: "Payment plan verification", body: "Check balance, term, payment confirmation, and active plan status before coordinating hold release.", meta: { owner: "Student Accounts Analyst", sla: "Same business day" } },
+		{ label: "Refund queue lookup", body: "Confirm withdrawal date, refund method, and queue reference before escalating overdue refunds.", meta: { owner: "Bursar Lead", sla: "3 business days" } },
+	],
+};
+
+const procedureNodes: KbNode[] = DEPARTMENT_CODES.flatMap((dept) =>
+	procedureTemplates[dept].map((procedure, index) => ({
+		id: `proc-${dept.toLowerCase()}-${index + 1}`,
+		dept,
+		kind: "procedure" as const,
+		label: procedure.label,
+		body: procedure.body,
+		meta: procedure.meta,
+	})),
+);
+
+const entityNodes: KbNode[] = [
+	{ id: "ent-student-portal", dept: "shared", kind: "entity", label: "Student Portal", body: "Primary self-service system for records, account balances, holds, and student requests.", meta: { systems: "Records, Finance, IT" } },
+	{ id: "ent-registration-hold", dept: "shared", kind: "entity", label: "Registration Hold", body: "A blocking condition that may originate from records, finance, health documentation, or student services.", meta: { bridge: "Registrar, Finance, Campus Health, Student Services" } },
+	{ id: "ent-campus-access", dept: "shared", kind: "entity", label: "Campus Access", body: "Physical and digital access permissions for buildings, IDs, Wi-Fi, and shared campus services.", meta: { bridge: "IT, Student Services" } },
+	{ id: "ent-payment-plan", dept: "shared", kind: "entity", label: "Payment Plan", body: "Finance arrangement that may unblock registration once verified and synchronized with records.", meta: { bridge: "Finance, Registrar" } },
+];
+
+const faqEdges: KbEdge[] = faqNodes.map((node) => ({
+	id: `edge-dept-${node.dept.toLowerCase()}-${node.id}`,
+	from: `dept-${node.dept}`,
+	to: node.id,
 	relation: "owns",
 }));
+
+const procedureEdges: KbEdge[] = procedureNodes.map((node) => ({
+	id: `edge-dept-${node.dept.toLowerCase()}-${node.id}`,
+	from: `dept-${node.dept}`,
+	to: node.id,
+	relation: "owns",
+}));
+
+const sharedEdges: KbEdge[] = [
+	{ id: "edge-ent-student-portal-dept-it", from: "ent-student-portal", to: "dept-IT", relation: "used-by" },
+	{ id: "edge-ent-student-portal-dept-reg", from: "ent-student-portal", to: "dept-REG", relation: "used-by" },
+	{ id: "edge-ent-student-portal-dept-fin", from: "ent-student-portal", to: "dept-FIN", relation: "used-by" },
+	{ id: "edge-ent-registration-hold-dept-reg", from: "ent-registration-hold", to: "dept-REG", relation: "shared-policy" },
+	{ id: "edge-ent-registration-hold-dept-fin", from: "ent-registration-hold", to: "dept-FIN", relation: "shared-policy" },
+	{ id: "edge-ent-registration-hold-dept-med", from: "ent-registration-hold", to: "dept-MED", relation: "shared-policy" },
+	{ id: "edge-ent-campus-access-dept-it", from: "ent-campus-access", to: "dept-IT", relation: "used-by" },
+	{ id: "edge-ent-campus-access-dept-ss", from: "ent-campus-access", to: "dept-SS", relation: "used-by" },
+	{ id: "edge-ent-payment-plan-dept-fin", from: "ent-payment-plan", to: "dept-FIN", relation: "shared-policy" },
+	{ id: "edge-ent-payment-plan-dept-reg", from: "ent-payment-plan", to: "dept-REG", relation: "shared-policy" },
+	{ id: "edge-proc-fin-1-ent-payment-plan", from: "proc-fin-1", to: "ent-payment-plan", relation: "references" },
+	{ id: "edge-proc-reg-1-ent-registration-hold", from: "proc-reg-1", to: "ent-registration-hold", relation: "references" },
+	{ id: "edge-proc-ss-1-ent-campus-access", from: "proc-ss-1", to: "ent-campus-access", relation: "references" },
+];
 
 export const adminSeedSnapshot: AdminSnapshot = {
 	admins,
 	tickets,
 	kb: {
-		nodes: [...departmentNodes, ...faqNodes],
-		edges: faqEdges,
+		nodes: [...departmentNodes, ...faqNodes, ...procedureNodes, ...entityNodes],
+		edges: [...faqEdges, ...procedureEdges, ...sharedEdges],
 	},
 };
