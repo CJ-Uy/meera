@@ -61,4 +61,15 @@ describe("computeRegionsFromScoreGrid", () => {
 		const scores = gridWithBlock(cols, rows, { x0: 10, y0: 6, x1: 30, y1: 20 }, 100);
 		expect(computeRegionsFromScoreGrid(scores, cols, rows, 500, DEFAULT_REGION_FILTER)).toHaveLength(0);
 	});
+
+	it("splits a row of three tiles separated by gutters (the YouTube-grid case)", () => {
+		const cols = 60;
+		const rows = 20;
+		const tile1 = gridWithBlock(cols, rows, { x0: 5, y0: 4, x1: 18, y1: 16 });
+		const tile2 = gridWithBlock(cols, rows, { x0: 24, y0: 4, x1: 37, y1: 16 });
+		const tile3 = gridWithBlock(cols, rows, { x0: 43, y0: 4, x1: 56, y1: 16 });
+		const scores = tile1.map((value, index) => Math.max(value, tile2[index], tile3[index]));
+		const regions = computeRegionsFromScoreGrid(scores, cols, rows, 500, DEFAULT_REGION_FILTER);
+		expect(regions).toHaveLength(3);
+	});
 });

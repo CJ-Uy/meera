@@ -33,10 +33,10 @@ export type RegionFilterOptions = {
 };
 
 export const DEFAULT_REGION_FILTER: RegionFilterOptions = {
-	minAreaFraction: 0.015,
-	maxAreaFraction: 0.6,
-	minFill: 0.35,
-	maxRegions: 16,
+	minAreaFraction: 0.012,
+	maxAreaFraction: 0.85,
+	minFill: 0.3,
+	maxRegions: 18,
 	closeIterations: 2,
 };
 
@@ -46,8 +46,14 @@ export const REGION_SCORE_FLOOR = 55;
 // Otsu picks the split that isolates only the busiest patches; photo interiors fall below it. Use a
 // fraction of Otsu so a whole thumbnail (including its smoother areas) reads as one solid block.
 export const REGION_OTSU_FACTOR = 0.5;
-const DOWNSCALE_WIDTH = 560;
-const CELL = 10;
+const DOWNSCALE_WIDTH = 800;
+const CELL = 8;
+// XY-cut splits a block at the deepest projection-profile valley (a gutter) when it dips below this
+// fraction of the block's peak. Keeps cutting tiles apart until no clear gutter remains.
+const SPLIT_RATIO = 0.45;
+const SPLIT_MARGIN = 0.16;
+const MIN_SPLIT_CELLS = 3;
+const MAX_CUT_DEPTH = 14;
 
 type Rect = { x: number; y: number; width: number; height: number };
 
@@ -139,7 +145,97 @@ function closeMask(mask: boolean[], cols: number, rows: number, iterations: numb
 	return result;
 }
 
-/** Pure core: turn a per-cell busyness grid + threshold into normalized region rects. Unit-tested. */
+type CellRect = { x0: number; y0: number; x1: number; y1: number };
+
+function filledCount(mask: boolean[], cols: number, rect: CellRect): number {
+	let count = 0;
+	for (let y = rect.y0; y <= rect.y1; y += 1) {
+		for (let x = rect.x0; x <= rect.x1; x += 1) {
+			if (mask[y * cols + x]) count += 1;
+		}
+	}
+	return count;
+}
+
+/** Shrink a rect to the bounding box of its set cells. Null when the rect holds nothing. */
+function trimToContent(mask: boolean[], cols: number, rect: CellRect): CellRect | null {
+	let x0 = rect.x1;
+	let x1 = rect.x0;
+	let y0 = rect.y1;
+	let y1 = rect.y0;
+	let any = false;
+	for (let y = rect.y0; y <= rect.y1; y += 1) {
+		for (let x = rect.x0; x <= rect.x1; x += 1) {
+			if (!mask[y * cols + x]) continue;
+			any = true;
+			if (x < x0) x0 = x;
+			if (x > x1) x1 = x;
+			if (y < y0) y0 = y;
+			if (y > y1) y1 = y;
+		}
+	}
+	return any ? { x0, y0, x1, y1 } : null;
+}
+
+/** Deepest interior valley in a projection profile (a gutter), and how deep it is (min/max). */
+function deepestValley(profile: number[]): { index: number; ratio: number } | null {
+	const length = profile.length;
+	const margin = Math.max(1, Math.floor(length * SPLIT_MARGIN));
+	if (length - margin <= margin) return null;
+	let max = 0;
+	for (const value of profile) if (value > max) max = value;
+	if (max <= 0) return null;
+	let minValue = Infinity;
+	let minIndex = -1;
+	for (let i = margin; i < length - margin; i += 1) {
+		if (profile[i] < minValue) {
+			minValue = profile[i];
+			minIndex = i;
+		}
+	}
+	return minIndex < 0 ? null : { index: minIndex, ratio: minValue / max };
+}
+
+/** Recursively cut a block at gutter valleys (XY-cut), collecting leaf rectangles. */
+function xyCut(mask: boolean[], cols: number, rect: CellRect, depth: number, out: CellRect[]) {
+	const trimmed = trimToContent(mask, cols, rect);
+	if (!trimmed) return;
+	const width = trimmed.x1 - trimmed.x0 + 1;
+	const height = trimmed.y1 - trimmed.y0 + 1;
+	if (depth >= MAX_CUT_DEPTH || (width < MIN_SPLIT_CELLS && height < MIN_SPLIT_CELLS)) {
+		out.push(trimmed);
+		return;
+	}
+
+	const colProfile = new Array<number>(width).fill(0);
+	const rowProfile = new Array<number>(height).fill(0);
+	for (let y = trimmed.y0; y <= trimmed.y1; y += 1) {
+		for (let x = trimmed.x0; x <= trimmed.x1; x += 1) {
+			if (!mask[y * cols + x]) continue;
+			colProfile[x - trimmed.x0] += 1;
+			rowProfile[y - trimmed.y0] += 1;
+		}
+	}
+
+	const colValley = width >= MIN_SPLIT_CELLS ? deepestValley(colProfile) : null;
+	const rowValley = height >= MIN_SPLIT_CELLS ? deepestValley(rowProfile) : null;
+	const cutCol = colValley && colValley.ratio < SPLIT_RATIO ? colValley : null;
+	const cutRow = rowValley && rowValley.ratio < SPLIT_RATIO ? rowValley : null;
+
+	if (cutCol && (!cutRow || cutCol.ratio <= cutRow.ratio)) {
+		const at = trimmed.x0 + cutCol.index;
+		xyCut(mask, cols, { x0: trimmed.x0, y0: trimmed.y0, x1: at - 1, y1: trimmed.y1 }, depth + 1, out);
+		xyCut(mask, cols, { x0: at + 1, y0: trimmed.y0, x1: trimmed.x1, y1: trimmed.y1 }, depth + 1, out);
+	} else if (cutRow) {
+		const at = trimmed.y0 + cutRow.index;
+		xyCut(mask, cols, { x0: trimmed.x0, y0: trimmed.y0, x1: trimmed.x1, y1: at - 1 }, depth + 1, out);
+		xyCut(mask, cols, { x0: trimmed.x0, y0: at + 1, x1: trimmed.x1, y1: trimmed.y1 }, depth + 1, out);
+	} else {
+		out.push(trimmed);
+	}
+}
+
+/** Pure core: threshold the busyness grid, then XY-cut it into tile rectangles. Unit-tested. */
 export function computeRegionsFromScoreGrid(
 	scores: number[],
 	cols: number,
@@ -154,49 +250,19 @@ export function computeRegionsFromScoreGrid(
 		rows,
 		options.closeIterations,
 	);
-	const visited = new Array<boolean>(cols * rows).fill(false);
+	const leaves: CellRect[] = [];
+	xyCut(mask, cols, { x0: 0, y0: 0, x1: cols - 1, y1: rows - 1 }, 0, leaves);
+
 	const regions: (Rect & { area: number })[] = [];
-
-	for (let start = 0; start < cols * rows; start += 1) {
-		if (!mask[start] || visited[start]) continue;
-		let minCx = cols;
-		let maxCx = -1;
-		let minCy = rows;
-		let maxCy = -1;
-		let count = 0;
-		const stack = [start];
-		visited[start] = true;
-		while (stack.length) {
-			const index = stack.pop() as number;
-			const cx = index % cols;
-			const cy = Math.floor(index / cols);
-			count += 1;
-			if (cx < minCx) minCx = cx;
-			if (cx > maxCx) maxCx = cx;
-			if (cy < minCy) minCy = cy;
-			if (cy > maxCy) maxCy = cy;
-			const neighbours = [
-				cx > 0 ? index - 1 : -1,
-				cx < cols - 1 ? index + 1 : -1,
-				cy > 0 ? index - cols : -1,
-				cy < rows - 1 ? index + cols : -1,
-			];
-			for (const neighbour of neighbours) {
-				if (neighbour >= 0 && mask[neighbour] && !visited[neighbour]) {
-					visited[neighbour] = true;
-					stack.push(neighbour);
-				}
-			}
-		}
-
-		const boxCols = maxCx - minCx + 1;
-		const boxRows = maxCy - minCy + 1;
+	for (const leaf of leaves) {
+		const boxCols = leaf.x1 - leaf.x0 + 1;
+		const boxRows = leaf.y1 - leaf.y0 + 1;
 		const areaFraction = (boxCols / cols) * (boxRows / rows);
-		const fill = count / (boxCols * boxRows);
+		const fill = filledCount(mask, cols, leaf) / (boxCols * boxRows);
 		const aspect = boxCols / boxRows;
 		if (areaFraction < options.minAreaFraction || areaFraction > options.maxAreaFraction) continue;
 		if (fill < options.minFill || aspect < 0.2 || aspect > 6) continue;
-		regions.push({ x: minCx / cols, y: minCy / rows, width: boxCols / cols, height: boxRows / rows, area: areaFraction });
+		regions.push({ x: leaf.x0 / cols, y: leaf.y0 / rows, width: boxCols / cols, height: boxRows / rows, area: areaFraction });
 	}
 
 	return regions
