@@ -20,6 +20,16 @@ type Step = { prompt: string; choices: Choice[] };
 
 const ENEMY = { name: "THE HOLD", level: 12, kind: "Bureaucracy / Cobra type" };
 const MAX_HP = 100;
+const ENEMY_SPRITES = {
+	idle: "battle/cobra-idle.png",
+	attack: "battle/cobra-attack.png",
+	hurt: "battle/cobra-hurt.png",
+	defeated: "battle/cobra-defeated.png",
+} as const;
+const MIRA_SPRITES = {
+	idle: "battle/mira-battle-idle.png",
+	win: "meera-celebrate.png",
+} as const;
 
 const QUEST: Step[] = [
 	{
@@ -73,6 +83,7 @@ export function BattleView() {
 	const seqRef = useRef(0);
 
 	const step = QUEST[stepIndex];
+	const enemySprite = phase === "won" ? ENEMY_SPRITES.defeated : flash === "enemy" ? ENEMY_SPRITES.hurt : flash === "mira" ? ENEMY_SPRITES.attack : ENEMY_SPRITES.idle;
 
 	function reset() {
 		setEnemyHp(MAX_HP);
@@ -121,11 +132,14 @@ export function BattleView() {
 		<div className="relative flex min-h-0 flex-1 flex-col">
 			{/* Arena */}
 			<div
-				className="relative flex-1 overflow-hidden"
-				style={{ background: "radial-gradient(120% 90% at 50% 0%, #FFF6E6 0%, var(--cream) 46%, #F0E6D2 100%)" }}
+				className="relative min-h-[330px] flex-1 overflow-hidden"
+				style={{
+					backgroundImage: `url(${asset("battle/arena-field.png")})`,
+					backgroundPosition: "center",
+					backgroundSize: "cover",
+				}}
 			>
-				{/* ground */}
-				<div className="pointer-events-none absolute inset-x-0 bottom-0 h-[42%]" style={{ background: "radial-gradient(80% 120% at 30% 100%, rgba(127,184,92,.18), transparent 70%)" }} />
+				<div className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(255,255,255,.06), rgba(251,246,238,.12) 64%, rgba(217,166,90,.08))" }} />
 
 				{/* Enemy info — top left */}
 				<div className="absolute left-4 top-4 z-10 w-[min(300px,62%)]">
@@ -133,29 +147,37 @@ export function BattleView() {
 					<div className="mt-1 pl-1 font-['DM_Mono'] text-[10px] uppercase tracking-[0.1em]" style={{ color: "var(--muted)" }}>{ENEMY.kind}</div>
 				</div>
 
-				{/* Enemy sprite — top right (placeholder until Codex art lands) */}
-				<div className="absolute right-5 top-10 z-0 flex flex-col items-center sm:right-12 sm:top-12" style={{ animation: flash === "enemy" ? "mound-shake .44s ease" : "bob 3.4s ease-in-out infinite" }}>
-					<EnemySprite defeated={phase === "won"} />
-					<Shadow />
+				{/* Enemy sprite — top right */}
+				<div
+					className="absolute right-[3%] top-[13%] z-0 flex flex-col items-center sm:right-[7%] sm:top-[14%]"
+					style={{
+						animation: flash === "enemy" ? "mound-shake .44s ease" : flash === "mira" ? undefined : "bob 3.4s ease-in-out infinite",
+						transform: flash === "mira" ? "translateX(-18px) rotate(-2deg)" : undefined,
+						transition: "transform .18s ease",
+					}}
+				>
+					<div className="relative grid place-items-center">
+						<EnemySprite sprite={enemySprite} defeated={phase === "won"} attacking={flash === "mira"} />
+					</div>
 					{floater?.target === "enemy" ? <FloatingDamage key={floater.key} amount={floater.amount} tone="enemy" /> : null}
 				</div>
 
 				{/* MiRA sprite — bottom left */}
-				<div className="absolute bottom-[20px] left-5 z-0 flex flex-col items-center sm:left-12" style={{ animation: flash === "mira" ? "mound-shake .44s ease" : "none" }}>
-					<div className="relative">
+				<div className="absolute bottom-[5%] left-[4%] z-0 flex flex-col items-center sm:left-[7%]" style={{ animation: flash === "mira" ? "mound-shake .44s ease" : "none" }}>
+					<div className="relative grid place-items-center">
 						<img
-							src={asset(phase === "won" ? "meera-celebrate.png" : "meera-avatar.png")}
+							src={asset(phase === "won" ? MIRA_SPRITES.win : MIRA_SPRITES.idle)}
 							alt="MiRA"
-							className="w-[120px] select-none sm:w-[148px]"
+							className="relative z-10 w-[132px] select-none sm:w-[200px] md:w-[228px]"
 							style={{ filter: flash === "mira" ? "drop-shadow(0 0 0 #fff) saturate(1.6) hue-rotate(-12deg)" : "none", transition: "filter .2s" }}
+							draggable={false}
 						/>
 						{floater?.target === "mira" ? <FloatingDamage key={floater.key} amount={floater.amount} tone="mira" /> : null}
 					</div>
-					<Shadow />
 				</div>
 
 				{/* MiRA info — bottom right */}
-				<div className="absolute bottom-5 right-4 z-10 w-[min(300px,62%)]">
+				<div className="absolute bottom-5 right-4 z-10 w-[min(280px,58%)] sm:w-[min(300px,62%)]">
 					<NamePlate name="MiRA" level={15} hp={miraHp} side="mira" />
 				</div>
 
@@ -166,7 +188,7 @@ export function BattleView() {
 			{/* Dialogue box */}
 			<div className="shrink-0 border-t bg-white px-4 py-3" style={{ borderColor: "var(--line)" }}>
 				<div className="mx-auto max-w-[900px]">
-					<div className="relative rounded-2xl border-2 px-4 py-3 text-[15px] font-semibold leading-6" style={{ borderColor: "var(--ink)", background: "#FFFDF8", color: "var(--ink)", boxShadow: "0 4px 0 0 rgba(28,51,73,.12)" }}>
+					<div className="relative rounded-2xl border-2 px-4 py-3 text-[15px] font-semibold leading-6" style={{ borderColor: "var(--ink)", background: "#FFFDF8", color: "var(--ink)", boxShadow: "0 4px 0 0 rgba(28,51,73,.14), inset 0 0 0 3px #F5ECDD" }}>
 						<span className="mr-2 inline-block" style={{ color: "var(--teal)", animation: "tdot 1s infinite" }}>▶</span>
 						{dialogue}
 					</div>
@@ -230,30 +252,27 @@ function HpBar({ hp }: { hp: number }) {
 	return (
 		<div className="mt-1.5 flex items-center gap-1.5">
 			<span className="font-['DM_Mono'] text-[9px] font-bold" style={{ color: "var(--teal-700)" }}>HP</span>
-			<span className="h-2.5 flex-1 overflow-hidden rounded-full" style={{ background: "#E9E0CF", boxShadow: "inset 0 1px 2px rgba(28,51,73,.18)" }}>
-				<span className="block h-full rounded-full" style={{ width: `${pct}%`, background: color, transition: "width .8s cubic-bezier(.3,.9,.3,1), background .4s" }} />
+			<span className="h-2.5 flex-1 overflow-hidden rounded-full" style={{ background: "repeating-linear-gradient(90deg, #E9E0CF 0 15px, #DED1BD 15px 17px)", boxShadow: "inset 0 1px 2px rgba(28,51,73,.18)" }}>
+				<span className="block h-full rounded-full" style={{ width: `${pct}%`, background: `repeating-linear-gradient(90deg, ${color} 0 15px, rgba(255,255,255,.45) 15px 17px)`, transition: "width .8s cubic-bezier(.3,.9,.3,1), background .4s" }} />
 			</span>
 		</div>
 	);
 }
 
-function EnemySprite({ defeated }: { defeated: boolean }) {
+function EnemySprite({ sprite, defeated, attacking }: { sprite: string; defeated: boolean; attacking: boolean }) {
 	return (
-		<div
-			className="grid size-[128px] place-items-center rounded-[28px] border-2 border-dashed sm:size-[164px]"
-			style={{ borderColor: defeated ? "var(--line-2)" : "#C9A24B", background: defeated ? "var(--cream-2)" : "radial-gradient(circle at 50% 35%, #FBEFD4, #F3DFB6)", opacity: defeated ? 0.5 : 1, transition: "all .5s" }}
-			title="Boss art — to be generated by Codex"
-		>
-			<div className="text-center">
-				<div className="text-[52px] leading-none sm:text-[64px]" style={{ filter: defeated ? "grayscale(1)" : "none" }}>{defeated ? "💫" : "🐍"}</div>
-				<div className="mt-1 font-['DM_Mono'] text-[9px] uppercase tracking-[0.12em]" style={{ color: "var(--muted)" }}>{defeated ? "defeated" : "boss art · codex"}</div>
-			</div>
-		</div>
+		<img
+			src={asset(sprite)}
+			alt={defeated ? "Defeated cobra boss" : "The Hold cobra boss"}
+			className="relative z-10 w-[166px] select-none sm:w-[220px] md:w-[248px]"
+			style={{
+				filter: defeated ? "grayscale(.45) saturate(.8) opacity(.86)" : attacking ? "saturate(1.16)" : "none",
+				transform: defeated ? "rotate(3deg) translateY(8px)" : attacking ? "scale(1.04)" : "none",
+				transition: "filter .24s ease, transform .24s ease",
+			}}
+			draggable={false}
+		/>
 	);
-}
-
-function Shadow() {
-	return <span className="mt-1 block h-2.5 w-[70%] rounded-[50%]" style={{ background: "radial-gradient(closest-side, rgba(28,51,73,.22), transparent)" }} />;
 }
 
 function FloatingDamage({ amount, tone }: { amount: number; tone: Target }) {
