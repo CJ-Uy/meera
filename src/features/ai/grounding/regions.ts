@@ -35,14 +35,17 @@ export type RegionFilterOptions = {
 export const DEFAULT_REGION_FILTER: RegionFilterOptions = {
 	minAreaFraction: 0.015,
 	maxAreaFraction: 0.6,
-	minFill: 0.45,
-	maxRegions: 14,
-	closeIterations: 1,
+	minFill: 0.35,
+	maxRegions: 16,
+	closeIterations: 2,
 };
 
 // Below this absolute busyness, treat the whole frame as flat UI (no regions) regardless of Otsu — stops
 // a uniform screen from being split into noise.
 export const REGION_SCORE_FLOOR = 55;
+// Otsu picks the split that isolates only the busiest patches; photo interiors fall below it. Use a
+// fraction of Otsu so a whole thumbnail (including its smoother areas) reads as one solid block.
+export const REGION_OTSU_FACTOR = 0.5;
 const DOWNSCALE_WIDTH = 560;
 const CELL = 10;
 
@@ -255,7 +258,10 @@ async function scoreGridFromFrame(dataUrl: string): Promise<{ scores: number[]; 
 			if (n === 0) continue;
 			const lumVar = lumSqSum / n - (lumSum / n) ** 2;
 			const satVar = satSqSum / n - (satSum / n) ** 2;
-			scores[cy * cols + cx] = lumVar + 2 * satVar;
+			const satMean = satSum / n;
+			// Mean saturation lets smooth-but-colorful photo areas (sky, skin) count as content, not just
+			// high-variance edges — so a whole thumbnail reads as busy instead of just its detailed parts.
+			scores[cy * cols + cx] = lumVar + 2 * satVar + 25 * satMean;
 		}
 	}
 	return { scores, cols, rows };
@@ -279,7 +285,7 @@ export async function detectContentRegionsDebug(
 		const grid = await scoreGridFromFrame(dataUrl);
 		if (!grid) return { candidates: [], stats: null };
 		const otsu = otsuThreshold(grid.scores);
-		const threshold = Math.max(otsu, REGION_SCORE_FLOOR);
+		const threshold = Math.max(otsu * REGION_OTSU_FACTOR, REGION_SCORE_FLOOR);
 		const rects = computeRegionsFromScoreGrid(grid.scores, grid.cols, grid.rows, threshold, options);
 		const candidates: GroundingCandidate[] = rects.map((rect, index) => ({
 			id: `r${index + 1}`,

@@ -215,7 +215,9 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 				setAttachmentError("Debug: nothing detected on this screen.");
 				return;
 			}
-			const calls = candidates.slice(0, 48).map((candidate) => candidateToOverlayToolCall(candidate, "highlight", candidate.id));
+			// Draw regions first so the per-request cap can never slice them off behind the many text boxes.
+			const drawOrder = [...regionCandidates, ...ocrCandidates].slice(0, 50);
+			const calls = drawOrder.map((candidate) => candidateToOverlayToolCall(candidate, "highlight", candidate.id));
 			await executeToolCalls(calls);
 		} catch (error) {
 			setAttachmentError(error instanceof Error ? error.message : "Debug capture failed.");
