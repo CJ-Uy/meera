@@ -82,11 +82,19 @@ regions, candidates, select), `use-ai-chat`, `ai-tools` overlay command mapping.
 
 ## Staging
 
-1. **Chat + selection** on Workers AI behind `AI_PROVIDER` switch; A/B against Groq. (largest, lowest-risk)
-2. **Vision** via direct run (description + recovery fallback).
-3. **STT** route + mic button.
-4. **TTS** route + speaker button on assistant messages.
-5. **Cut over** default to Workers AI; remove Groq client, env, and docs.
+1. ✅ **Chat + selection** on Workers AI behind `AI_PROVIDER` switch (default workers-ai). `workers-ai-client.ts`.
+2. ✅ **Vision** via direct run (description + recovery fallback). `workers-ai-client.ts` `runVision`.
+3. ✅ **STT** — `/api/ai/transcribe` + mic button. `workers-ai-audio.ts`, `voice.ts` `useVoiceInput`.
+4. ✅ **TTS** — `/api/ai/speak` + per-message Listen button. `voice.ts` `useSpeech`.
+5. ⬜ **Cut over / cleanup** — once validated live: remove `groq-client.ts`, GROQ_* env, Groq docs;
+   default is already Workers AI. Optionally add the native `env.AI` binding for production.
+
+### Validate live (in `pnpm desktop:dev`)
+
+- Chat, "point at / highlight X" (selection), "describe my screen" (vision).
+- Mic button → speak → text lands in the input (MediaRecorder emits webm/opus; Whisper accepted mp3 in
+  testing — confirm webm works, otherwise set a mime type or transcode).
+- "Listen" on a reply → audio plays. Electron mic permission is already allowed for trusted URLs.
 
 ## Security
 
