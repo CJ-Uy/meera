@@ -17,6 +17,7 @@ import { detectContentRegions, detectContentRegionsDebug } from "@/features/ai/g
 import type { GroundingCandidate } from "@/features/ai/grounding/types";
 import { useAiChat, type AssistantToolCallContext } from "@/features/ai/use-ai-chat";
 import { useAiOverlayActions } from "@/features/ai/use-ai-overlay-actions";
+import { useSpeech, useVoiceInput } from "@/features/ai/voice";
 import { refineOverlayToolCalls } from "@/features/ai/visual-grounding";
 
 // Zoom-refine the model's first coordinate guess by default. Set NEXT_PUBLIC_MEERA_GROUNDING_REFINE=0 to disable.
@@ -55,8 +56,27 @@ function SendIcon() {
 	);
 }
 
-function ChatMessage({ message }: { message: AiChatMessage }) {
+function MicIcon() {
+	return (
+		<svg className="size-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24" aria-hidden="true">
+			<rect x="9" y="3" width="6" height="11" rx="3" />
+			<path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+		</svg>
+	);
+}
+
+function SpeakerIcon({ active }: { active?: boolean }) {
+	return (
+		<svg className="size-3.5 fill-none stroke-current stroke-2" viewBox="0 0 24 24" aria-hidden="true">
+			<path d="M4 9v6h4l5 4V5L8 9H4Z" />
+			{active ? <path d="M16 8a5 5 0 0 1 0 8M19 5a9 9 0 0 1 0 14" /> : <path d="M16 9a4 4 0 0 1 0 6" />}
+		</svg>
+	);
+}
+
+function ChatMessage({ message, onSpeak, isSpeaking }: { message: AiChatMessage; onSpeak?: () => void; isSpeaking?: boolean }) {
 	const isUser = message.role === "user";
+	const canSpeak = !isUser && Boolean(message.content.trim()) && Boolean(onSpeak);
 
 	return (
 		<article className={`flex ${isUser ? "justify-end" : "justify-start"}`} aria-label={`${message.role} message`}>
@@ -98,6 +118,17 @@ function ChatMessage({ message }: { message: AiChatMessage }) {
 				{message.model ? (
 					<p className={`mt-2 mb-0 font-['DM_Mono'] text-[10px] ${isUser ? "text-white/55" : "text-[var(--muted)]"}`}>{message.model}</p>
 				) : null}
+				{canSpeak ? (
+					<button
+						type="button"
+						onClick={onSpeak}
+						aria-label={isSpeaking ? "Stop speaking" : "Play reply aloud"}
+						className="mt-2 inline-flex items-center gap-1 rounded-full border border-[var(--line)] px-2.5 py-1 text-[10px] font-bold text-[var(--ink-2)] transition hover:border-[var(--teal)] hover:text-[var(--teal-700)]"
+					>
+						<SpeakerIcon active={isSpeaking} />
+						{isSpeaking ? "Stop" : "Listen"}
+					</button>
+				) : null}
 			</div>
 		</article>
 	);
@@ -123,6 +154,7 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 		[executeToolCalls],
 	);
 	const chat = useAiChat(handleAssistantToolCalls);
+	const { speakingId, speak } = useSpeech();
 	const [isOpen, setIsOpen] = useState(false);
 	const [draft, setDraft] = useState("");
 	const [attachments, setAttachments] = useState<AiImageAttachment[]>([]);
@@ -134,6 +166,10 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const messagesEndRef = useRef<HTMLDivElement>(null);
+	const appendTranscript = useCallback((text: string) => {
+		setDraft((current) => (current.trim() ? `${current} ${text}` : text));
+	}, []);
+	const voice = useVoiceInput(appendTranscript);
 
 	const setAssistantOpen = useCallback(
 		(nextOpen: boolean) => {
@@ -364,7 +400,12 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 
 			<div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[#FCFAF6] p-4" aria-live="polite">
 				{chat.messages.map((message) => (
-					<ChatMessage message={message} key={message.id} />
+					<ChatMessage
+							message={message}
+							key={message.id}
+							isSpeaking={speakingId === message.id}
+							onSpeak={() => void speak(message.id, message.content)}
+						/>
 				))}
 				{chat.isSending || isGrounding ? (
 					<div className="flex justify-start">
@@ -450,6 +491,21 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 							>
 								Debug boxes
 							</button>
+							<button
+								className={`inline-flex min-h-8 items-center gap-1 rounded-full border px-3 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-45 ${
+									voice.isRecording
+										? "border-[#C0532F] bg-[#C0532F] text-white"
+										: "border-[var(--line)] bg-white text-[var(--ink-2)] hover:border-[var(--teal)] hover:text-[var(--teal-700)]"
+								}`}
+								type="button"
+								disabled={voice.isTranscribing}
+								aria-label={voice.isRecording ? "Stop recording" : "Record voice input"}
+								title="Voice input (speech-to-text)"
+								onClick={voice.toggle}
+							>
+								<MicIcon />
+								{voice.isTranscribing ? "..." : voice.isRecording ? "Stop" : "Voice"}
+							</button>
 						</div>
 						<button
 							className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-full bg-[var(--teal)] px-4 text-xs font-bold text-white shadow-[0_10px_24px_rgba(46,156,142,0.22)] transition hover:-translate-y-0.5 hover:bg-[var(--teal-600)] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-45"
@@ -474,7 +530,9 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 
 				{lastAutoCapture ? <p className="mt-2 mb-0 text-[11px] font-bold text-[var(--teal-700)]">Attached a fresh desktop frame.</p> : null}
 					{debugInfo ? <p className="mt-2 mb-0 font-['DM_Mono'] text-[10px] break-words text-[var(--muted)]">{debugInfo}</p> : null}
-				{attachmentError || chat.error ? <p className="mt-2 mb-0 text-[11px] font-semibold text-[#C0532F]">{attachmentError || chat.error}</p> : null}
+				{attachmentError || chat.error || voice.error ? (
+						<p className="mt-2 mb-0 text-[11px] font-semibold text-[#C0532F]">{attachmentError || chat.error || voice.error}</p>
+					) : null}
 			</form>
 
 			<footer className="flex items-center justify-between gap-3 border-t border-[var(--line)] bg-[var(--cream)] px-4 py-3 font-['DM_Mono'] text-[10px] text-[var(--muted)]">
