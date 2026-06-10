@@ -40,7 +40,8 @@ These are real gaps in the current repo that the build must handle explicitly:
 Move admin into its own routed section so the left nav is real navigation and tickets are URL-addressable (needed for deep-linking chat review and for persistence).
 
 ```
-src/app/demo/                      # student experience stays here, with an "Enter admin" link
+src/app/demo/page.tsx              # chooser: Student vs Admin (separate pages now)
+src/app/demo/student/page.tsx      # StudentExperience (former monolith student flow)
 src/app/demo/admin/
   layout.tsx                       # admin shell: topbar + left rail + <AdminStoreProvider>
   page.tsx                         # redirect -> ./inbox
