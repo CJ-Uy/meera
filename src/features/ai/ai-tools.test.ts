@@ -175,6 +175,17 @@ Arrow points directly to the thumbnail.`,
 		expect(toolCallToOverlayCommand(calls[0])?.type).toBe("arrow.show");
 	});
 
+	it("recovers a vision model's axis-phrased coordinates into an arrow", () => {
+		const calls = recoverOverlayToolCallsFromText({
+			prompt: "where do i click to go to the documentation",
+			content: "Click the Documentation button, positioned at approximately 85% along the x-axis and 5% along the y-axis.",
+		});
+
+		expect(calls[0]).toMatchObject({
+			function: { name: "overlay_show_arrow", arguments: { x: 0.85, y: 0.05 } },
+		});
+	});
+
 	it("recovers pixel coordinate text against the captured screen frame", () => {
 		const calls = recoverOverlayToolCallsFromText({
 			prompt: "Overlay an arrow on the video.",

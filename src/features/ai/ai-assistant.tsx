@@ -7,8 +7,6 @@ import {
 	cropAndUpscaleScreenFrame,
 	isDesktopScreenFrameCaptureAvailable,
 	prepareUploadedImage,
-	shouldAutoCaptureSharedScreen,
-	shouldExtractScreenElements,
 } from "@/features/ai/image-input";
 import type { AiChatMessage, AiChatResponse, AiImageAttachment, AiToolCall } from "@/features/ai/ai-types";
 import { buildCandidatesFromOcr, candidateToOverlayToolCall } from "@/features/ai/grounding/candidates";
@@ -277,15 +275,16 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 
 		const draftToSend = draft;
 		let images = attachments;
-		const needsFreshScreen = autoScreenContext && shouldAutoCaptureSharedScreen(draftToSend);
-		if (needsFreshScreen) {
+		// Deterministic capture: if "see my screen" is on (and we can capture), attach a fresh frame to
+		// EVERY message. No prompt-keyword guessing — that silently missed phrasings like "where do I click".
+		const alreadyHasScreen = images.some((image) => image.source === "screen");
+		const wantsScreenshot = autoScreenContext && isDesktopScreenFrameCaptureAvailable();
+		if (wantsScreenshot && !alreadyHasScreen) {
 			try {
 				await clearVisualGuidance();
 			} catch {
 				// A stale overlay is harmless if the desktop bridge disappears during submission.
 			}
-		}
-		if (needsFreshScreen && !images.some((image) => image.source === "screen")) {
 			try {
 				images = [...images, await captureScreen()];
 				setLastAutoCapture(true);
@@ -305,10 +304,11 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 		setDraft("");
 		setAttachments([]);
 
-		// Extract on-screen text elements so the model can SELECT a target (exact rect) instead of guessing coords.
+		// Whenever a screen frame is present, extract on-screen elements so the model can SELECT a target
+		// (exact rect) instead of guessing coordinates. Runs for every screenshot, not just keyword matches.
 		let candidates: GroundingCandidate[] = [];
 		const screenFrame = images.find((image) => image.source === "screen");
-		if (screenFrame?.width && screenFrame.height && shouldExtractScreenElements(draftToSend)) {
+		if (screenFrame?.width && screenFrame.height) {
 			setIsGrounding(true);
 			try {
 				const words = await runOcrWords(screenFrame.dataUrl);
@@ -522,10 +522,13 @@ export function AiAssistant({ onOpenChange }: AiAssistantProps) {
 					<input
 						className="size-3.5 accent-[var(--teal)]"
 						type="checkbox"
-						checked={autoScreenContext}
+						checked={autoScreenContext && canCaptureScreen}
+						disabled={!canCaptureScreen}
 						onChange={(event) => setAutoScreenContext(event.target.checked)}
 					/>
-					Auto-attach a fresh desktop frame for visual or overlay requests
+					{canCaptureScreen
+						? "Let Meera see my screen — attaches a screenshot so she can point/highlight. Off = text-only chat."
+						: "Screen capture needs the Electron desktop app."}
 				</label>
 
 				{lastAutoCapture ? <p className="mt-2 mb-0 text-[11px] font-bold text-[var(--teal-700)]">Attached a fresh desktop frame.</p> : null}

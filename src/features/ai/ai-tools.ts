@@ -466,6 +466,11 @@ const coordinatePairPatterns = [
 	new RegExp(`\\bx\\s*[:=]\\s*${normalizedNumberPattern}\\s*(?:,|;|\\s+)\\s*y\\s*[:=]\\s*${normalizedNumberPattern}`, "i"),
 	new RegExp(`\\bcoordinates?\\b[^\\n\\d]*${normalizedNumberPattern}\\s*(?:,|;|/)\\s*${normalizedNumberPattern}`, "i"),
 	new RegExp(`\\(\\s*${normalizedNumberPattern}\\s*,\\s*${normalizedNumberPattern}\\s*\\)`, "i"),
+	// Vision models often narrate "~85% along the x-axis and 5% along the y-axis".
+	new RegExp(
+		`${normalizedNumberPattern}\\s*(?:along|on|of|at|across)?\\s*(?:the\\s*)?x[-\\s]?axis\\b[\\s\\S]{0,40}?${normalizedNumberPattern}\\s*(?:along|on|of|at|across)?\\s*(?:the\\s*)?y[-\\s]?axis`,
+		"i",
+	),
 ] as const;
 
 function extractGridPoint(text: string, context?: OverlayCoordinateContext) {
