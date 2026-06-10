@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Confidence, Icon, IconChip, Pill, type IconName } from "@/components/demo/shared";
 import { AcceptRejectPanel } from "@/features/admin/components/crossdept/AcceptRejectPanel";
 import { CollaborationWorkspace } from "@/features/admin/components/crossdept/CollaborationWorkspace";
@@ -16,6 +17,41 @@ function severityTint(severity: Severity): "default" | "teal" | "sand" | "rose" 
 	if (severity === "Critical" || severity === "High") return "rose";
 	if (severity === "Medium") return "sand";
 	return "green";
+}
+
+function StudentContact({ email }: { email: string }) {
+	const [copied, setCopied] = useState(false);
+	return (
+		<div className="mb-4 flex items-center gap-3 rounded-2xl border p-3" style={{ background: "var(--teal-050)", borderColor: "var(--teal-100)" }}>
+			<span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white" style={{ color: "var(--teal-700)" }}>
+				<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+					<rect x="3" y="5" width="18" height="14" rx="2" />
+					<path d="m3 7 9 6 9-6" />
+				</svg>
+			</span>
+			<div className="min-w-0 flex-1">
+				<p className="font-['DM_Mono'] text-[9px] uppercase tracking-[0.13em]" style={{ color: "var(--teal-700)" }}>Student contact · email</p>
+				<a href={`mailto:${email}`} className="block truncate text-[15px] font-[800] underline-offset-2 hover:underline" style={{ color: "var(--ink)" }}>{email}</a>
+			</div>
+			<button
+				type="button"
+				onClick={async () => {
+					try {
+						await navigator.clipboard.writeText(email);
+						setCopied(true);
+						setTimeout(() => setCopied(false), 1500);
+					} catch {
+						/* clipboard unavailable */
+					}
+				}}
+				className="shrink-0 rounded-full border bg-white px-3 py-1.5 text-xs font-[800] transition hover:-translate-y-0.5"
+				style={{ borderColor: "var(--teal-100)", color: "var(--teal-700)" }}
+			>
+				{copied ? "Copied" : "Copy"}
+			</button>
+			<a href={`mailto:${email}`} className="shrink-0 rounded-full px-3 py-1.5 text-xs font-[800] text-white transition hover:-translate-y-0.5" style={{ background: "var(--teal)" }}>Email</a>
+		</div>
+	);
 }
 
 function DetailBlock({ icon, label, children }: { icon: IconName; label: string; children: React.ReactNode }) {
@@ -45,7 +81,8 @@ export function TicketDetail({ ticket }: { ticket: DemoTicket }) {
 				<DibsButton ticket={ticket} />
 				<Confidence value={Math.round(ticket.confidence * 100)} label="AI confidence" />
 			</div>
-			<div className="mb-4 flex flex-wrap gap-2">
+			<StudentContact email={ticket.student} />
+				<div className="mb-4 flex flex-wrap gap-2">
 				<Pill tint={severityTint(ticket.severity)}>{ticket.severity} severity</Pill>
 				<Pill tint="teal">{ticket.complexity} complexity</Pill>
 				<Pill>{ticket.status}</Pill>

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Card, IconChip, Pill } from "@/components/demo/shared";
+import { Collapsible } from "@/features/admin/components/inbox/Collapsible";
 import { InboxFilters, type InboxFilterState } from "@/features/admin/components/inbox/InboxFilters";
 import { InboxQueue } from "@/features/admin/components/inbox/InboxQueue";
 import { PriorityMatrix, type PriorityMatrixSelection } from "@/features/admin/components/inbox/PriorityMatrix";
@@ -55,6 +56,7 @@ export default function AdminInboxPage() {
 		[departmentTickets, filters, matrix, search, sortMode],
 	);
 	const selected = visibleTickets.find((ticket) => ticket.id === admin.selectedTicketId) ?? visibleTickets.at(0) ?? null;
+	const activeFilterCount = (filters.status !== "all" ? 1 : 0) + (filters.tag !== "all" ? 1 : 0) + (filters.claim !== "all" ? 1 : 0) + (filters.crossDeptOnly ? 1 : 0);
 
 	useEffect(() => {
 		if (selected && admin.selectedTicketId !== selected.id) admin.selectTicket(selected.id);
@@ -74,7 +76,7 @@ export default function AdminInboxPage() {
 			</div>
 			<div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto md:grid-cols-[minmax(280px,340px)_minmax(0,1fr)] xl:grid-cols-[minmax(280px,340px)_minmax(0,1fr)_360px] md:overflow-hidden">
 				<div className="border-r bg-white md:overflow-y-auto" style={{ borderColor: "var(--line)" }}>
-					<div className="grid gap-3 px-4 py-3">
+					<div className="grid gap-2.5 px-4 py-3">
 						<div className="flex items-center justify-between">
 							<span className="text-sm font-bold">Ticket queue</span>
 							<select value={sortMode} onChange={(event) => setSortMode(event.target.value as InboxSortMode)} className="rounded-full border bg-[#FCFAF6] px-3 py-1.5 font-['DM_Mono'] text-[10px] font-bold uppercase outline-none" style={{ borderColor: "var(--line-2)", color: "var(--muted)" }} aria-label="Sort tickets">
@@ -84,8 +86,18 @@ export default function AdminInboxPage() {
 							</select>
 						</div>
 						<SearchBar value={search} onChange={setSearch} />
-						<InboxFilters value={filters} tags={tags} onChange={setFilters} />
-						<PriorityMatrix tickets={departmentTickets} selected={matrix} onSelect={setMatrix} />
+						<Collapsible
+							title="Filters"
+							badge={activeFilterCount > 0 ? <span className="rounded-full px-2 py-0.5 font-['DM_Mono'] text-[9px] font-bold" style={{ background: "var(--teal-050)", color: "var(--teal-700)" }}>{activeFilterCount} active</span> : null}
+						>
+							<InboxFilters value={filters} tags={tags} onChange={setFilters} />
+						</Collapsible>
+						<Collapsible
+							title="Priority matrix"
+							badge={matrix ? <button type="button" onClick={(event) => { event.stopPropagation(); setMatrix(null); }} className="rounded-full px-2 py-0.5 font-['DM_Mono'] text-[9px] font-bold text-white" style={{ background: "var(--teal)" }}>{matrix.severity} · {matrix.complexity} ✕</button> : null}
+						>
+							<PriorityMatrix tickets={departmentTickets} selected={matrix} onSelect={setMatrix} />
+						</Collapsible>
 					</div>
 					<InboxQueue tickets={visibleTickets} selectedTicketId={selected?.id ?? null} onSelect={admin.selectTicket} />
 				</div>

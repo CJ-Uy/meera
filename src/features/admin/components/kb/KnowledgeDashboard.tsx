@@ -27,7 +27,7 @@ export function KnowledgeDashboard() {
 						className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-[800] text-white transition hover:-translate-y-0.5"
 						style={{ background: adding ? "var(--ink)" : "var(--teal)", boxShadow: "0 8px 20px rgba(46,156,142,0.22)" }}
 					>
-						<Icon name={adding ? "alert" : "sparkle"} size={14} className={adding ? "rotate-45" : ""} />
+						<Icon name={adding ? "x" : "sparkle"} size={14} />
 						{adding ? "Close" : "New entry"}
 					</button>
 					<div className="flex rounded-full border bg-white p-1" style={{ borderColor: "var(--line)", boxShadow: "var(--sh-sm)" }}>

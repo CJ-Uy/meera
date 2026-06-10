@@ -9,7 +9,6 @@ const navItems: { href: string; label: string; icon: IconName }[] = [
 	{ href: "/demo/admin/inbox", label: "Inbox", icon: "inbox" },
 	{ href: "/demo/admin/insights", label: "Insights", icon: "trend" },
 	{ href: "/demo/admin/knowledge", label: "Knowledge", icon: "book" },
-	{ href: "/demo/admin/routing", label: "Routing", icon: "route" },
 	{ href: "/demo/admin/team", label: "Team", icon: "users" },
 ];
 
