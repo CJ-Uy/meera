@@ -6,7 +6,7 @@ import {
 	messagesForProvider,
 	resolveProviderResponse,
 } from "@/features/ai/ai-provider-utils";
-import { buildSelectionMessages, parseSelection, SELECTION_SYSTEM_PROMPT, selectionToToolCalls } from "@/features/ai/grounding/select";
+import { buildSelectionMessages, parseSelection, SELECTION_JSON_SYSTEM_PROMPT, selectionToToolCalls } from "@/features/ai/grounding/select";
 import type { AiChatRequest, AiChatResponse, AiProviderStatus } from "@/features/ai/ai-types";
 
 /**
@@ -194,7 +194,7 @@ async function groundedSelectionResponse(request: AiChatRequest): Promise<AiChat
 			{
 				model: settings.selectionModel,
 				messages: [
-					{ role: "system", content: SELECTION_SYSTEM_PROMPT },
+					{ role: "system", content: SELECTION_JSON_SYSTEM_PROMPT },
 					{ role: "user", content: selectionMessage.content },
 				],
 				response_format: { type: "json_object" },

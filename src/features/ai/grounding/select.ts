@@ -8,11 +8,11 @@ import { isOverlayAction, type GroundingCandidate, type OverlaySelection } from 
  * the model — supplies the coordinates.
  */
 
-export const SELECTION_SYSTEM_PROMPT = `
+const SELECTION_TASK = `
 You are Meera's overlay targeting brain. You are given the user's request and a numbered list of
 elements detected on their screen (each with an id, its visible text, and a rough position).
 
-Choose the single element the user means and how to mark it, then call select_overlay_target:
+Choose the single element the user means and how to mark it:
 - action "arrow": point at one thing. Default for "point at", "where is", "where do I click", picking one item.
 - action "highlight": draw a box around a region. Use for "highlight", "box", "outline", "circle", "focus on".
 - action "bubble": show a short text note at a spot. Use for "label", "note", "caption", "bubble".
@@ -32,6 +32,16 @@ Rules:
 - Use the recent conversation (when provided) to resolve references like "it", "that", or "the one below" to a concrete element.
 - Keep message to a short, friendly label (<= 60 chars). When action is none, message briefly says why.
 `.trim();
+
+// Groq path: forced tool-calling fills select_overlay_target's parameters.
+export const SELECTION_SYSTEM_PROMPT = `${SELECTION_TASK}\n\nReturn your decision by calling select_overlay_target.`;
+
+// Workers AI path: JSON mode (no tools). The model MUST emit only the JSON object — telling it to "call"
+// a function makes it narrate the call in prose instead, which cannot be parsed.
+export const SELECTION_JSON_SYSTEM_PROMPT = `${SELECTION_TASK}
+
+Respond with ONLY a JSON object and no other text, in exactly this shape:
+{"action": "arrow" | "highlight" | "bubble" | "cursor" | "none", "elementId": "<one of the listed ids, or empty string>", "message": "<short label>"}`;
 
 export type SelectionHistoryTurn = { role: string; content: string };
 
@@ -82,7 +92,7 @@ export function buildSelectionMessages(
 		"On-screen elements:",
 		renderCandidatesForPrompt(candidates),
 		"",
-		"Call select_overlay_target with the best element id and action.",
+		"Choose the single best element and how to mark it.",
 	].join("\n");
 	return [{ role: "user", content }];
 }
@@ -98,32 +108,62 @@ function parseArgs(value: string | Record<string, unknown> | undefined): Record<
 	}
 }
 
+const NESTED_KEYS = ["arguments", "parameters", "function", "tool_call", "select_overlay_target", "result"];
+
 function selectionFromArgs(args: Record<string, unknown>): OverlaySelection | null {
-	const action = args.action;
-	if (!isOverlayAction(action)) return null;
-	const elementId = typeof args.elementId === "string" ? args.elementId.trim() : "";
-	const message = typeof args.message === "string" ? args.message.trim() : "";
-	return { action, elementId, message };
+	// Some models wrap the answer (e.g. {arguments:{…}} or {function:{action:…}}); unwrap one level.
+	const objects: Record<string, unknown>[] = [args];
+	for (const key of NESTED_KEYS) {
+		const nested = args[key];
+		if (nested && typeof nested === "object") objects.push(nested as Record<string, unknown>);
+	}
+	for (const object of objects) {
+		if (!isOverlayAction(object.action)) continue;
+		const elementId = typeof object.elementId === "string" ? object.elementId.trim() : "";
+		const message = typeof object.message === "string" ? object.message.trim() : "";
+		return { action: object.action, elementId, message };
+	}
+	return null;
 }
 
-/** Find a select_overlay_target call (or a JSON object in prose) and turn it into an OverlaySelection. */
+/** Last resort: pull the choice out of prose when a weak model narrates instead of emitting JSON. */
+function selectionFromProse(text: string): OverlaySelection | null {
+	const actionMatch = /\baction\b\s*["']?\s*[:=]\s*["']?(arrow|highlight|bubble|cursor|none)\b/i.exec(text);
+	if (!actionMatch) return null;
+	const action = actionMatch[1].toLowerCase();
+	if (!isOverlayAction(action)) return null;
+	const idMatch = /\b(?:element[\s_]?id|id)\b\s*["']?\s*[:=]\s*["']?((?:e|r)\d+)\b/i.exec(text);
+	const messageMatch = /\bmessage\b\s*["']?\s*[:=]\s*["']([^"'\n]{1,80})["']/i.exec(text);
+	return { action, elementId: idMatch?.[1] ?? "", message: messageMatch?.[1]?.trim() ?? "" };
+}
+
+/** Turn a select_overlay_target tool call, a JSON object, or narrated prose into an OverlaySelection. */
 export function parseSelection(toolCalls: AiToolCall[] | undefined, content: string | null | undefined): OverlaySelection | null {
 	for (const toolCall of toolCalls ?? []) {
 		if (toolCall.function?.name !== "select_overlay_target") continue;
 		const selection = selectionFromArgs(parseArgs(toolCall.function?.arguments));
 		if (selection) return selection;
 	}
-	// Fallback: the model wrote the JSON in prose instead of calling the tool.
-	const match = content ? /\{[\s\S]*"action"[\s\S]*\}/.exec(content) : null;
+	if (!content) return null;
+	// 1) The whole content is the JSON object (JSON mode).
+	try {
+		const selection = selectionFromArgs(JSON.parse(content.trim()) as Record<string, unknown>);
+		if (selection) return selection;
+	} catch {
+		// not pure JSON — keep going
+	}
+	// 2) A JSON object embedded in surrounding text.
+	const match = /\{[\s\S]*"action"[\s\S]*\}/.exec(content);
 	if (match) {
 		try {
 			const selection = selectionFromArgs(JSON.parse(match[0]) as Record<string, unknown>);
 			if (selection) return selection;
 		} catch {
-			// ignore malformed JSON
+			// fall through to prose
 		}
 	}
-	return null;
+	// 3) The model narrated its choice in prose ("action: highlight ... elementId: e2").
+	return selectionFromProse(content);
 }
 
 /** Resolve a selection against the candidate list into executable overlay tool calls. */

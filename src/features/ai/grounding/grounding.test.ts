@@ -106,6 +106,20 @@ describe("parseSelection + selectionToToolCalls", () => {
 		expect(selection?.elementId).toBe("e1");
 	});
 
+	it("recovers a selection narrated in prose (weak-model JSON-mode fallback)", () => {
+		const prose =
+			'To highlight the Models tab, the best element is e2.\nCalling select_overlay_target with: elementId: e2, action: highlight, message: "Models tab".';
+		const selection = parseSelection(undefined, prose);
+		expect(selection?.action).toBe("highlight");
+		expect(selection?.elementId).toBe("e2");
+	});
+
+	it("unwraps a nested selection object", () => {
+		const selection = parseSelection(undefined, JSON.stringify({ arguments: { action: "arrow", elementId: "e3" } }));
+		expect(selection?.action).toBe("arrow");
+		expect(selection?.elementId).toBe("e3");
+	});
+
 	it("returns no tool calls for none or unknown ids", () => {
 		expect(selectionToToolCalls({ action: "none", elementId: "", message: "not here" }, candidates)).toEqual([]);
 		expect(selectionToToolCalls({ action: "arrow", elementId: "e99", message: "x" }, candidates)).toEqual([]);
