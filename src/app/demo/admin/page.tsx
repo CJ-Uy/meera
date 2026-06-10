@@ -1,5 +1,5 @@
-import { AdminExperience } from "@/components/demo/meera-demo-experience";
+import { redirect } from "next/navigation";
 
 export default function AdminDemoPage() {
-	return <AdminExperience />;
+	redirect("/demo/admin/inbox");
 }

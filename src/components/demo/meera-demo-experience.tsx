@@ -51,10 +51,11 @@ export function StudentExperience() {
 
 	return (
 		<main className="fixed inset-0 z-[100] flex flex-col" style={{ background: "var(--cream)", color: "var(--ink)" }}>
-			<DemoTopBar>
-				<span className="mx-1 h-[18px] w-px shrink-0" style={{ background: "var(--line-2)" }} />
-				<span className="font-['DM_Mono'] text-[11px] uppercase tracking-[0.12em]" style={{ color: "var(--muted)" }}>Student</span>
-			</DemoTopBar>
+				<DemoTopBar>
+					<span className="mx-1 h-[18px] w-px shrink-0" style={{ background: "var(--line-2)" }} />
+					<span className="font-['DM_Mono'] text-[11px] uppercase tracking-[0.12em]" style={{ color: "var(--muted)" }}>Student</span>
+					<Link href="/demo/admin" className="ml-auto rounded-full border px-3 py-1.5 text-xs font-bold transition hover:bg-[#F8F5F0]" style={{ borderColor: "var(--line-2)", color: "var(--teal-700)" }}>Enter admin</Link>
+				</DemoTopBar>
 			<div className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">{stage}</div>
 		</main>
 	);
