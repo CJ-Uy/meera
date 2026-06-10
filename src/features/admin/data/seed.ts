@@ -150,6 +150,7 @@ const tickets: DemoTicket[] = [...baseTickets, ...financeSeedTickets].map((ticke
 				participants: [
 					{ dept: "FIN", decision: "accepted" },
 					{ dept: "REG", decision: "pending", reason: "Registration submission depends on hold release." },
+					{ dept: "SS", decision: "pending", reason: "Student Services may need to help the student navigate the deadline." },
 				],
 				active: false,
 				tasks: [],

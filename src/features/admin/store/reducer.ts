@@ -54,16 +54,14 @@ function withTicket(tickets: DemoTicket[], id: string, update: (ticket: DemoTick
 	return tickets.map((ticket) => (ticket.id === id ? update(ticket) : ticket));
 }
 
-function normalizeCrossActive(ticket: DemoTicket): DemoTicket {
-	if (!ticket.cross) return ticket;
-	const accepted = ticket.cross.participants.filter((participant) => participant.decision === "accepted");
-	return {
-		...ticket,
-		cross: {
-			...ticket.cross,
-			active: accepted.length > 1 || ticket.cross.active,
-		},
-	};
+function initiatorDepartment(ticket: DemoTicket, state: AdminStoreState, initiatedBy: "ai" | string) {
+	if (initiatedBy === "ai") return ticket.ownerDept;
+	return state.admins.find((admin) => admin.id === initiatedBy)?.dept ?? ticket.ownerDept;
+}
+
+function hasAcceptedParticipantBeyondInitiator(ticket: DemoTicket, state: AdminStoreState, participants = ticket.cross?.participants ?? []) {
+	const initiatorDept = ticket.cross ? initiatorDepartment(ticket, state, ticket.cross.initiatedBy) : ticket.ownerDept;
+	return participants.some((participant) => participant.dept !== initiatorDept && participant.decision === "accepted");
 }
 
 export function adminReducer(state: AdminStoreState, action: AdminAction): AdminStoreState {
@@ -118,34 +116,43 @@ export function adminReducer(state: AdminStoreState, action: AdminAction): Admin
 		case "escalateCrossDept":
 			return {
 				...state,
-				tickets: withTicket(state.tickets, action.id, (ticket) =>
-					normalizeCrossActive({
+				tickets: withTicket(state.tickets, action.id, (ticket) => {
+					if (ticket.cross) return ticket;
+					const initiatorDept = initiatorDepartment(ticket, state, action.by);
+					const participants = Array.from(new Set([initiatorDept, ...action.depts.filter((dept) => dept !== initiatorDept)])).map((dept) => ({
+						dept,
+						decision: dept === initiatorDept ? "accepted" as const : "pending" as const,
+						...(dept === initiatorDept ? {} : { reason: action.reason }),
+					}));
+					return {
 						...ticket,
 						cross: {
 							initiatedBy: action.by,
-							participants: Array.from(new Set([ticket.ownerDept, ...action.depts])).map((dept) => ({
-								dept,
-								decision: dept === ticket.ownerDept ? "accepted" : "pending",
-								reason: dept === ticket.ownerDept ? undefined : action.reason,
-							})),
+							participants,
 							active: false,
-							tasks: ticket.cross?.tasks ?? [],
+							tasks: [],
 						},
-					}),
-				),
+					};
+				}),
 			};
 		case "respondCrossDept":
 			return {
 				...state,
 				tickets: withTicket(state.tickets, action.id, (ticket) => {
 					if (!ticket.cross) return ticket;
-					let participants = ticket.cross.participants.map((participant) => (participant.dept === action.dept ? { ...participant, decision: action.decision, reason: action.reason } : participant));
-					const accepted = participants.filter((participant) => participant.decision === "accepted");
-					const pending = participants.filter((participant) => participant.decision === "pending");
-					if (action.decision === "rejected" && accepted.length === 1 && pending.length === 1) {
+					let participants = ticket.cross.participants.map((participant) =>
+						participant.dept === action.dept
+							? { ...participant, decision: action.decision, reason: action.reason ?? participant.reason }
+							: participant,
+					);
+					const initiatorDept = initiatorDepartment(ticket, state, ticket.cross.initiatedBy);
+					const acceptedTargets = participants.filter((participant) => participant.dept !== initiatorDept && participant.decision === "accepted");
+					const pendingTargets = participants.filter((participant) => participant.dept !== initiatorDept && participant.decision === "pending");
+					const autoAcceptLast = action.decision === "rejected" && acceptedTargets.length === 0 && pendingTargets.length === 1;
+					if (autoAcceptLast) {
 						participants = participants.map((participant) => (participant.decision === "pending" ? { ...participant, decision: "accepted" } : participant));
 					}
-					const next = { ...ticket, cross: { ...ticket.cross, participants, active: participants.filter((participant) => participant.decision === "accepted").length > 1 } };
+					const next = { ...ticket, cross: { ...ticket.cross, participants, active: ticket.cross.active || autoAcceptLast || hasAcceptedParticipantBeyondInitiator(ticket, state, participants) } };
 					return next;
 				}),
 			};

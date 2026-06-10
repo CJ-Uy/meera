@@ -45,7 +45,10 @@ export default function AdminInboxPage() {
 	const [filters, setFilters] = useState<InboxFilterState>(defaultFilters);
 	const [matrix, setMatrix] = useState<PriorityMatrixSelection | null>(null);
 
-	const departmentTickets = useMemo(() => admin.tickets.filter((ticket) => ticket.ownerDept === admin.activeDepartment), [admin.activeDepartment, admin.tickets]);
+	const departmentTickets = useMemo(
+		() => admin.tickets.filter((ticket) => ticket.ownerDept === admin.activeDepartment || Boolean(ticket.cross?.participants.some((participant) => participant.dept === admin.activeDepartment))),
+		[admin.activeDepartment, admin.tickets],
+	);
 	const tags = useMemo(() => Array.from(new Set(departmentTickets.map((ticket) => ticket.tag))).sort(), [departmentTickets]);
 	const visibleTickets = useMemo(
 		() => sortTickets(departmentTickets.filter((ticket) => matchesSearch(ticket, search) && matchesFilters(ticket, filters, matrix)), sortMode),

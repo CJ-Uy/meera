@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon, Pill } from "@/components/demo/shared";
+import { CrossDeptBadge } from "@/features/admin/components/crossdept/CrossDeptBadge";
 import { useAdmin } from "@/features/admin/store/admin-store";
 import type { DemoTicket, Severity } from "@/features/admin/types";
 
@@ -25,9 +26,9 @@ export function QueueRow({ ticket, active, onClick }: { ticket: DemoTicket; acti
 				<Pill tint="teal"><Icon name="sparkle" size={10} />{ticket.tag}</Pill>
 				<Pill>{ticket.status}</Pill>
 				<Pill tint={ticket.claimedBy ? "green" : "default"}>{claimedByName ? `Claimed by ${claimedByName}` : "Unclaimed"}</Pill>
-				{ticket.cross ? <Pill tint="sand">Cross-dept</Pill> : null}
 				{ticket.edited ? <Pill tint="green">Edited</Pill> : null}
 			</div>
+			{ticket.cross ? <div className="mt-2"><CrossDeptBadge ticket={ticket} compact /></div> : null}
 		</button>
 	);
 }

@@ -1,6 +1,10 @@
 "use client";
 
 import { Confidence, Icon, IconChip, Pill, type IconName } from "@/components/demo/shared";
+import { AcceptRejectPanel } from "@/features/admin/components/crossdept/AcceptRejectPanel";
+import { CollaborationWorkspace } from "@/features/admin/components/crossdept/CollaborationWorkspace";
+import { CrossDeptBadge } from "@/features/admin/components/crossdept/CrossDeptBadge";
+import { EscalateCrossDept } from "@/features/admin/components/crossdept/EscalateCrossDept";
 import { KbIngestPrompt } from "@/features/admin/components/kb/KbIngestPrompt";
 import { AdminThread } from "@/features/admin/components/thread/AdminThread";
 import { DibsButton } from "@/features/admin/components/thread/DibsButton";
@@ -47,9 +51,9 @@ export function TicketDetail({ ticket }: { ticket: DemoTicket }) {
 				<Pill>{ticket.status}</Pill>
 				<Pill tint={ticket.claimedBy ? "green" : "default"}>{claimedByName ? `Claimed by ${claimedByName}` : "Unclaimed"}</Pill>
 				{ticket.kbIngested ? <Pill tint="green">In knowledge base</Pill> : null}
-				{ticket.cross ? <Pill tint="sand">Cross-dept</Pill> : null}
 				{ticket.edited ? <Pill tint="green">Edited by staff</Pill> : null}
 			</div>
+			{ticket.cross ? <div className="mb-4"><CrossDeptBadge ticket={ticket} /></div> : null}
 			<DetailBlock icon="sparkle" label="AI summary">{ticket.aiSummary}</DetailBlock>
 			<DetailBlock icon="layers" label="Collected information">{ticket.collectedInformation}</DetailBlock>
 			<DetailBlock icon="alert" label="Missing information">{ticket.missingInformation}</DetailBlock>
@@ -58,20 +62,17 @@ export function TicketDetail({ ticket }: { ticket: DemoTicket }) {
 					{ticket.suggestedActions.map((action) => <li key={action}>{action}</li>)}
 				</ul>
 			</DetailBlock>
-			{ticket.cross ? (
-				<div className="mt-3 flex gap-3 rounded-2xl border p-4" style={{ background: "#FBE7E0", borderColor: "#F3D2C6", color: "#8A4A33" }}>
-					<Icon name="alert" size={20} />
-					<div>
-						<div className="font-bold">Cross-department dependency</div>
-						<p className="mt-1 text-sm leading-6">
-							{ticket.cross.participants.map((participant) => `${DEPARTMENT_LABELS[participant.dept]} (${participant.decision})`).join(" + ")}
-						</p>
-					</div>
-				</div>
-			) : null}
+			<AcceptRejectPanel ticket={ticket} />
+			<EscalateCrossDept ticket={ticket} />
 			<KbIngestPrompt ticket={ticket} />
-			<AdminThread ticket={ticket} />
-			<NoteComposer ticketId={ticket.id} />
+			{ticket.cross?.active ? (
+				<CollaborationWorkspace ticket={ticket} />
+			) : (
+				<>
+					<AdminThread ticket={ticket} />
+					<NoteComposer ticketId={ticket.id} />
+				</>
+			)}
 		</section>
 	);
 }

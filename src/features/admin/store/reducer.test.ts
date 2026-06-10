@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { adminReducer, initialAdminStoreState } from "@/features/admin/store/reducer";
 import type { AdminStoreState } from "@/features/admin/store/reducer";
-import type { DemoTicket, KbNode } from "@/features/admin/types";
+import type { Admin, DemoTicket, KbNode } from "@/features/admin/types";
 
 function ticket(overrides: Partial<DemoTicket> = {}): DemoTicket {
 	return {
@@ -48,5 +48,47 @@ describe("admin reducer KB ingest", () => {
 
 		expect(next.tickets[0]?.kbIngested).toBe(true);
 		expect(next.kb.nodes).toContainEqual(node);
+	});
+});
+
+describe("admin reducer cross-department flow", () => {
+	it("auto-accepts the last pending department after an AI-initiated ticket is rejected by the other targets", () => {
+		const state: AdminStoreState = {
+			...initialAdminStoreState,
+			tickets: [ticket()],
+			loading: false,
+		};
+		const escalated = adminReducer(state, { type: "escalateCrossDept", id: "AIC-TEST", depts: ["REG", "MED", "SS"], by: "ai", reason: "Needs multi-office review" });
+		const afterFirstReject = adminReducer(escalated, { type: "respondCrossDept", id: "AIC-TEST", dept: "REG", decision: "rejected", reason: "Not a records issue" });
+
+		const next = adminReducer(afterFirstReject, { type: "respondCrossDept", id: "AIC-TEST", dept: "MED", decision: "rejected", reason: "No clinical action needed" });
+
+		const participants = next.tickets[0]?.cross?.participants;
+		expect(participants).toEqual([
+			{ dept: "IT", decision: "accepted" },
+			{ dept: "REG", decision: "rejected", reason: "Not a records issue" },
+			{ dept: "MED", decision: "rejected", reason: "No clinical action needed" },
+			{ dept: "SS", decision: "accepted", reason: "Needs multi-office review" },
+		]);
+		expect(next.tickets[0]?.cross?.active).toBe(true);
+	});
+
+	it("activates an admin-initiated ticket when one target department accepts", () => {
+		const admins: Admin[] = [{ id: "admin-reg-ana", name: "Ana Reyes", dept: "REG", role: "Registrar Coordinator" }];
+		const state: AdminStoreState = {
+			...initialAdminStoreState,
+			admins,
+			tickets: [ticket({ ownerDept: "IT" })],
+			loading: false,
+		};
+		const escalated = adminReducer(state, { type: "escalateCrossDept", id: "AIC-TEST", depts: ["FIN"], by: "admin-reg-ana", reason: "Finance needs to confirm hold status" });
+
+		const next = adminReducer(escalated, { type: "respondCrossDept", id: "AIC-TEST", dept: "FIN", decision: "accepted" });
+
+		expect(next.tickets[0]?.cross?.participants).toEqual([
+			{ dept: "REG", decision: "accepted" },
+			{ dept: "FIN", decision: "accepted", reason: "Finance needs to confirm hold status" },
+		]);
+		expect(next.tickets[0]?.cross?.active).toBe(true);
 	});
 });
