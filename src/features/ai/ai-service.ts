@@ -1,9 +1,10 @@
 import { getDatabaseAdapter } from "@/db";
-import { chatWithGroq, getGroqStatus } from "@/features/ai/groq-client";
+import { chatWithGroq, completeGroqText, getGroqStatus } from "@/features/ai/groq-client";
 import { supportTicketToDemoTicket } from "@/features/ai/support-ticket";
-import { chatWithWorkersAi, getWorkersAiStatus } from "@/features/ai/workers-ai-client";
+import { chatWithWorkersAi, completeWorkersAiText, getWorkersAiStatus } from "@/features/ai/workers-ai-client";
 import type {
 	AiChatRequest,
+	AiChatInputMessage,
 	AiChatResponse,
 	AiProviderName,
 	AiProviderStatus,
@@ -54,9 +55,62 @@ async function finalizeSupportResponse(request: AiChatRequest, response: AiChatR
 	}
 }
 
+export function parseSuggestedReplies(text: string): string[] {
+	const match = /\[[\s\S]*\]/.exec(text);
+	if (!match) return [];
+	try {
+		const parsed = JSON.parse(match[0]) as unknown;
+		if (!Array.isArray(parsed)) return [];
+		const seen = new Set<string>();
+		const replies: string[] = [];
+		for (const entry of parsed) {
+			if (typeof entry !== "string") continue;
+			const reply = entry.replace(/\s+/g, " ").trim();
+			if (!reply || reply.length > 80 || seen.has(reply.toLowerCase())) continue;
+			seen.add(reply.toLowerCase());
+			replies.push(reply);
+			if (replies.length >= 3) break;
+		}
+		return replies;
+	} catch {
+		return [];
+	}
+}
+
+function transcriptForSuggestions(messages: AiChatInputMessage[], assistantMessage: string) {
+	return [
+		...messages.slice(-6),
+		{ role: "assistant" as const, content: assistantMessage },
+	]
+		.map((message) => `${message.role}: ${message.content}`)
+		.join("\n");
+}
+
+async function generateSuggestedReplies(request: AiChatRequest, assistantMessage: string): Promise<string[]> {
+	const system =
+		"You write 2-3 SHORT first-person replies the STUDENT might send next in this support chat. Each <= 8 words, natural, varied, and one can decline or close. Return ONLY a JSON array of strings.";
+	const user = transcriptForSuggestions(request.messages, assistantMessage);
+	const raw =
+		configuredAiProvider() === "groq"
+			? await completeGroqText({ system, user })
+			: await completeWorkersAiText({ system, user });
+	return parseSuggestedReplies(raw);
+}
+
 export async function chatWithAi(request: AiChatRequest): Promise<AiChatResponse> {
 	const response = configuredAiProvider() === "groq" ? await chatWithGroq(request) : await chatWithWorkersAi(request);
-	if (request.mode === "support") return finalizeSupportResponse(request, response);
+	if (request.mode === "support") {
+		const finalized = await finalizeSupportResponse(request, response);
+		if (!request.wantsSuggestedReplies) return finalized;
+		try {
+			return {
+				...finalized,
+				suggestedReplies: await generateSuggestedReplies(request, finalized.message),
+			};
+		} catch {
+			return { ...finalized, suggestedReplies: [] };
+		}
+	}
 	return response;
 }
 

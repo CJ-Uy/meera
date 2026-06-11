@@ -60,6 +60,8 @@ export type AiChatRequest = {
 	groundingCandidates?: GroundingCandidate[];
 	/** Selects the system prompt + tools. Omitted/"overlay" preserves the original assistant behavior. */
 	mode?: AiChatMode;
+	/** Support mode only: ask for short student quick replies for the next turn. */
+	wantsSuggestedReplies?: boolean;
 };
 
 export type SupportOffice = "IT" | "Registrar" | "Finance/Billing" | "Medical/Campus Health" | "Student Services" | "General Support";
@@ -107,6 +109,8 @@ export type AiChatResponse = {
 	supportTicketArgs?: SupportTicketArgs;
 	/** Set after a support ticket is persisted; drives the student-facing confirmation card. */
 	ticket?: SupportTicketResult;
+	/** Optional quick replies for gamified support surfaces. */
+	suggestedReplies?: string[];
 };
 
 export type AiProviderName = "groq" | "workers-ai";
@@ -236,6 +240,7 @@ export function isAiChatRequest(value: unknown): value is AiChatRequest {
 		if (!value.groundingCandidates.every(isGroundingCandidate)) return false;
 	}
 	if (value.mode !== undefined && value.mode !== "overlay" && value.mode !== "support") return false;
+	if (value.wantsSuggestedReplies !== undefined && typeof value.wantsSuggestedReplies !== "boolean") return false;
 	return value.messages.at(-1)?.role === "user";
 }
 

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { chatWithAi, configuredAiProvider, getAiStatus } from "@/features/ai/ai-service";
+import { chatWithAi, configuredAiProvider, getAiStatus, parseSuggestedReplies } from "@/features/ai/ai-service";
 
 describe("AI provider service", () => {
 	beforeEach(() => {
@@ -81,5 +81,16 @@ describe("AI provider service", () => {
 		vi.stubGlobal("fetch", fetchMock);
 
 		await expect(getAiStatus()).resolves.toMatchObject({ available: false, provider: "workers-ai", configuredProvider: "workers-ai" });
+	});
+
+	it("parses suggested replies defensively", () => {
+		expect(parseSuggestedReplies('["I can try that","Please file a ticket","No thanks"]')).toEqual([
+			"I can try that",
+			"Please file a ticket",
+			"No thanks",
+		]);
+		expect(parseSuggestedReplies('Here: ["One","Two","Three","Four"]')).toEqual(["One", "Two", "Three"]);
+		expect(parseSuggestedReplies("not json")).toEqual([]);
+		expect(parseSuggestedReplies('{"not":"array"}')).toEqual([]);
 	});
 });

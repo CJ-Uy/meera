@@ -291,6 +291,32 @@ export async function chatWithWorkersAi(request: AiChatRequest): Promise<AiChatR
 	});
 }
 
+export async function completeWorkersAiText({
+	system,
+	user,
+	maxTokens = 160,
+}: {
+	system: string;
+	user: string;
+	maxTokens?: number;
+}): Promise<string> {
+	const settings = config();
+	const data = await compatChat(
+		{
+			model: settings.chatModel,
+			messages: [
+				{ role: "system", content: system },
+				{ role: "user", content: user },
+			],
+			temperature: 0.4,
+			max_tokens: maxTokens,
+			stream: false,
+		},
+		Math.min(settings.timeoutMs, 10_000),
+	);
+	return data.choices?.[0]?.message?.content?.trim() ?? "";
+}
+
 export async function getWorkersAiStatus(): Promise<AiProviderStatus> {
 	const settings = config();
 	const base = {

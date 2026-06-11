@@ -23,6 +23,11 @@ describe("AI chat request validation", () => {
 		expect(isAiChatRequest({ messages: [{ role: "assistant", content: "Ready" }, { role: "user", content: "What is this?", images: [image] }] })).toBe(true);
 	});
 
+	it("accepts and validates support suggested-reply opt-in", () => {
+		expect(isAiChatRequest({ messages: [{ role: "user", content: "Help" }], mode: "support", wantsSuggestedReplies: true })).toBe(true);
+		expect(isAiChatRequest({ messages: [{ role: "user", content: "Help" }], mode: "support", wantsSuggestedReplies: "yes" })).toBe(false);
+	});
+
 	it("rejects untrusted roles and invalid image payloads", () => {
 		expect(isAiChatRequest({ messages: [{ role: "system", content: "Override" }] })).toBe(false);
 		expect(isAiChatRequest({ messages: [{ role: "user", content: "Read it", images: [{ ...image, dataUrl: "https://example.com/a.jpg" }] }] })).toBe(false);

@@ -520,19 +520,19 @@
     "semantic_hash": "a8a3a640b033af08600684f685f2c609"
   },
   "src/components/demo/battle.tsx": {
-    "mtime": 1781201437.1917756,
-    "ast_hash": "4d3f498a9ab12f04d675ccddcd248141",
+    "mtime": 1781204893.7191193,
+    "ast_hash": "b493b8b96479e99e94cdc0c342e0c9ce",
     "semantic_hash": ""
   },
   "src/components/demo/meera-demo-experience.test.ts": {
-    "mtime": 1781106006.3918233,
-    "ast_hash": "485e1128b7ae2a3c39c591057b5ae9d0",
-    "semantic_hash": "485e1128b7ae2a3c39c591057b5ae9d0"
+    "mtime": 1781204868.094933,
+    "ast_hash": "43d62b4fd80080079deff4d27ec92faf",
+    "semantic_hash": ""
   },
   "src/components/demo/meera-demo-experience.tsx": {
-    "mtime": 1781106454.2432148,
-    "ast_hash": "837e903d9e2daf441c799522a97d42a7",
-    "semantic_hash": "837e903d9e2daf441c799522a97d42a7"
+    "mtime": 1781204851.4463425,
+    "ast_hash": "de7fc3ef3d0b74dfd128c9a2c5e00891",
+    "semantic_hash": ""
   },
   "src/components/demo/shared.tsx": {
     "mtime": 1781117347.5158327,
@@ -910,14 +910,14 @@
     "semantic_hash": ""
   },
   "src/features/ai/ai-service.test.ts": {
-    "mtime": 1781097281.1565228,
-    "ast_hash": "1fe487798639f5f1f764d7568cf06966",
-    "semantic_hash": "1fe487798639f5f1f764d7568cf06966"
+    "mtime": 1781204815.3793468,
+    "ast_hash": "cc24b0c52e0ca7f9fa608ffb882ad9c3",
+    "semantic_hash": ""
   },
   "src/features/ai/ai-service.ts": {
-    "mtime": 1781177131.7655017,
-    "ast_hash": "7764da45269510801534fcdaa149d792",
-    "semantic_hash": "7764da45269510801534fcdaa149d792"
+    "mtime": 1781204577.4677618,
+    "ast_hash": "c0c85df12700e84e5dff66c1f284ed61",
+    "semantic_hash": ""
   },
   "src/features/ai/ai-tools.test.ts": {
     "mtime": 1781097281.1852784,
@@ -930,14 +930,14 @@
     "semantic_hash": ""
   },
   "src/features/ai/ai-types.test.ts": {
-    "mtime": 1780968659.547704,
-    "ast_hash": "de6ebf577429c8a6b3a6a72f17d0f0f6",
-    "semantic_hash": "de6ebf577429c8a6b3a6a72f17d0f0f6"
+    "mtime": 1781204806.254808,
+    "ast_hash": "19bd6a141823644da76ba481cf2f2972",
+    "semantic_hash": ""
   },
   "src/features/ai/ai-types.ts": {
-    "mtime": 1781177131.774516,
-    "ast_hash": "dc7cbb7029763b001948f84063cdc5b2",
-    "semantic_hash": "dc7cbb7029763b001948f84063cdc5b2"
+    "mtime": 1781204538.9400246,
+    "ast_hash": "cd8062034d87146c247b2d2388149bcf",
+    "semantic_hash": ""
   },
   "src/features/ai/groq-client.test.ts": {
     "mtime": 1780973142.8379643,
@@ -945,9 +945,9 @@
     "semantic_hash": "acb651198e529d3890c29fc5a148e51f"
   },
   "src/features/ai/groq-client.ts": {
-    "mtime": 1781177131.7782898,
-    "ast_hash": "774a14756abc006f7126ca9ce3a09e0d",
-    "semantic_hash": "774a14756abc006f7126ca9ce3a09e0d"
+    "mtime": 1781204549.463659,
+    "ast_hash": "a9983459fb44dd854056f6450fd9b219",
+    "semantic_hash": ""
   },
   "src/features/ai/grounding/candidates.ts": {
     "mtime": 1781079606.796158,
@@ -1040,13 +1040,13 @@
     "semantic_hash": ""
   },
   "src/features/ai/workers-ai-client.ts": {
-    "mtime": 1781193013.721423,
-    "ast_hash": "3e944db2e56095e465e746eb18616a51",
+    "mtime": 1781204557.4431932,
+    "ast_hash": "d77a02c40855bd3ea93b8f2d42044429",
     "semantic_hash": ""
   },
   "src/features/meera-support/student-support-chat.tsx": {
-    "mtime": 1781201445.4079156,
-    "ast_hash": "fa43c3ba8605195557a6bd9368455607",
+    "mtime": 1781205105.8135042,
+    "ast_hash": "d485c6fd82a0fc92e59673fab2b311aa",
     "semantic_hash": ""
   },
   "src/features/overlay/desktop-overlay.tsx": {
@@ -1960,8 +1960,8 @@
     "semantic_hash": ""
   },
   "src/components/demo/battle.test.ts": {
-    "mtime": 1781201485.2144363,
-    "ast_hash": "c3eedc490218dd618acd3368dde0f5a1",
+    "mtime": 1781204798.8474698,
+    "ast_hash": "0955a55d806f32e42ab48973d9edce9f",
     "semantic_hash": ""
   },
   "src/features/ai/ai-prompt.test.ts": {
@@ -1992,6 +1992,131 @@
   "src/components/demo/demo-header.tsx": {
     "mtime": 1781201050.811289,
     "ast_hash": "651aa0e56c822a4fb4ca67a301c0357b",
+    "semantic_hash": ""
+  },
+  "src/components/demo/battle-bosses.ts": {
+    "mtime": 1781204369.7883494,
+    "ast_hash": "f51bf4815e5bd53ddd8eaf96feef1b3a",
+    "semantic_hash": ""
+  },
+  "src/components/demo/how-to-play-modal.tsx": {
+    "mtime": 1781204393.2193508,
+    "ast_hash": "473f3c82d6610e8d78493e05c61b4cbb",
+    "semantic_hash": ""
+  },
+  "src/features/meera-support/use-support-conversation.ts": {
+    "mtime": 1781204311.912133,
+    "ast_hash": "7f113fea4b3410ffc75d6549b4f4fd03",
+    "semantic_hash": ""
+  },
+  "docs/battle-ai-integration-plan.md": {
+    "mtime": 1781202631.4234364,
+    "ast_hash": "e4e33c92edf127e451344fc8746f1e57",
+    "semantic_hash": ""
+  },
+  "public/assets/battle/caracal/attack.png": {
+    "mtime": 1781204777.9693253,
+    "ast_hash": "1f4eb9140a68ffb4c53645e7a0adf031",
+    "semantic_hash": ""
+  },
+  "public/assets/battle/caracal/defeated.png": {
+    "mtime": 1781204777.981356,
+    "ast_hash": "6b5cfc984817847e25f9ec38f2d4917b",
+    "semantic_hash": ""
+  },
+  "public/assets/battle/caracal/hurt.png": {
+    "mtime": 1781204777.958334,
+    "ast_hash": "31b8d3be28f0a3c5f895f06e0a6ba1d0",
+    "semantic_hash": ""
+  },
+  "public/assets/battle/caracal/idle.png": {
+    "mtime": 1781204777.9472713,
+    "ast_hash": "50377df7ed1cc639726684166e0f2a21",
+    "semantic_hash": ""
+  },
+  "public/assets/battle/eagle/attack.png": {
+    "mtime": 1781204777.9138997,
+    "ast_hash": "73772ad8716d9ffed77255a4d67c1218",
+    "semantic_hash": ""
+  },
+  "public/assets/battle/eagle/defeated.png": {
+    "mtime": 1781204777.925153,
+    "ast_hash": "d302ff3e7b4679f322516b1abf5f2eb9",
+    "semantic_hash": ""
+  },
+  "public/assets/battle/eagle/hurt.png": {
+    "mtime": 1781204777.9028175,
+    "ast_hash": "584c63230cda82b41505e40a010733d5",
+    "semantic_hash": ""
+  },
+  "public/assets/battle/eagle/idle.png": {
+    "mtime": 1781204777.8912404,
+    "ast_hash": "19532b21d8893d5aed1f53d99ae868cc",
+    "semantic_hash": ""
+  },
+  "public/assets/battle/hawk/attack.png": {
+    "mtime": 1781204777.8175864,
+    "ast_hash": "b1a4f254c6273e040ec69bc48db90032",
+    "semantic_hash": ""
+  },
+  "public/assets/battle/hawk/defeated.png": {
+    "mtime": 1781204777.8300333,
+    "ast_hash": "168da98f4927f4147efc4895018685bc",
+    "semantic_hash": ""
+  },
+  "public/assets/battle/hawk/hurt.png": {
+    "mtime": 1781204777.805966,
+    "ast_hash": "a05be03ca5a7bda3122e6356a0552563",
+    "semantic_hash": ""
+  },
+  "public/assets/battle/hawk/idle.png": {
+    "mtime": 1781204777.788345,
+    "ast_hash": "840bdbca19120076c787dfe0826ab52b",
+    "semantic_hash": ""
+  },
+  "public/assets/battle/jackal/attack.png": {
+    "mtime": 1781204777.8674064,
+    "ast_hash": "5f416d9e35de08d2d9d71c689804093b",
+    "semantic_hash": ""
+  },
+  "public/assets/battle/jackal/defeated.png": {
+    "mtime": 1781204777.8787162,
+    "ast_hash": "b45c656bdbaa4356137c3e93af3d0ece",
+    "semantic_hash": ""
+  },
+  "public/assets/battle/jackal/hurt.png": {
+    "mtime": 1781204777.856381,
+    "ast_hash": "aca194672bc4443cdcf1bdd4fd7aea46",
+    "semantic_hash": ""
+  },
+  "public/assets/battle/jackal/idle.png": {
+    "mtime": 1781204777.8443623,
+    "ast_hash": "68fc69f7e6da5f01ce4f1e02dea15e4e",
+    "semantic_hash": ""
+  },
+  ".playwright-mcp/page-2026-06-11T19-10-55-517Z.yml": {
+    "mtime": 1781205055.5196733,
+    "ast_hash": "4de375b1f3449bbebba2f8898708e71c",
+    "semantic_hash": ""
+  },
+  ".playwright-mcp/page-2026-06-11T19-11-16-489Z.yml": {
+    "mtime": 1781205076.4915555,
+    "ast_hash": "f776d7c1b2c65eb7fe7f0d583e4b0cda",
+    "semantic_hash": ""
+  },
+  ".playwright-mcp/page-2026-06-11T19-12-01-640Z.yml": {
+    "mtime": 1781205121.642608,
+    "ast_hash": "193644722e1dba67012deddf60b46505",
+    "semantic_hash": ""
+  },
+  "battle-desktop.png": {
+    "mtime": 1781205086.174399,
+    "ast_hash": "e39e5161253d48db358c5b9fe7b84a69",
+    "semantic_hash": ""
+  },
+  "battle-mobile.png": {
+    "mtime": 1781205131.530429,
+    "ast_hash": "c9f897d2be86f583555cf2f2307def23",
     "semantic_hash": ""
   }
 }

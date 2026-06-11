@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   asset,
   Button,
@@ -14,39 +14,17 @@ import {
 } from "@/components/demo/shared";
 import { BattleView } from "@/components/demo/battle";
 import { DemoHeader } from "@/components/demo/demo-header";
-import { useSpeech, useVoiceInput } from "@/features/ai/voice";
 import {
   CASE_DEPARTMENTS,
-  deriveCaseStage,
   type CaseStage,
 } from "@/features/meera-support/support-stage";
-import type {
-  AiChatResponse,
-  SupportTicketResult,
-} from "@/features/ai/ai-types";
-
-type SupportMessage = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  ticket?: SupportTicketResult;
-};
+import {
+  useSupportConversation,
+  type SupportMessage,
+} from "@/features/meera-support/use-support-conversation";
+import type { SupportTicketResult } from "@/features/ai/ai-types";
 
 type StudentView = "chat" | "battle";
-
-const WELCOME: SupportMessage = {
-  id: "welcome",
-  role: "assistant",
-  content:
-    "Hi, I'm Meera. Tell me what's going on in your own words. No need to pick a department. I'll help where I can and get the right office involved if needed.",
-};
-
-function newId() {
-  return (
-    globalThis.crypto?.randomUUID?.() ??
-    `m-${Date.now()}-${Math.random().toString(16).slice(2)}`
-  );
-}
 
 const priorityTint: Record<
   SupportTicketResult["priority"],
@@ -362,16 +340,21 @@ function ViewToggle({
 
 export function StudentSupportChat() {
   const [view, setView] = useState<StudentView>("chat");
-  const [messages, setMessages] = useState<SupportMessage[]>([WELCOME]);
-  const [draft, setDraft] = useState("");
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [continuing, setContinuing] = useState(false);
-  const { speakingId, speak } = useSpeech();
-  const appendTranscript = useCallback((text: string) => {
-    setDraft((current) => (current.trim() ? `${current} ${text}` : text));
-  }, []);
-  const voice = useVoiceInput(appendTranscript);
+  const conversation = useSupportConversation();
+  const {
+    messages,
+    sending,
+    error,
+    draft,
+    setDraft,
+    sendText,
+    caseStage,
+    continuing,
+    setContinuing,
+    voice,
+    speakingId,
+    speak,
+  } = conversation;
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -381,82 +364,7 @@ export function StudentSupportChat() {
     });
   }, [messages, sending]);
 
-  // After Meera replies, drop any manual "keep chatting" override so a fresh closing message can
-  // re-show the resolved state. The student opts back in per turn via the resolved bar.
-  useEffect(() => {
-    if (messages.at(-1)?.role === "assistant") setContinuing(false);
-  }, [messages]);
-
-  const latestTicket = useMemo(
-    () =>
-      [...messages].reverse().find((message) => message.ticket)?.ticket ?? null,
-    [messages],
-  );
-  const caseStage = useMemo(
-    () =>
-      deriveCaseStage({
-        messages: messages.filter((message) => message.id !== "welcome"),
-        ticket: latestTicket,
-        hasError: Boolean(error),
-      }),
-    [error, latestTicket, messages],
-  );
   const caseLabel = caseStage.fixed ? "Resolved" : caseLabels[caseStage.stage];
-
-  const sendText = useCallback(
-    async (nextText?: string) => {
-      const text = (nextText ?? draft).trim();
-      if (!text || sending) return;
-      const userMessage: SupportMessage = {
-        id: newId(),
-        role: "user",
-        content: text,
-      };
-      const history = [...messages, userMessage]
-        .filter((message) => message.id !== "welcome")
-        .slice(-12)
-        .map((message) => ({ role: message.role, content: message.content }));
-
-      setMessages((current) => [...current, userMessage]);
-      setDraft("");
-      setSending(true);
-      setError(null);
-      try {
-        const response = await fetch("/api/ai/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: history, mode: "support" }),
-        });
-        const body = (await response.json()) as AiChatResponse & {
-          error?: string;
-        };
-        if (!response.ok)
-          throw new Error(body.error || "Meera could not respond.");
-        setMessages((current) => [
-          ...current,
-          {
-            id: newId(),
-            role: "assistant",
-            content: body.message,
-            ...(body.ticket ? { ticket: body.ticket } : {}),
-          },
-        ]);
-      } catch (sendError) {
-        setMessages((current) =>
-          current.filter((message) => message.id !== userMessage.id),
-        );
-        setDraft(text);
-        setError(
-          sendError instanceof Error
-            ? sendError.message
-            : "Meera could not respond.",
-        );
-      } finally {
-        setSending(false);
-      }
-    },
-    [draft, messages, sending],
-  );
 
   if (view === "battle") {
     return (
@@ -466,7 +374,7 @@ export function StudentSupportChat() {
       >
         <DemoHeader persona="student">
           <span
-            className="flex items-center gap-1.5 font-['DM_Mono'] text-[11px]"
+            className="hidden items-center gap-1.5 font-['DM_Mono'] text-[11px] sm:flex"
             style={{ color: "var(--green)" }}
           >
             <span className="size-1.5 rounded-full" style={{ background: "var(--green)" }} />
@@ -477,7 +385,7 @@ export function StudentSupportChat() {
           </div>
         </DemoHeader>
         <div className="flex min-h-0 flex-1 overflow-hidden">
-          <BattleView />
+          <BattleView conversation={conversation} />
         </div>
       </div>
     );
@@ -490,7 +398,7 @@ export function StudentSupportChat() {
     >
       <DemoHeader persona="student">
         <span
-          className="flex items-center gap-1.5 font-['DM_Mono'] text-[11px]"
+          className="hidden items-center gap-1.5 font-['DM_Mono'] text-[11px] sm:flex"
           style={{ color: "var(--green)" }}
         >
           <span className="size-1.5 rounded-full" style={{ background: "var(--green)" }} />
@@ -562,7 +470,9 @@ export function StudentSupportChat() {
                   <button
                     key={prompt}
                     type="button"
-                    onClick={() => void sendText(prompt)}
+                    onClick={() =>
+                      void sendText(prompt, { wantsSuggestedReplies: false })
+                    }
                     className="rounded-full border bg-[#FCFAF6] px-3 py-1.5 text-[12px] font-bold transition hover:-translate-y-0.5"
                     style={{ borderColor: "var(--line)" }}
                   >
