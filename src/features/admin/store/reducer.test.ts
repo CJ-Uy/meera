@@ -111,4 +111,40 @@ describe("admin reducer cross-department flow", () => {
 		]);
 		expect(next.tickets[0]?.cross?.active).toBe(true);
 	});
+
+	it("adds new participants to an existing cross-department ticket", () => {
+		const state: AdminStoreState = {
+			...initialAdminStoreState,
+			admins: [{ id: "admin-it-maya", name: "Maya Chen", dept: "IT", role: "IT Help Desk" }],
+			tickets: [
+				ticket({
+					ownerDept: "IT",
+					cross: {
+						initiatedBy: "ai",
+						active: true,
+						participants: [
+							{ dept: "IT", decision: "accepted" },
+							{ dept: "REG", decision: "accepted", reason: "Needs records review" },
+						],
+						tasks: [],
+					},
+				}),
+			],
+			loading: false,
+		};
+
+		const next = adminReducer(state, {
+			type: "escalateCrossDept",
+			id: "AIC-TEST",
+			depts: ["REG", "FIN"],
+			by: "admin-it-maya",
+			reason: "Finance needs to verify payment.",
+		});
+
+		expect(next.tickets[0]?.cross?.participants).toEqual([
+			{ dept: "IT", decision: "accepted" },
+			{ dept: "REG", decision: "accepted", reason: "Needs records review" },
+			{ dept: "FIN", decision: "pending", reason: "Finance needs to verify payment." },
+		]);
+	});
 });

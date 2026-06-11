@@ -123,8 +123,21 @@ export function adminReducer(state: AdminStoreState, action: AdminAction): Admin
 			return {
 				...state,
 				tickets: withTicket(state.tickets, action.id, (ticket) => {
-					if (ticket.cross) return ticket;
 					const initiatorDept = initiatorDepartment(ticket, state, action.by);
+					if (ticket.cross) {
+						const existingDepts = new Set(ticket.cross.participants.map((participant) => participant.dept));
+						const newParticipants = action.depts
+							.filter((dept) => dept !== initiatorDept && !existingDepts.has(dept))
+							.map((dept) => ({ dept, decision: "pending" as const, reason: action.reason }));
+						if (newParticipants.length === 0) return ticket;
+						return {
+							...ticket,
+							cross: {
+								...ticket.cross,
+								participants: [...ticket.cross.participants, ...newParticipants],
+							},
+						};
+					}
 					const participants = Array.from(new Set([initiatorDept, ...action.depts.filter((dept) => dept !== initiatorDept)])).map((dept) => ({
 						dept,
 						decision: dept === initiatorDept ? "accepted" as const : "pending" as const,

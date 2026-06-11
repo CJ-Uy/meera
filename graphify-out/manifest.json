@@ -595,13 +595,13 @@
     "semantic_hash": "c13716e26d29ac3c44848c4bdcc6fc1a"
   },
   "src/db/adapters/d1.ts": {
-    "mtime": 1781206206.2860625,
-    "ast_hash": "3ca92fc5b1ff32566425d3001b8a8a21",
+    "mtime": 1781206492.2783425,
+    "ast_hash": "485cd0c4b3e1a39de543a67b175978ff",
     "semantic_hash": ""
   },
   "src/db/adapters/local-sqlite.ts": {
-    "mtime": 1781206196.7375774,
-    "ast_hash": "8275937a52f83352b8f1e278841af57b",
+    "mtime": 1781206482.393852,
+    "ast_hash": "86a63f4075049acf26c0184af94aa318",
     "semantic_hash": ""
   },
   "src/db/adapters/shared-api.ts": {
@@ -665,9 +665,9 @@
     "semantic_hash": "81f09659640cbe35390595e84d4e4491"
   },
   "src/features/admin/components/crossdept/EscalateCrossDept.tsx": {
-    "mtime": 1781109833.4795864,
-    "ast_hash": "569d2a375d75b2c4355826a009420822",
-    "semantic_hash": "569d2a375d75b2c4355826a009420822"
+    "mtime": 1781206462.001629,
+    "ast_hash": "4831c84b95d808600a72dbb62e09c285",
+    "semantic_hash": ""
   },
   "src/features/admin/components/crossdept/TaskBoard.tsx": {
     "mtime": 1781109833.7274928,
@@ -870,13 +870,13 @@
     "semantic_hash": ""
   },
   "src/features/admin/store/reducer.test.ts": {
-    "mtime": 1781206246.6956298,
-    "ast_hash": "4088829f0e543d2532582bdcc81fd3b2",
+    "mtime": 1781206520.5496364,
+    "ast_hash": "33684cd0bc098f970ec5274096660b11",
     "semantic_hash": ""
   },
   "src/features/admin/store/reducer.ts": {
-    "mtime": 1781206146.1543634,
-    "ast_hash": "cdd434547b3d878866c22ffaccada912",
+    "mtime": 1781206471.5813165,
+    "ast_hash": "a3ad2144038a7324225ace7f2c2f7e3c",
     "semantic_hash": ""
   },
   "src/features/admin/store/source-selection.test.ts": {
@@ -900,8 +900,8 @@
     "semantic_hash": "c2bc316bbb6191b806ac0c48430d1600"
   },
   "src/features/ai/ai-prompt.ts": {
-    "mtime": 1781193013.7123764,
-    "ast_hash": "4a275c63a4ebb7789d496184c86b82e9",
+    "mtime": 1781206446.6825933,
+    "ast_hash": "b288d32d5054c33915c465753a890f38",
     "semantic_hash": ""
   },
   "src/features/ai/ai-provider-utils.ts": {
@@ -1965,8 +1965,8 @@
     "semantic_hash": ""
   },
   "src/features/ai/ai-prompt.test.ts": {
-    "mtime": 1781193013.7108736,
-    "ast_hash": "bac695a99c4a746e6a3e295854990f16",
+    "mtime": 1781206506.994702,
+    "ast_hash": "e0c56708af12e506bed3e17d4947c1df",
     "semantic_hash": ""
   },
   "src/features/meera-support/student-support-chat.test.ts": {
@@ -2094,19 +2094,9 @@
     "ast_hash": "68fc69f7e6da5f01ce4f1e02dea15e4e",
     "semantic_hash": ""
   },
-  ".playwright-mcp/page-2026-06-11T19-31-54-509Z.yml": {
-    "mtime": 1781206314.5103362,
-    "ast_hash": "3948ea8f113692495e2329e0006bb097",
-    "semantic_hash": ""
-  },
-  ".playwright-mcp/page-2026-06-11T19-32-04-059Z.yml": {
-    "mtime": 1781206324.0610242,
-    "ast_hash": "b0ffa919073683c2009797b320a494c9",
-    "semantic_hash": ""
-  },
-  ".playwright-mcp/page-2026-06-11T19-32-17-007Z.yml": {
-    "mtime": 1781206337.0087292,
-    "ast_hash": "66202157a56feb8b8158faa6983b0d7d",
+  ".playwright-mcp/page-2026-06-11T19-36-32-621Z.yml": {
+    "mtime": 1781206592.6223266,
+    "ast_hash": "6041d1e3faee4fe878830dbb5d3eafc9",
     "semantic_hash": ""
   }
 }

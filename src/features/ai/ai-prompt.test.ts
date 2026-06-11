@@ -11,4 +11,10 @@ describe("Meera support prompt", () => {
 		const createTicket = AI_SUPPORT_TOOLS.find((tool) => tool.function.name === "create_support_ticket");
 		expect(createTicket?.function.description).toContain("after appropriate probing and safe resolution attempts");
 	});
+
+	it("biases support chat and battle toward asking for missing information", () => {
+		expect(MEERA_SUPPORT_SYSTEM_PROMPT).toContain("Bias toward collecting missing information");
+		expect(MEERA_SUPPORT_SYSTEM_PROMPT).toContain("ask up to two high-value missing-info questions");
+		expect(MEERA_SUPPORT_SYSTEM_PROMPT).toContain("If important ticket fields are still missing, ask for them first");
+	});
 });

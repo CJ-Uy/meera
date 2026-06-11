@@ -1,7 +1,7 @@
 # Graph Report - meera  (2026-06-12)
 
 ## Corpus Check
-- 373 files · ~616,551 words
+- 373 files · ~615,981 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7a3cbfce`
+- Built from commit: `5f2f9b8b`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
