@@ -1,7 +1,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { deriveSupportStage } from "@/features/meera-support/support-stage";
+import {
+  deriveCaseStage,
+  deriveSupportStage,
+} from "@/features/meera-support/support-stage";
 import type { SupportTicketResult } from "@/features/ai/ai-types";
 
 const ticket: SupportTicketResult = {
@@ -54,7 +57,7 @@ describe("student demo live support page", () => {
     ).toBe("ticket-created");
   });
 
-  it("shows admin knowledge graph cues and ticket visibility copy", () => {
+  it("shows the case meter and ticket visibility copy", () => {
     const source = readFileSync(
       join(
         process.cwd(),
@@ -63,9 +66,48 @@ describe("student demo live support page", () => {
       "utf8",
     );
 
-    expect(source).toContain("Admin knowledge graph");
+    expect(source).toContain("Case meter");
+    expect(source).toContain("CaseMeter");
     expect(source).toContain("Visible in admin");
     expect(source).toContain("/demo/admin/inbox");
+  });
+
+  it("advances the case meter from intake through a filed ticket", () => {
+    expect(deriveCaseStage({ messages: [], ticket: null }).stage).toBe(0);
+    expect(
+      deriveCaseStage({
+        messages: [{ role: "user", content: "My Wi-Fi is down" }],
+        ticket: null,
+      }).stage,
+    ).toBe(1);
+    expect(
+      deriveCaseStage({
+        messages: [
+          { role: "user", content: "My Wi-Fi is down" },
+          { role: "assistant", content: "When did it start?" },
+        ],
+        ticket: null,
+      }).stage,
+    ).toBe(2);
+    expect(
+      deriveCaseStage({
+        messages: [
+          { role: "user", content: "My Wi-Fi is down" },
+          { role: "assistant", content: "I am routing this to IT staff." },
+        ],
+        ticket: null,
+      }).stage,
+    ).toBe(3);
+    const packaged = deriveCaseStage({ messages: [], ticket });
+    expect(packaged.stage).toBe(4);
+    expect(packaged.fixed).toBe(true);
+    expect(
+      deriveCaseStage({
+        messages: [{ role: "user", content: "help" }],
+        ticket: null,
+        hasError: true,
+      }).damage,
+    ).toBe(true);
   });
 
   it("includes a chat-to-battle toggle on the student screen", () => {

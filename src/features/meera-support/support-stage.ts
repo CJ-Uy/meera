@@ -25,6 +25,45 @@ function departmentsFrom(text: string, ticket: SupportTicketResult | null) {
 	return departments.filter((department) => source.includes(department.toLowerCase().replace("finance", "finance")) || (department === "Finance" && source.includes("billing")));
 }
 
+/**
+ * Case-meter progress derived from the live conversation. Mirrors the playful "mound" meter on main,
+ * but driven by the real transcript instead of a hardcoded script:
+ *   0 Ready · 1 Student heard · 2 Researched · 3 Diagnosed · 4 Case packaged (ticket filed).
+ * `damage` flags a transient setback (a failed send) so the meter can shake; `fixed` marks resolution.
+ */
+export type CaseStage = {
+	stage: 0 | 1 | 2 | 3 | 4;
+	damage: boolean;
+	fixed: boolean;
+};
+
+// Heuristic for "Meera is handing off" language. Avoids bare department codes like "IT" because, case-
+// insensitively, they collide with common words (e.g. the pronoun "it").
+const ROUTING_SIGNAL = /(rout|escalat|\boffice\b|\bstaff\b|registrar|finance|billing|department|campus health|student services)/i;
+
+export function deriveCaseStage({
+	messages,
+	ticket,
+	hasError = false,
+}: {
+	messages: SupportStageMessage[];
+	ticket: SupportTicketResult | null;
+	hasError?: boolean;
+}): CaseStage {
+	if (ticket) return { stage: 4, damage: false, fixed: true };
+
+	const userCount = messages.filter((message) => message.role === "user").length;
+	const assistantCount = messages.filter((message) => message.role === "assistant").length;
+	const routing = messages.some((message) => message.role === "assistant" && ROUTING_SIGNAL.test(message.content));
+
+	let stage: CaseStage["stage"] = 0;
+	if (userCount >= 1) stage = 1;
+	if (assistantCount >= 1) stage = 2;
+	if (assistantCount >= 2 || routing) stage = 3;
+
+	return { stage, damage: hasError, fixed: false };
+}
+
 export function deriveSupportStage({
 	messages,
 	sending,

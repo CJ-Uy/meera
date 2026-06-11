@@ -3,19 +3,22 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  asset,
   Button,
   Card,
   Icon,
+  type IconName,
   MeerkatMark,
   Pill,
   SpeechControl,
   VoiceInputControl,
 } from "@/components/demo/shared";
 import { BattleView } from "@/components/demo/battle";
+import { PersonaSwitch } from "@/components/demo/persona-switch";
 import { useSpeech, useVoiceInput } from "@/features/ai/voice";
 import {
-  deriveSupportStage,
-  type SupportStage,
+  deriveCaseStage,
+  type CaseStage,
 } from "@/features/meera-support/support-stage";
 import type {
   AiChatResponse,
@@ -141,133 +144,119 @@ const suggestedPrompts = [
   "My payment still shows unpaid after I submitted proof.",
 ];
 
-const stageCopy: Record<
-  SupportStage["state"],
-  {
-    icon: "chat" | "sparkle" | "route" | "ticket";
-    tint: "teal" | "sand" | "green";
-    detail: string;
-  }
-> = {
-  ready: {
-    icon: "chat",
-    tint: "teal",
-    detail: "Start with plain language. Meera handles classification.",
-  },
-  probing: {
-    icon: "sparkle",
-    tint: "sand",
-    detail: "Asking targeted questions and checking escalation boundaries.",
-  },
-  routing: {
-    icon: "route",
-    tint: "teal",
-    detail: "Mapping the issue to the right admin team and handoff path.",
-  },
-  "ticket-created": {
-    icon: "ticket",
-    tint: "green",
-    detail: "Saved to the shared dev database for the admin inbox.",
-  },
-};
+const caseLabels = ["Ready", "Student heard", "Researched", "Diagnosed", "Case packaged"] as const;
 
-function IntakeStagePanel({
-  stage,
-  ticket,
-}: {
-  stage: SupportStage;
-  ticket: SupportTicketResult | null;
-}) {
-  const copy = stageCopy[stage.state];
-  const departments = [
-    "IT",
-    "Registrar",
-    "Finance",
-    "Health",
-    "Student Services",
-  ];
+const moundLayers: { label: string; icon: IconName; note: string }[] = [
+  { label: "Student heard", icon: "chat", note: "issue captured" },
+  { label: "Researched", icon: "book", note: "knowledge base checked" },
+  { label: "Diagnosed", icon: "sparkle", note: "root cause found" },
+  { label: "Case packaged", icon: "ticket", note: "ready for the admin inbox" },
+];
+
+/**
+ * Side progress meter for the student chat. Visualises how far Meera has gotten on the case as the
+ * conversation unfolds — a confidence ring plus stacking "mound" layers that light up per stage, and
+ * a shake when a turn fails. Driven by `deriveCaseStage` against the live transcript and ticket result.
+ */
+function CaseMeter({ stage, damage, fixed }: CaseStage) {
+  const conf = [0, 34, 61, 84, 97][stage] ?? 0;
+  const radius = 46;
+  const circumference = 2 * Math.PI * radius;
+  const ringColor = damage ? "var(--sand)" : fixed ? "var(--green)" : "var(--teal)";
   return (
-    <Card className="overflow-hidden p-0">
-      <div className="border-b p-5" style={{ borderColor: "var(--line)" }}>
-        <div className="flex items-center gap-3">
-          <span
-            className="grid size-11 place-items-center rounded-2xl"
-            style={{
-              background: `var(--${copy.tint}-050)`,
-              color: copy.tint === "green" ? "#5E9438" : "var(--teal-700)",
-            }}
-          >
-            <Icon name={copy.icon} size={21} stroke={2} />
-          </span>
-          <div>
-            <p
-              className="font-['DM_Mono'] text-[10px] uppercase tracking-[0.12em]"
-              style={{ color: "var(--muted)" }}
-            >
-              Live AI state
-            </p>
-            <h2 className="text-lg font-extrabold tracking-[-0.02em]">
-              {stage.label}
-            </h2>
-          </div>
-        </div>
-        <p className="mt-3 text-sm leading-6" style={{ color: "var(--ink-2)" }}>
-          {copy.detail}
-        </p>
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#E7EEEC]">
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{
-              width: `${stage.progress}%`,
-              background: "linear-gradient(90deg,var(--teal),var(--green))",
-            }}
+    <aside
+      className="hidden min-h-0 w-full flex-col gap-5 overflow-y-auto border-l p-5 lg:flex"
+      style={{ borderColor: "var(--line)", background: "linear-gradient(180deg, var(--teal-050), #fff 58%)" }}
+    >
+      <div className="flex items-center justify-between">
+        <span className="font-['DM_Mono'] text-[10px] font-medium uppercase tracking-[0.16em]" style={{ color: "var(--teal-700)" }}>
+          Case meter
+        </span>
+        <Pill tint={fixed ? "green" : "teal"}>{fixed ? "Resolved" : "Live"}</Pill>
+      </div>
+
+      <div className="relative mx-auto size-[136px]">
+        <svg width="136" height="136" viewBox="0 0 116 116" className="size-full">
+          <circle cx="58" cy="58" r={radius} fill="none" stroke="var(--cream-3)" strokeWidth="11" />
+          <circle
+            cx="58"
+            cy="58"
+            r={radius}
+            fill="none"
+            stroke={ringColor}
+            strokeWidth="11"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={circumference * (1 - conf / 100)}
+            transform="rotate(-90 58 58)"
+            style={{ transition: "stroke-dashoffset .95s cubic-bezier(.2,.9,.3,1), stroke .4s" }}
           />
-        </div>
-      </div>
-      <div className="p-5">
-        <div className="mb-3 flex items-center gap-2">
-          <Icon name="layers" size={15} className="text-[#2E9C8E]" />
-          <span
-            className="font-['DM_Mono'] text-[10px] uppercase tracking-[0.12em]"
-            style={{ color: "var(--muted)" }}
-          >
-            Admin knowledge graph
-          </span>
-        </div>
-        <div className="grid gap-2">
-          {departments.map((department) => {
-            const active =
-              stage.activeDepartments.includes(department) ||
-              ticket?.office.includes(department) ||
-              (department === "Finance" && ticket?.office.includes("Billing"));
-            return (
-              <div
-                key={department}
-                className="flex items-center gap-3 rounded-2xl border px-3 py-2"
-                style={{
-                  background: active ? "var(--teal-050)" : "#FCFAF6",
-                  borderColor: active ? "var(--teal-100)" : "var(--line)",
-                }}
-              >
-                <span
-                  className="size-2.5 rounded-full"
-                  style={{
-                    background: active ? "var(--teal)" : "var(--line-2)",
-                  }}
-                />
-                <span className="text-sm font-bold">{department}</span>
-                <span
-                  className="ml-auto font-['DM_Mono'] text-[10px]"
-                  style={{ color: active ? "var(--teal-700)" : "var(--muted)" }}
-                >
-                  {active ? "matched" : "ready"}
-                </span>
+        </svg>
+        <div className="absolute inset-0 grid place-items-center text-center">
+          {fixed ? (
+            <img src={asset("meera-celebrate.png")} alt="" className="w-14" style={{ animation: "bob 2.4s ease-in-out infinite" }} />
+          ) : (
+            <div>
+              <div className="text-[30px] font-[800] leading-none" style={{ color: damage ? "var(--sand-600)" : "var(--teal-700)" }}>
+                {conf}
+                <span className="text-base">%</span>
               </div>
-            );
-          })}
+              <div className="mt-1 font-['DM_Mono'] text-[9px] uppercase tracking-[0.12em]" style={{ color: "var(--muted)" }}>
+                complete
+              </div>
+            </div>
+          )}
         </div>
       </div>
-    </Card>
+
+      <div className="grid gap-1.5">
+        {moundLayers.map((layer, index) => {
+          const done = index < stage;
+          const isCurrent = index === stage - 1;
+          const isDamage = damage && isCurrent;
+          const bg = isDamage ? "var(--sand-050)" : done ? "var(--teal-050)" : "#fff";
+          const border = isDamage ? "#F3D2C6" : done ? "var(--teal-100)" : "var(--line)";
+          return (
+            <div
+              key={layer.label}
+              className="flex items-center gap-2.5 rounded-2xl border px-3 py-2 transition-all"
+              style={{
+                background: bg,
+                borderColor: border,
+                opacity: done ? 1 : 0.55,
+                animation: isDamage ? "mound-shake .7s ease" : isCurrent ? "mound-layer-in .5s ease" : "none",
+              }}
+            >
+              <span
+                className="grid size-7 shrink-0 place-items-center rounded-lg"
+                style={{ background: isDamage ? "var(--sand)" : done ? "var(--teal)" : "var(--cream-2)", color: done || isDamage ? "#fff" : "var(--muted)" }}
+              >
+                <Icon name={isDamage ? "alert" : done ? "check" : layer.icon} size={14} stroke={2.2} />
+              </span>
+              <div className="min-w-0">
+                <div className="text-[12.5px] font-bold leading-tight" style={{ color: done ? "var(--ink)" : "var(--muted)" }}>
+                  {layer.label}
+                </div>
+                <div className="font-['DM_Mono'] text-[9.5px]" style={{ color: "var(--muted)" }}>
+                  {layer.note}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-auto rounded-2xl border bg-white/70 p-3 text-center" style={{ borderColor: "var(--line)" }}>
+        <div className="text-[13px] font-bold" style={{ color: damage ? "var(--sand-600)" : stage >= 4 ? "var(--teal-700)" : "var(--ink-2)" }}>
+          {damage ? "Regrouping…" : caseLabels[stage]}
+        </div>
+        <div className="mt-2 flex justify-center gap-1.5">
+          {[1, 2, 3, 4].map((i) => (
+            <span key={i} className="h-1.5 rounded-full transition-all" style={{ width: i <= stage ? 18 : 6, background: i <= stage ? "var(--teal)" : "var(--line-2)" }} />
+          ))}
+        </div>
+      </div>
+    </aside>
   );
 }
 
@@ -341,15 +330,16 @@ export function StudentSupportChat() {
       [...messages].reverse().find((message) => message.ticket)?.ticket ?? null,
     [messages],
   );
-  const stage = useMemo(
+  const caseStage = useMemo(
     () =>
-      deriveSupportStage({
+      deriveCaseStage({
         messages: messages.filter((message) => message.id !== "welcome"),
-        sending,
         ticket: latestTicket,
+        hasError: Boolean(error),
       }),
-    [latestTicket, messages, sending],
+    [error, latestTicket, messages],
   );
+  const caseLabel = caseStage.fixed ? "Resolved" : caseLabels[caseStage.stage];
 
   const sendText = useCallback(
     async (nextText?: string) => {
@@ -431,13 +421,7 @@ export function StudentSupportChat() {
             </div>
           </div>
           <ViewToggle view={view} onChange={setView} />
-          <Link
-            href="/demo/admin/inbox"
-            className="hidden rounded-full border px-3 py-1.5 text-xs font-bold transition hover:bg-[#F8F5F0] sm:inline-flex"
-            style={{ borderColor: "var(--line-2)", color: "var(--teal-700)" }}
-          >
-            Admin inbox
-          </Link>
+          <PersonaSwitch active="student" />
         </div>
         <div className="min-h-0 flex-1 overflow-hidden">
           <BattleView />
@@ -470,16 +454,10 @@ export function StudentSupportChat() {
           </div>
         </div>
         <ViewToggle view={view} onChange={setView} />
-        <Link
-          href="/demo/admin/inbox"
-          className="hidden rounded-full border px-3 py-1.5 text-xs font-bold transition hover:bg-[#F8F5F0] sm:inline-flex"
-          style={{ borderColor: "var(--line-2)", color: "var(--teal-700)" }}
-        >
-          Admin inbox
-        </Link>
+        <PersonaSwitch active="student" />
       </div>
 
-      <div className="mx-auto grid w-full max-w-295 flex-1 grid-cols-1 gap-4 overflow-hidden px-4 py-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="mx-auto grid w-full max-w-295 flex-1 grid-cols-1 gap-4 overflow-hidden px-4 py-4 lg:grid-cols-[minmax(0,1fr)_300px]">
         <Card className="flex min-h-0 flex-col overflow-hidden p-0">
           <div
             className="border-b px-5 py-4"
@@ -487,7 +465,7 @@ export function StudentSupportChat() {
           >
             <div className="flex flex-wrap items-center gap-2">
               <Pill tint="teal">Student demo</Pill>
-              <Pill>{stage.label}</Pill>
+              <Pill tint={caseStage.fixed ? "green" : "teal"}>{caseLabel}</Pill>
               <span
                 className="ml-auto hidden font-['DM_Mono'] text-[10px] uppercase tracking-widest sm:inline"
                 style={{ color: "var(--muted)" }}
@@ -550,9 +528,7 @@ export function StudentSupportChat() {
             </div>
           ) : null}
         </Card>
-        <aside className="min-h-0 overflow-y-auto">
-          <IntakeStagePanel stage={stage} ticket={latestTicket} />
-        </aside>
+        <CaseMeter stage={caseStage.stage} damage={caseStage.damage} fixed={caseStage.fixed} />
       </div>
 
       <div

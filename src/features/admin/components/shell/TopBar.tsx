@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ActAsSwitcher } from "@/features/admin/components/shell/ActAsSwitcher";
 import { DepartmentDropdown } from "@/features/admin/components/shell/DepartmentDropdown";
 import { MeerkatMark } from "@/components/demo/shared";
+import { PersonaSwitch } from "@/components/demo/persona-switch";
 
 export function TopBar() {
 	return (
@@ -16,7 +17,7 @@ export function TopBar() {
 			<DepartmentDropdown />
 			<ActAsSwitcher />
 			<div className="flex-1" />
-			<span className="rounded-full px-[9px] py-0.5 font-['DM_Mono'] text-[9.5px] uppercase tracking-[0.16em]" style={{ color: "var(--teal-700)", background: "var(--teal-050)" }}>Admin</span>
+			<PersonaSwitch active="admin" />
 		</div>
 	);
 }

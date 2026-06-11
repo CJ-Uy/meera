@@ -1,7 +1,7 @@
 import { adminSeedSnapshot } from "@/features/admin/data/seed";
 import type { AdminDataSource, TicketPatch } from "@/features/admin/store/data-source";
 import { adminReducer, initialAdminStoreState } from "@/features/admin/store/reducer";
-import type { AdminNote, AdminSnapshot, Complexity, DepartmentCode, KbEdge, KbNode, Severity, Task } from "@/features/admin/types";
+import type { AdminNote, AdminSnapshot, Complexity, DemoTicket, DepartmentCode, KbEdge, KbNode, Severity, Task } from "@/features/admin/types";
 
 let snapshot: AdminSnapshot = structuredClone(adminSeedSnapshot);
 
@@ -14,8 +14,32 @@ function mutate(action: Parameters<typeof adminReducer>[1]) {
 	};
 }
 
+/**
+ * Pull tickets persisted by the live support orchestrator (student demo → shared dev D1) and merge
+ * them into the seeded demo snapshot, deduped by id. Without this, student-created tickets are written
+ * to the database but never surface in the admin inbox, because the demo dashboard reads this in-memory
+ * seed rather than the database. Demo seed content (admins, KB, cross-dept examples) is preserved.
+ */
+async function mergeLiveTickets() {
+	if (typeof fetch !== "function") return;
+	try {
+		const response = await fetch("/api/admin/snapshot", { headers: { Accept: "application/json" } });
+		if (!response.ok) return;
+		const live = (await response.json()) as Partial<AdminSnapshot>;
+		const liveTickets = Array.isArray(live.tickets) ? live.tickets : [];
+		if (liveTickets.length === 0) return;
+		const byId = new Map<string, DemoTicket>();
+		for (const ticket of snapshot.tickets) byId.set(ticket.id, ticket);
+		for (const ticket of liveTickets) byId.set(ticket.id, ticket); // database is source of truth for live tickets
+		snapshot = { ...snapshot, tickets: [...byId.values()] };
+	} catch {
+		// Offline / SSR / shared API unavailable: fall back to the seeded demo tickets only.
+	}
+}
+
 export const inMemoryAdminDataSource: AdminDataSource = {
 	async loadSnapshot() {
+		await mergeLiveTickets();
 		return structuredClone(snapshot);
 	},
 	async claimTicket(id: string, adminId: string) {

@@ -153,6 +153,11 @@ export function BattleView() {
 			>
 				<div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(circle at 72% 24%, rgba(231,155,107,.28), transparent 28%), linear-gradient(180deg, rgba(255,255,255,.06), rgba(251,246,238,.12) 64%, rgba(217,166,90,.08))" }} />
 				<div className="pointer-events-none absolute inset-x-0 top-0 h-24" style={{ background: "linear-gradient(180deg, rgba(28,51,73,.18), transparent)" }} />
+				{/* Vignette for arena depth */}
+				<div className="pointer-events-none absolute inset-0" style={{ boxShadow: "inset 0 0 120px 30px rgba(28,51,73,.16)" }} />
+				{/* Ground shadows under the combatants */}
+				<div className="pointer-events-none absolute right-[6%] top-[34%] h-5 w-40 rounded-[100%] sm:right-[10%] sm:top-[40%]" style={{ background: "radial-gradient(ellipse at center, rgba(28,51,73,.28), transparent 70%)" }} />
+				<div className="pointer-events-none absolute bottom-[7%] left-[6%] h-5 w-36 rounded-[100%] sm:left-[9%]" style={{ background: "radial-gradient(ellipse at center, rgba(28,51,73,.26), transparent 70%)" }} />
 
 				{/* Enemy info — top left */}
 				<div className="absolute left-4 top-4 z-10 w-[min(300px,62%)]">
@@ -206,42 +211,56 @@ export function BattleView() {
 				{phase === "lost" ? <LoseOverlay onReset={reset} /> : null}
 			</div>
 
-			{/* Dialogue box */}
+			{/* Command console — JRPG-style textbox + move menu */}
 			<div className="shrink-0 border-t bg-white px-4 py-3" style={{ borderColor: "var(--line)" }}>
 				<div className="mx-auto max-w-[900px]">
-					<div className="relative rounded-2xl border-2 px-4 py-3 text-[15px] font-semibold leading-6" style={{ borderColor: "var(--ink)", background: "#FFFDF8", color: "var(--ink)", boxShadow: "0 4px 0 0 rgba(28,51,73,.14), inset 0 0 0 3px #F5ECDD" }}>
-						<div className="flex items-start gap-3">
+					<div className="overflow-hidden rounded-2xl border-2" style={{ borderColor: "var(--ink)", background: "#FFFDF8", boxShadow: "0 4px 0 0 rgba(28,51,73,.14), inset 0 0 0 3px #F5ECDD" }}>
+						{/* Console header strip */}
+						<div className="flex items-center gap-2 border-b-2 px-4 py-1.5" style={{ borderColor: "#F0E4D2", background: "linear-gradient(180deg,#FBF3E4,#FFFDF8)" }}>
+							<span className="grid size-5 place-items-center rounded-md" style={{ background: "var(--teal)", color: "#fff" }}>
+								<Icon name="sparkle" size={12} stroke={2.2} />
+							</span>
+							<span className="font-['DM_Mono'] text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: "var(--teal-700)" }}>Meera</span>
+							<span className="ml-auto font-['DM_Mono'] text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: "var(--muted)" }}>
+								{phase === "won" ? "Battle won" : phase === "lost" ? "Escalated" : `Round ${Math.min(stepIndex + 1, QUEST.length)} / ${QUEST.length}`}
+							</span>
+						</div>
+
+						{/* Dialogue line */}
+						<div className="flex items-start gap-3 px-4 py-3 text-[15px] font-semibold leading-6" style={{ color: "var(--ink)" }}>
 							<p className="m-0 min-w-0 flex-1">
 								<span className="mr-2 inline-block" style={{ color: "var(--teal)", animation: "tdot 1s infinite" }}>▶</span>
 								{dialogue}
 							</p>
 							<SpeechControl compact isSpeaking={speakingId === dialogueSpeechId} onClick={() => void speak(dialogueSpeechId, dialogue)} className="shrink-0" />
 						</div>
-					</div>
 
-					{/* Command box — multiple choice */}
-					{phase === "playing" ? (
-						<div className="mt-3 grid gap-2 sm:grid-cols-2">
-							{step.choices.map((choice) => (
-								<button
-									key={choice.label}
-									type="button"
-									disabled={busy}
-									onClick={() => play(choice)}
-									className="group flex items-center gap-3 rounded-xl border-2 bg-white px-3.5 py-3 text-left transition enabled:hover:-translate-y-0.5 disabled:opacity-55"
-									style={{ borderColor: "var(--line-2)" }}
-								>
-									<span className="grid size-7 shrink-0 place-items-center rounded-lg" style={{ background: choice.target === "enemy" ? "var(--teal-050)" : "var(--sand-050)", color: choice.target === "enemy" ? "var(--teal-700)" : "var(--sand-600)" }}>
-										<Icon name={choice.target === "enemy" ? "sword" : "shield"} size={15} />
-									</span>
-									<span className="min-w-0 flex-1">
-										<span className="block text-[14px] font-bold leading-tight">{choice.label}</span>
-										<span className="font-['DM_Mono'] text-[10.5px]" style={{ color: "var(--muted)" }}>{choice.hint}</span>
-									</span>
-								</button>
-							))}
-						</div>
-					) : null}
+						{/* Move menu */}
+						{phase === "playing" ? (
+							<div className="grid gap-2 border-t-2 p-3 sm:grid-cols-2" style={{ borderColor: "#F0E4D2", background: "#FFFBF2" }}>
+								{step.choices.map((choice, index) => (
+									<button
+										key={choice.label}
+										type="button"
+										disabled={busy}
+										onClick={() => play(choice)}
+										className="group flex items-center gap-3 rounded-xl border-2 bg-white px-3.5 py-3 text-left transition enabled:hover:-translate-y-0.5 enabled:hover:shadow-[0_3px_0_0_rgba(28,51,73,.1)] disabled:opacity-55"
+										style={{ borderColor: "var(--line-2)" }}
+									>
+										<span className="grid w-3 shrink-0 place-items-center text-[14px] font-[800] opacity-0 transition group-enabled:group-hover:opacity-100" style={{ color: "var(--teal)" }}>▸</span>
+										<span className="grid size-7 shrink-0 place-items-center rounded-lg" style={{ background: choice.target === "enemy" ? "var(--teal-050)" : "var(--sand-050)", color: choice.target === "enemy" ? "var(--teal-700)" : "var(--sand-600)" }}>
+											<Icon name={choice.target === "enemy" ? "sword" : "shield"} size={15} />
+										</span>
+										<span className="min-w-0 flex-1">
+											<span className="block text-[14px] font-bold leading-tight">{choice.label}</span>
+											<span className="font-['DM_Mono'] text-[10.5px]" style={{ color: "var(--muted)" }}>{choice.hint}</span>
+										</span>
+										<span className="grid size-5 shrink-0 place-items-center rounded-md font-['DM_Mono'] text-[10px] font-bold" style={{ background: "var(--cream-2)", color: "var(--muted)" }}>{index + 1}</span>
+									</button>
+								))}
+							</div>
+						) : null}
+					</div>
 				</div>
 			</div>
 
