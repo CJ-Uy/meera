@@ -1,5 +1,5 @@
-import { StudentExperience } from "@/components/demo/meera-demo-experience";
+import { StudentSupportChat } from "@/features/meera-support/student-support-chat";
 
 export default function StudentDemoPage() {
-	return <StudentExperience />;
+	return <StudentSupportChat />;
 }

@@ -36,9 +36,9 @@ type CompatChatResponse = {
 type RunVisionResponse = { result?: { response?: string | null }; success?: boolean };
 
 const DEFAULT_BASE_URL = "https://gateway.ai.cloudflare.com/v1/compat";
-const DEFAULT_CHAT_MODEL = "workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast";
-const DEFAULT_SELECTION_MODEL = "workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast";
-const DEFAULT_VISION_MODEL = "workers-ai/@cf/meta/llama-3.2-11b-vision-instruct";
+const DEFAULT_CHAT_MODEL = "workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct";
+const DEFAULT_SELECTION_MODEL = "workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct";
+const DEFAULT_VISION_MODEL = "workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct";
 const DEFAULT_TIMEOUT_MS = 45_000;
 const SELECTION_TIMEOUT_MS = 15_000;
 const SELECTION_MAX_TOKENS = 256;
