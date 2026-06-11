@@ -3,11 +3,11 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("battle demo polish", () => {
-	it("uses the refreshed battle shell with threat map and combo state", () => {
+	it("uses the refreshed battle shell with the quest tracker and combo state", () => {
 		const source = readFileSync(join(process.cwd(), "src/components/demo/battle.tsx"), "utf8");
 
 		expect(source).toContain("battle-arena-shell");
-		expect(source).toContain("Threat map");
+		expect(source).toContain("QuestTracker");
 		expect(source).toContain("combo");
 	});
 

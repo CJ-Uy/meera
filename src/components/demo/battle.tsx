@@ -165,13 +165,7 @@ export function BattleView() {
 					<div className="mt-1 pl-1 font-['DM_Mono'] text-[10px] uppercase tracking-[0.1em]" style={{ color: "var(--muted)" }}>{ENEMY.kind}</div>
 				</div>
 
-				<div className="absolute left-1/2 top-4 z-10 hidden -translate-x-1/2 items-center gap-2 rounded-full border bg-white/90 px-3 py-2 backdrop-blur sm:flex" style={{ borderColor: "var(--line)", boxShadow: "var(--sh-sm)" }}>
-					<Icon name="bolt" size={14} className="text-[#D9844F]" />
-					<span className="font-['DM_Mono'] text-[10px] uppercase tracking-[0.12em]" style={{ color: "var(--muted)" }}>combo</span>
-					<span className="text-sm font-[800]" style={{ color: combo > 1 ? "var(--teal-700)" : "var(--ink)" }}>{combo}x</span>
-				</div>
-
-				<ThreatMap stepIndex={stepIndex} combo={combo} phase={phase} />
+				<QuestTracker stepIndex={stepIndex} combo={combo} phase={phase} />
 
 				{/* Enemy sprite — top right */}
 				<div
@@ -314,25 +308,34 @@ function HpBar({ hp }: { hp: number }) {
 	);
 }
 
-function ThreatMap({ stepIndex, combo, phase }: { stepIndex: number; combo: number; phase: Phase }) {
+// Horizontal quest tracker pinned to the top-center of the arena. Replaces the old vertical "threat
+// map" box, which overlapped the MiRA nameplate and the enemy sprite, plus the separate combo pill.
+function QuestTracker({ stepIndex, combo, phase }: { stepIndex: number; combo: number; phase: Phase }) {
 	const nodes = ["Portal", "Login", "Grades", "Hold", "Done"];
 	return (
-		<div className="absolute bottom-[18%] right-4 z-10 hidden w-[220px] rounded-2xl border bg-white/90 p-3 backdrop-blur md:block" style={{ borderColor: "var(--line)", boxShadow: "var(--sh-md)" }}>
-			<div className="mb-2 flex items-center gap-2">
-				<Icon name="route" size={14} className="text-[#2E9C8E]" />
-				<span className="font-['DM_Mono'] text-[10px] uppercase tracking-[0.12em]" style={{ color: "var(--muted)" }}>Threat map</span>
-				<Pill tint={phase === "won" ? "green" : "teal"}>{phase === "won" ? "clear" : `${combo}x combo`}</Pill>
-			</div>
-			<div className="grid gap-1.5">
+		<div className="absolute left-1/2 top-3 z-20 hidden -translate-x-1/2 sm:block">
+			<div className="flex items-center gap-1.5 rounded-full border bg-white/92 px-3 py-1.5 backdrop-blur" style={{ borderColor: "var(--line)", boxShadow: "var(--sh-sm)" }}>
 				{nodes.map((node, index) => {
 					const active = index <= stepIndex || phase === "won";
+					const current = phase === "playing" && index === stepIndex;
 					return (
-						<div key={node} className="flex items-center gap-2 rounded-xl px-2 py-1.5" style={{ background: active ? "var(--teal-050)" : "#FCFAF6" }}>
-							<span className="grid size-5 place-items-center rounded-full text-[10px] font-[800]" style={{ background: active ? "var(--teal)" : "var(--line-2)", color: active ? "#fff" : "var(--muted)" }}>{index + 1}</span>
-							<span className="text-[12px] font-bold" style={{ color: active ? "var(--teal-700)" : "var(--muted)" }}>{node}</span>
+						<div key={node} className="flex items-center gap-1.5">
+							{index > 0 ? <span className="h-px w-3 md:w-5" style={{ background: active ? "var(--teal)" : "var(--line-2)" }} /> : null}
+							<span
+								className="grid size-5 shrink-0 place-items-center rounded-full text-[10px] font-[800]"
+								style={{ background: active ? "var(--teal)" : "var(--cream-2)", color: active ? "#fff" : "var(--muted)", boxShadow: current ? "0 0 0 3px var(--teal-050)" : "none" }}
+							>
+								{index + 1}
+							</span>
+							<span className="hidden text-[11px] font-bold md:inline" style={{ color: active ? "var(--teal-700)" : "var(--muted)" }}>{node}</span>
 						</div>
 					);
 				})}
+				<span className="mx-0.5 h-3.5 w-px shrink-0" style={{ background: "var(--line-2)" }} />
+				<span className="inline-flex shrink-0 items-center gap-1" title="combo">
+					<Icon name="bolt" size={12} className="text-[#D9844F]" />
+					<span className="text-[11px] font-[800]" style={{ color: combo > 1 ? "var(--teal-700)" : "var(--ink)" }}>{combo}x</span>
+				</span>
 			</div>
 		</div>
 	);
