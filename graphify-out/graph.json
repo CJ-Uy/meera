@@ -15860,7 +15860,7 @@
       "label": "NamePlate()",
       "file_type": "code",
       "source_file": "src/components/demo/battle.tsx",
-      "source_location": "L325",
+      "source_location": "L352",
       "_origin": "ast",
       "id": "demo_battle_nameplate",
       "community": 38,
@@ -15870,7 +15870,7 @@
       "label": "HpBar()",
       "file_type": "code",
       "source_file": "src/components/demo/battle.tsx",
-      "source_location": "L341",
+      "source_location": "L368",
       "_origin": "ast",
       "id": "demo_battle_hpbar",
       "community": 38,
@@ -15880,7 +15880,7 @@
       "label": "QuestTracker()",
       "file_type": "code",
       "source_file": "src/components/demo/battle.tsx",
-      "source_location": "L354",
+      "source_location": "L381",
       "_origin": "ast",
       "id": "demo_battle_questtracker",
       "community": 38,
@@ -15890,7 +15890,7 @@
       "label": "EnemySprite()",
       "file_type": "code",
       "source_file": "src/components/demo/battle.tsx",
-      "source_location": "L384",
+      "source_location": "L411",
       "_origin": "ast",
       "id": "demo_battle_enemysprite",
       "community": 38,
@@ -15900,7 +15900,7 @@
       "label": "FloatingDamage()",
       "file_type": "code",
       "source_file": "src/components/demo/battle.tsx",
-      "source_location": "L401",
+      "source_location": "L428",
       "_origin": "ast",
       "id": "demo_battle_floatingdamage",
       "community": 38,
@@ -15910,7 +15910,7 @@
       "label": "WinOverlay()",
       "file_type": "code",
       "source_file": "src/components/demo/battle.tsx",
-      "source_location": "L412",
+      "source_location": "L439",
       "_origin": "ast",
       "id": "demo_battle_winoverlay",
       "community": 38,
@@ -15920,7 +15920,7 @@
       "label": "TicketMini()",
       "file_type": "code",
       "source_file": "src/components/demo/battle.tsx",
-      "source_location": "L447",
+      "source_location": "L474",
       "_origin": "ast",
       "id": "demo_battle_ticketmini",
       "community": 38,
@@ -32223,7 +32223,7 @@
       "source_location": "L159",
       "_origin": "ast",
       "id": "docs_meera_home_site_design_plan_7_typography",
-      "community": 53,
+      "community": 235,
       "norm_label": "7. typography"
     },
     {
@@ -32233,7 +32233,7 @@
       "source_location": "L166",
       "_origin": "ast",
       "id": "docs_meera_home_site_design_plan_suggested_type_scale",
-      "community": 53,
+      "community": 235,
       "norm_label": "suggested type scale"
     },
     {
@@ -32243,7 +32243,7 @@
       "source_location": "L192",
       "_origin": "ast",
       "id": "docs_meera_home_site_design_plan_tone",
-      "community": 53,
+      "community": 235,
       "norm_label": "tone"
     },
     {
@@ -33313,7 +33313,7 @@
       "source_location": "L1086",
       "_origin": "ast",
       "id": "docs_meera_home_site_design_plan_29_recommended_tech_notes_for_codex",
-      "community": 235,
+      "community": 53,
       "norm_label": "29. recommended tech notes for codex"
     },
     {
@@ -33323,7 +33323,7 @@
       "source_location": "L1088",
       "_origin": "ast",
       "id": "docs_meera_home_site_design_plan_if_using_next_js_tailwind",
-      "community": 235,
+      "community": 53,
       "norm_label": "if using next.js + tailwind"
     },
     {
@@ -33333,7 +33333,7 @@
       "source_location": "L1125",
       "_origin": "ast",
       "id": "docs_meera_home_site_design_plan_layout_container",
-      "community": 235,
+      "community": 53,
       "norm_label": "layout container"
     },
     {
@@ -59398,9 +59398,9 @@
       "source_file": "src/components/demo/battle-bosses.ts",
       "source_location": "L42",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "demo_battle_bosses",
-      "target": "demo_battle_bosses_mystery_boss",
-      "confidence_score": 1.0
+      "target": "demo_battle_bosses_mystery_boss"
     },
     {
       "relation": "contains",
@@ -59506,9 +59506,9 @@
       "source_file": "src/components/demo/battle.tsx",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "demo_battle",
-      "target": "demo_battle_bosses_mystery_boss",
-      "confidence_score": 1.0
+      "target": "demo_battle_bosses_mystery_boss"
     },
     {
       "relation": "imports",
@@ -59517,9 +59517,9 @@
       "source_file": "src/components/demo/battle.test.ts",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "demo_battle_test",
-      "target": "demo_battle_bosses_mystery_boss",
-      "confidence_score": 1.0
+      "target": "demo_battle_bosses_mystery_boss"
     },
     {
       "relation": "imports",
@@ -59644,9 +59644,9 @@
       "source_file": "src/components/demo/battle.tsx",
       "source_location": "L25",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "demo_battle",
-      "target": "demo_battle_general_prediction_fallback_moves",
-      "confidence_score": 1.0
+      "target": "demo_battle_general_prediction_fallback_moves"
     },
     {
       "relation": "contains",
@@ -59684,9 +59684,9 @@
       "source_file": "src/components/demo/battle.tsx",
       "source_location": "L35",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "demo_battle",
-      "target": "demo_battle_predictionfallbackmoves",
-      "confidence_score": 1.0
+      "target": "demo_battle_predictionfallbackmoves"
     },
     {
       "relation": "contains",
@@ -59714,9 +59714,9 @@
       "source_file": "src/components/demo/battle.tsx",
       "source_location": "L20",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "demo_battle",
-      "target": "demo_battle_starter_moves",
-      "confidence_score": 1.0
+      "target": "demo_battle_starter_moves"
     },
     {
       "relation": "contains",
@@ -59898,9 +59898,9 @@
       "source_file": "src/components/demo/battle.tsx",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "demo_battle",
-      "target": "meera_support_use_support_conversation_supportmessage",
-      "confidence_score": 1.0
+      "target": "meera_support_use_support_conversation_supportmessage"
     },
     {
       "relation": "imports_from",
@@ -96395,5 +96395,5 @@
       "confidence_score": 1.0
     }
   ],
-  "built_at_commit": "c11eccc46b527ba7799922f12913107b594d2119"
+  "built_at_commit": "54d4a7f907aee93280380d3150dfac15b37e8e66"
 }

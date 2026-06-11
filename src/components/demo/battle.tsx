@@ -93,6 +93,9 @@ export function BattleView({
 	} = conversation;
 	const [flash, setFlash] = useState(false);
 	const [floater, setFloater] = useState<{ amount: number; key: number } | null>(null);
+	const [miraHp, setMiraHp] = useState(MAX_HP);
+	const [miraFlash, setMiraFlash] = useState(false);
+	const [miraFloater, setMiraFloater] = useState<{ amount: number; key: number } | null>(null);
 	const [combo, setCombo] = useState(0);
 	const [showHelp, setShowHelp] = useState(false);
 	const seqRef = useRef(0);
@@ -130,6 +133,9 @@ export function BattleView({
 			setCombo(0);
 			setFlash(false);
 			setFloater(null);
+			setMiraHp(MAX_HP);
+			setMiraFlash(false);
+			setMiraFloater(null);
 		}
 	}, [caseStage.stage]);
 
@@ -150,8 +156,18 @@ export function BattleView({
 			const timer = window.setTimeout(() => setFlash(false), 460);
 			return () => window.clearTimeout(timer);
 		}
+		if (hasStudentIssue && !won) {
+			const amount = caseStage.damage ? 20 : 14;
+			seqRef.current += 1;
+			setCombo(0);
+			setMiraFlash(true);
+			setMiraFloater({ amount, key: seqRef.current });
+			setMiraHp((current) => Math.max(1, current - amount));
+			const timer = window.setTimeout(() => setMiraFlash(false), 460);
+			return () => window.clearTimeout(timer);
+		}
 		setCombo(0);
-	}, [caseStage.stage, latestAssistant, sending]);
+	}, [caseStage.damage, caseStage.stage, hasStudentIssue, latestAssistant, sending, won]);
 
 	function submitMove(text?: string) {
 		void sendText(text, { wantsSuggestedReplies: true });
@@ -201,17 +217,28 @@ export function BattleView({
 					{floater ? <FloatingDamage key={floater.key} amount={floater.amount} tone="enemy" /> : null}
 				</div>
 
-				<div className="absolute bottom-[5%] left-[4%] z-0 flex flex-col items-center sm:left-[7%]">
+				<div
+					className="absolute bottom-[5%] left-[4%] z-0 flex flex-col items-center sm:left-[7%]"
+					style={{
+						animation: miraFlash ? "mound-shake .44s ease" : undefined,
+					}}
+				>
 					<img
 						src={asset(won ? MIRA_SPRITES.win : MIRA_SPRITES.idle)}
 						alt="MiRA"
 						className="relative z-10 w-[132px] select-none sm:w-[200px] md:w-[228px]"
+						style={{
+							filter: miraFlash ? "saturate(1.15) brightness(1.03)" : "none",
+							transform: miraFlash ? "scale(1.03)" : "none",
+							transition: "filter .24s ease, transform .24s ease",
+						}}
 						draggable={false}
 					/>
+					{miraFloater ? <FloatingDamage key={miraFloater.key} amount={miraFloater.amount} tone="mira" /> : null}
 				</div>
 
 				<div className="absolute bottom-5 right-4 z-10 w-[min(280px,58%)] sm:w-[min(300px,62%)]">
-					<NamePlate name="MiRA" level={15} hp={100} side="mira" />
+					<NamePlate name="MiRA" level={15} hp={won ? MAX_HP : miraHp} side="mira" />
 				</div>
 
 				{won ? (

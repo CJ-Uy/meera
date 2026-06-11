@@ -520,8 +520,8 @@
     "semantic_hash": "a8a3a640b033af08600684f685f2c609"
   },
   "src/components/demo/battle.tsx": {
-    "mtime": 1781208037.905332,
-    "ast_hash": "cbe739d48d124cbd824ac3c4e1cce26d",
+    "mtime": 1781208480.1127424,
+    "ast_hash": "6f2e5514378aaf45383f75c0bed8c9b7",
     "semantic_hash": ""
   },
   "src/components/demo/meera-demo-experience.test.ts": {
@@ -1960,8 +1960,8 @@
     "semantic_hash": ""
   },
   "src/components/demo/battle.test.ts": {
-    "mtime": 1781208044.881879,
-    "ast_hash": "67b4f2cfc3409e66c3fe5231f5fb21f5",
+    "mtime": 1781208279.1879892,
+    "ast_hash": "2a45466ab937d1ad725f71b214b90646",
     "semantic_hash": ""
   },
   "src/features/ai/ai-prompt.test.ts": {
@@ -2000,8 +2000,8 @@
     "semantic_hash": ""
   },
   "src/components/demo/how-to-play-modal.tsx": {
-    "mtime": 1781204393.2193508,
-    "ast_hash": "473f3c82d6610e8d78493e05c61b4cbb",
+    "mtime": 1781208258.2183392,
+    "ast_hash": "a50a582e91f9a08a068208d7c04da3eb",
     "semantic_hash": ""
   },
   "src/features/meera-support/use-support-conversation.ts": {

@@ -74,6 +74,9 @@ export function HowToPlayModal({
 						<strong style={{ color: "var(--ink)" }}>HP bar:</strong> It drops as Meera makes progress on your case.
 					</p>
 					<p className="m-0">
+						<strong style={{ color: "var(--ink)" }}>Morale:</strong> MiRA takes a hit when a turn does not move the case forward.
+					</p>
+					<p className="m-0">
 						<strong style={{ color: "var(--ink)" }}>Two wins:</strong> Solve it yourself with no ticket, or call in backup with a ticket routed to the Admin inbox.
 					</p>
 					<p className="m-0">

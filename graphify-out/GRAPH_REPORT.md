@@ -1,7 +1,7 @@
 # Graph Report - meera  (2026-06-12)
 
 ## Corpus Check
-- 373 files · ~620,447 words
+- 373 files · ~620,622 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c11eccc4`
+- Built from commit: `54d4a7f9`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -68,7 +68,7 @@
 - [[_COMMUNITY_Workers AI Audio|Workers AI Audio]]
 - [[_COMMUNITY_Department FAQ Knowledge Base|Department FAQ Knowledge Base]]
 - [[_COMMUNITY_Overlay Protocol Commands|Overlay Protocol Commands]]
-- [[_COMMUNITY_AI Service Layer|AI Service Layer]]
+- [[_COMMUNITY_Community 54|Community 54]]
 - [[_COMMUNITY_Demo UI Bubbles & Scripts|Demo UI Bubbles & Scripts]]
 - [[_COMMUNITY_Desktop Overlay Components|Desktop Overlay Components]]
 - [[_COMMUNITY_Cloudflare Resource Setup|Cloudflare Resource Setup]]
@@ -518,7 +518,7 @@ Nodes (14): Escalation Package Template, Finance/Billing Support FAQs, IT Depart
 
 ### Community 53 - "Overlay Protocol Commands"
 Cohesion: 0.09
-Nodes (22): 23. Suggested Page Sections in Order, 24. Suggested Component Structure, 28. Accessibility Requirements, 2. Product Narrative, 30. Initial Build Checklist, 31. Recommended First Prompt to Codex, 32. Final Creative Direction, 3. Target Audience (+14 more)
+Nodes (22): 23. Suggested Page Sections in Order, 24. Suggested Component Structure, 28. Accessibility Requirements, 29. Recommended Tech Notes for Codex, 2. Product Narrative, 30. Initial Build Checklist, 31. Recommended First Prompt to Codex, 32. Final Creative Direction (+14 more)
 
 ### Community 55 - "Demo UI Bubbles & Scripts"
 Cohesion: 0.15
@@ -922,7 +922,7 @@ Nodes (3): 22. Footer, Footer copy, Include
 
 ### Community 235 - "Community 235"
 Cohesion: 0.67
-Nodes (3): 29. Recommended Tech Notes for Codex, If using Next.js + Tailwind, Layout container
+Nodes (3): 7. Typography, Suggested type scale, Tone
 
 ### Community 236 - "Community 236"
 Cohesion: 0.08

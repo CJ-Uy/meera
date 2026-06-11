@@ -10,6 +10,9 @@ describe("battle demo polish", () => {
 		expect(source).toContain("battle-arena-shell");
 		expect(source).toContain("QuestTracker");
 		expect(source).toContain("combo");
+		expect(source).toContain("miraHp");
+		expect(source).toContain("setMiraHp");
+		expect(source).toContain("setMiraFloater");
 		expect(source).toContain("suggestedReplies");
 		expect(source).toContain("sendText");
 		expect(source).toContain("pickBosses");
@@ -19,6 +22,8 @@ describe("battle demo polish", () => {
 		expect(source).toContain("I feel better now");
 		expect(source).toContain("I need medical attention now");
 		expect(source).toContain("HowToPlayModal");
+		expect(source).toContain('hp={won ? MAX_HP : miraHp}');
+		expect(source).not.toContain('<NamePlate name="MiRA" level={15} hp={100}');
 		expect(source).not.toContain("const QUEST");
 		expect(source).not.toContain("LoseOverlay");
 	});
@@ -27,6 +32,13 @@ describe("battle demo polish", () => {
 		const asset = statSync(join(process.cwd(), "public/assets/battle/cobra-idle.png"));
 
 		expect(asset.size).toBeGreaterThan(60_000);
+	});
+
+	it("explains enemy HP and MiRA morale separately", () => {
+		const source = readFileSync(join(process.cwd(), "src/components/demo/how-to-play-modal.tsx"), "utf8");
+
+		expect(source).toContain("MiRA takes a hit");
+		expect(source).toContain("does not move the case forward");
 	});
 
 	it("maps departments to dynamic bosses", () => {
