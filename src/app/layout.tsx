@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
 	title: "Meera | AI support orchestration",
 	description: "Meera turns unstructured support requests into resolved answers or ready-to-act tickets.",
+	icons: {
+		icon: "/assets/meera/meera_icon.svg",
+	},
 };
 
 export default function RootLayout({
@@ -25,7 +28,7 @@ export default function RootLayout({
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
-				<link rel="icon" href="/favicon.svg" type="image/svg+xml"></link>
+				<link rel="icon" href="/assets/meera/meera_icon.svg" type="image/svg+xml"></link>
 			</head>
 			<body className={`${geistSans.variable} ${geistMono.variable} bg-[#f7f7f5] text-slate-900 antialiased`}>
 				{children}

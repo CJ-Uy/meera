@@ -81,6 +81,7 @@ export function BattleView() {
 	const [busy, setBusy] = useState(false);
 	const [flash, setFlash] = useState<Target | null>(null);
 	const [floater, setFloater] = useState<{ target: Target; amount: number; key: number } | null>(null);
+	const [combo, setCombo] = useState(0);
 	const [customMove, setCustomMove] = useState("");
 	const seqRef = useRef(0);
 	const { speakingId, speak } = useSpeech();
@@ -102,6 +103,7 @@ export function BattleView() {
 		setBusy(false);
 		setFlash(null);
 		setFloater(null);
+		setCombo(0);
 		setCustomMove("");
 	}
 
@@ -110,6 +112,7 @@ export function BattleView() {
 		setBusy(true);
 		setDialogue(choice.say);
 		setFlash(choice.target);
+		setCombo((current) => (choice.target === "enemy" ? current + 1 : 0));
 		seqRef.current += 1;
 		setFloater({ target: choice.target, amount: choice.dmg, key: seqRef.current });
 		window.setTimeout(() => setFlash(null), 440);
@@ -141,20 +144,29 @@ export function BattleView() {
 		<div className="relative flex min-h-0 flex-1 flex-col">
 			{/* Arena */}
 			<div
-				className="relative min-h-[330px] flex-1 overflow-hidden"
+				className="battle-arena-shell relative min-h-[380px] flex-1 overflow-hidden"
 				style={{
 					backgroundImage: `url(${asset("battle/arena-field.png")})`,
 					backgroundPosition: "center",
 					backgroundSize: "cover",
 				}}
 			>
-				<div className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(255,255,255,.06), rgba(251,246,238,.12) 64%, rgba(217,166,90,.08))" }} />
+				<div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(circle at 72% 24%, rgba(231,155,107,.28), transparent 28%), linear-gradient(180deg, rgba(255,255,255,.06), rgba(251,246,238,.12) 64%, rgba(217,166,90,.08))" }} />
+				<div className="pointer-events-none absolute inset-x-0 top-0 h-24" style={{ background: "linear-gradient(180deg, rgba(28,51,73,.18), transparent)" }} />
 
 				{/* Enemy info — top left */}
 				<div className="absolute left-4 top-4 z-10 w-[min(300px,62%)]">
 					<NamePlate name={ENEMY.name} level={ENEMY.level} hp={enemyHp} side="enemy" />
 					<div className="mt-1 pl-1 font-['DM_Mono'] text-[10px] uppercase tracking-[0.1em]" style={{ color: "var(--muted)" }}>{ENEMY.kind}</div>
 				</div>
+
+				<div className="absolute left-1/2 top-4 z-10 hidden -translate-x-1/2 items-center gap-2 rounded-full border bg-white/90 px-3 py-2 backdrop-blur sm:flex" style={{ borderColor: "var(--line)", boxShadow: "var(--sh-sm)" }}>
+					<Icon name="bolt" size={14} className="text-[#D9844F]" />
+					<span className="font-['DM_Mono'] text-[10px] uppercase tracking-[0.12em]" style={{ color: "var(--muted)" }}>combo</span>
+					<span className="text-sm font-[800]" style={{ color: combo > 1 ? "var(--teal-700)" : "var(--ink)" }}>{combo}x</span>
+				</div>
+
+				<ThreatMap stepIndex={stepIndex} combo={combo} phase={phase} />
 
 				{/* Enemy sprite — top right */}
 				<div
@@ -279,6 +291,30 @@ function HpBar({ hp }: { hp: number }) {
 			<span className="h-2.5 flex-1 overflow-hidden rounded-full" style={{ background: "repeating-linear-gradient(90deg, #E9E0CF 0 15px, #DED1BD 15px 17px)", boxShadow: "inset 0 1px 2px rgba(28,51,73,.18)" }}>
 				<span className="block h-full rounded-full" style={{ width: `${pct}%`, background: `repeating-linear-gradient(90deg, ${color} 0 15px, rgba(255,255,255,.45) 15px 17px)`, transition: "width .8s cubic-bezier(.3,.9,.3,1), background .4s" }} />
 			</span>
+		</div>
+	);
+}
+
+function ThreatMap({ stepIndex, combo, phase }: { stepIndex: number; combo: number; phase: Phase }) {
+	const nodes = ["Portal", "Login", "Grades", "Hold", "Done"];
+	return (
+		<div className="absolute bottom-[18%] right-4 z-10 hidden w-[220px] rounded-2xl border bg-white/90 p-3 backdrop-blur md:block" style={{ borderColor: "var(--line)", boxShadow: "var(--sh-md)" }}>
+			<div className="mb-2 flex items-center gap-2">
+				<Icon name="route" size={14} className="text-[#2E9C8E]" />
+				<span className="font-['DM_Mono'] text-[10px] uppercase tracking-[0.12em]" style={{ color: "var(--muted)" }}>Threat map</span>
+				<Pill tint={phase === "won" ? "green" : "teal"}>{phase === "won" ? "clear" : `${combo}x combo`}</Pill>
+			</div>
+			<div className="grid gap-1.5">
+				{nodes.map((node, index) => {
+					const active = index <= stepIndex || phase === "won";
+					return (
+						<div key={node} className="flex items-center gap-2 rounded-xl px-2 py-1.5" style={{ background: active ? "var(--teal-050)" : "#FCFAF6" }}>
+							<span className="grid size-5 place-items-center rounded-full text-[10px] font-[800]" style={{ background: active ? "var(--teal)" : "var(--line-2)", color: active ? "#fff" : "var(--muted)" }}>{index + 1}</span>
+							<span className="text-[12px] font-bold" style={{ color: active ? "var(--teal-700)" : "var(--muted)" }}>{node}</span>
+						</div>
+					);
+				})}
+			</div>
 		</div>
 	);
 }
