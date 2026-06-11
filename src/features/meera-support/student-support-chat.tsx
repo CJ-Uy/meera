@@ -494,7 +494,7 @@ export function StudentSupportChat() {
           style={{ color: "var(--green)" }}
         >
           <span className="size-1.5 rounded-full" style={{ background: "var(--green)" }} />
-          Live support - Cloudflare AI Gateway
+          Chat mode - Sentry desk
         </span>
         <div className="ml-auto">
           <ViewToggle view={view} onChange={setView} />
