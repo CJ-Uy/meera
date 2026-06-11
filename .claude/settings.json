@@ -21,7 +21,12 @@
       "Bash(ls -la src/app/demo)",
       "Bash(echo \"=== tsc exit: $? ===\")",
       "Bash(node C:/Users/charl/.claude/plugins/cache/openai-codex/codex/1.0.4/scripts/codex-companion.mjs task 'FIX an existing Next.js demo page so it FAITHFULLY matches the generated reference prototype. A previous attempt built it from a design brief instead of copying the actual prototype, so the whole cockpit/navigation structure is wrong. Re-port it. FRONTEND UI MOCKUP ONLY — no backend, no API, no AI, no auth; all flows are scripted static UI. *)",
-      "Bash(graphify update *)"
+      "Bash(graphify update *)",
+      "Bash(graphify query *)",
+      "Bash(pnpm vitest *)",
+      "Bash(pnpm typecheck *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ]
   },
   "hooks": {
