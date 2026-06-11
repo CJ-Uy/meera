@@ -12,6 +12,14 @@ const options = [
 		tint: "var(--teal)",
 	},
 	{
+		href: "/demo/support",
+		emoji: "💬",
+		title: "Student (live AI)",
+		body: "Talk to the real Meera support orchestrator — it classifies your concern and files a staff-ready ticket.",
+		cta: "Open live support",
+		tint: "var(--teal)",
+	},
+	{
 		href: "/demo/admin",
 		emoji: "🛠️",
 		title: "Staff / Admin",

@@ -51,10 +51,48 @@ export type AiChatMessage = AiChatInputMessage & {
 	model?: string;
 };
 
+/** "overlay" (default) = visual screen-guidance assistant. "support" = student support orchestrator. */
+export type AiChatMode = "overlay" | "support";
+
 export type AiChatRequest = {
 	messages: AiChatInputMessage[];
 	/** Detected on-screen elements for selection-based grounding (image-space normalized rects). */
 	groundingCandidates?: GroundingCandidate[];
+	/** Selects the system prompt + tools. Omitted/"overlay" preserves the original assistant behavior. */
+	mode?: AiChatMode;
+};
+
+export type SupportOffice = "IT" | "Registrar" | "Finance/Billing" | "Medical/Campus Health" | "Student Services" | "General Support";
+export type SupportPriority = "Low" | "Normal" | "High" | "Critical";
+
+/** Payload of the create_support_ticket tool call (mirrors TicketCreatorOutput in the master prompt). */
+export type SupportTicketArgs = {
+	ticketTitle: string;
+	responsibleOffice: SupportOffice;
+	category: string;
+	priority: SupportPriority;
+	urgencyReason?: string;
+	studentName?: string | null;
+	studentId?: string | null;
+	studentEmail?: string | null;
+	issueSummary: string;
+	collectedInformation?: string[];
+	missingInformation?: string[];
+	guidanceOrTroubleshootingAttempted?: string[];
+	escalationReason?: string;
+	suggestedStaffAction?: string;
+	conversationSummary?: string;
+	studentFacingSummary?: string;
+};
+
+/** Persisted-ticket result returned to the student surface after a successful DB write. */
+export type SupportTicketResult = {
+	id: string;
+	ticketNumber: string;
+	office: SupportOffice;
+	category: string;
+	priority: SupportPriority;
+	studentFacingSummary: string;
 };
 
 export type AiChatResponse = {
@@ -65,6 +103,10 @@ export type AiChatResponse = {
 	grounding?: AiGroundingMode;
 	/** Candidate id the selection model chose (for debugging which element was targeted). */
 	selectedElementId?: string;
+	/** Internal: parsed support-ticket payload awaiting persistence. Stripped before the client sees it. */
+	supportTicketArgs?: SupportTicketArgs;
+	/** Set after a support ticket is persisted; drives the student-facing confirmation card. */
+	ticket?: SupportTicketResult;
 };
 
 export type AiProviderName = "groq" | "workers-ai";
@@ -193,6 +235,7 @@ export function isAiChatRequest(value: unknown): value is AiChatRequest {
 		if (!Array.isArray(value.groundingCandidates) || value.groundingCandidates.length > AI_LIMITS.maxGroundingCandidates) return false;
 		if (!value.groundingCandidates.every(isGroundingCandidate)) return false;
 	}
+	if (value.mode !== undefined && value.mode !== "overlay" && value.mode !== "support") return false;
 	return value.messages.at(-1)?.role === "user";
 }
 

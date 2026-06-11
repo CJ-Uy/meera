@@ -5,7 +5,7 @@ import { adminFromRow, kbEdgeFromRow, kbNodeFromRow, messageFromRow, messageId, 
 import * as schema from "../schema";
 import { admins, crossDeptParticipants, kbEdges, kbNodes, tasks, ticketMessages, ticketNotes, tickets, users } from "../schema";
 import type { CreateUserInput, DatabaseAdapter, User } from "../types";
-import type { AdminNote, AdminSnapshot, DepartmentCode, KbEdge, KbNode, Severity, Complexity, Task } from "@/features/admin/types";
+import type { AdminNote, AdminSnapshot, DemoTicket, DepartmentCode, KbEdge, KbNode, Severity, Complexity, Task } from "@/features/admin/types";
 import type { TicketPatch } from "@/features/admin/store/data-source";
 
 export class D1DatabaseAdapter implements DatabaseAdapter {
@@ -68,6 +68,19 @@ export class D1DatabaseAdapter implements DatabaseAdapter {
 				edges: edgeRows.map(kbEdgeFromRow),
 			},
 		};
+	}
+
+	async createTicket(ticket: DemoTicket): Promise<{ id: string }> {
+		await this.db.insert(tickets).values(ticketInsertFromDemo(ticket));
+		const messages = ticket.conversation.map((message, index) => ({
+			id: messageId(ticket.id, index),
+			ticketId: ticket.id,
+			role: message.role,
+			text: message.text,
+			at: message.at,
+		}));
+		if (messages.length > 0) await this.db.insert(ticketMessages).values(messages);
+		return { id: ticket.id };
 	}
 
 	async claimTicket(id: string, adminId: string): Promise<void> {

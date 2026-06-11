@@ -9,7 +9,7 @@ import * as schema from "../schema";
 import { admins, crossDeptParticipants, kbEdges, kbNodes, tasks, ticketMessages, ticketNotes, tickets, users } from "../schema";
 import type { CreateUserInput, DatabaseAdapter, User } from "../types";
 import type { TicketPatch } from "@/features/admin/store/data-source";
-import type { AdminNote, AdminSnapshot, Complexity, DepartmentCode, KbEdge, KbNode, Severity, Task } from "@/features/admin/types";
+import type { AdminNote, AdminSnapshot, Complexity, DemoTicket, DepartmentCode, KbEdge, KbNode, Severity, Task } from "@/features/admin/types";
 
 export class LocalSqliteDatabaseAdapter implements DatabaseAdapter {
 	readonly adapterName = "local-sqlite";
@@ -150,6 +150,19 @@ export class LocalSqliteDatabaseAdapter implements DatabaseAdapter {
 				edges: edgeRows.map(kbEdgeFromRow),
 			},
 		};
+	}
+
+	async createTicket(ticket: DemoTicket): Promise<{ id: string }> {
+		this.db.insert(tickets).values(ticketInsertFromDemo(ticket)).run();
+		const messages = ticket.conversation.map((message, index) => ({
+			id: messageId(ticket.id, index),
+			ticketId: ticket.id,
+			role: message.role,
+			text: message.text,
+			at: message.at,
+		}));
+		if (messages.length > 0) this.db.insert(ticketMessages).values(messages).run();
+		return { id: ticket.id };
 	}
 
 	async claimTicket(id: string, adminId: string): Promise<void> {

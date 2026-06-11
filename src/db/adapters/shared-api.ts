@@ -1,6 +1,6 @@
 import type { CreateUserInput, DatabaseAdapter, User } from "../types";
 import type { TicketPatch } from "@/features/admin/store/data-source";
-import type { AdminNote, AdminSnapshot, Complexity, DepartmentCode, KbEdge, KbNode, Severity, Task } from "@/features/admin/types";
+import type { AdminNote, AdminSnapshot, Complexity, DemoTicket, DepartmentCode, KbEdge, KbNode, Severity, Task } from "@/features/admin/types";
 
 type SharedApiOptions = {
 	baseUrl: string;
@@ -35,6 +35,10 @@ export class SharedApiDatabaseAdapter implements DatabaseAdapter {
 
 	async loadAdminSnapshot(): Promise<AdminSnapshot> {
 		return this.request<AdminSnapshot>("/internal/admin/snapshot");
+	}
+
+	async createTicket(ticket: DemoTicket): Promise<{ id: string }> {
+		return this.request<{ id: string }>("/internal/admin/tickets", { method: "POST", body: JSON.stringify({ ticket }) });
 	}
 
 	async claimTicket(id: string, adminId: string): Promise<void> {

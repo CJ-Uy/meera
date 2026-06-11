@@ -4,7 +4,7 @@ import { D1DatabaseAdapter } from "./adapters/d1";
 import { SharedApiDatabaseAdapter } from "./adapters/shared-api";
 import type { CreateUserInput, DatabaseAdapter, User } from "./types";
 import type { TicketPatch } from "@/features/admin/store/data-source";
-import type { AdminNote, AdminSnapshot, Complexity, DepartmentCode, KbEdge, KbNode, Severity, Task } from "@/features/admin/types";
+import type { AdminNote, AdminSnapshot, Complexity, DemoTicket, DepartmentCode, KbEdge, KbNode, Severity, Task } from "@/features/admin/types";
 
 class LazyLocalSqliteDatabaseAdapter implements DatabaseAdapter {
 	readonly adapterName = "local-sqlite";
@@ -31,6 +31,10 @@ class LazyLocalSqliteDatabaseAdapter implements DatabaseAdapter {
 
 	async loadAdminSnapshot(): Promise<AdminSnapshot> {
 		return (await this.getAdapter()).loadAdminSnapshot();
+	}
+
+	async createTicket(ticket: DemoTicket): Promise<{ id: string }> {
+		return (await this.getAdapter()).createTicket(ticket);
 	}
 
 	async claimTicket(id: string, adminId: string): Promise<void> {

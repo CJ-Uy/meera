@@ -154,6 +154,49 @@ export const AI_OVERLAY_TOOLS: AiToolDefinition[] = [
 	},
 ];
 
+const stringArray = { type: "array", items: { type: "string" } };
+
+/**
+ * Support-orchestrator tool. The model calls this to package a collected case into a staff-ready
+ * ticket; the server maps it onto the existing tickets table. Not an overlay command — it is handled
+ * outside the overlay normalize/reconcile pipeline. Mirrors TicketCreatorOutput in the master prompt.
+ */
+export const AI_SUPPORT_TOOLS: AiToolDefinition[] = [
+	{
+		type: "function",
+		function: {
+			name: "create_support_ticket",
+			description:
+				"Package the student's concern into a structured, staff-ready support ticket. Call this only when the issue needs human review or staff-only action and you have collected the details this concern needs. Use only facts the student provided.",
+			parameters: {
+				type: "object",
+				required: ["ticketTitle", "responsibleOffice", "category", "priority", "issueSummary"],
+				properties: {
+					ticketTitle: { type: "string", description: "Short staff-facing title for the ticket." },
+					responsibleOffice: {
+						type: "string",
+						enum: ["IT", "Registrar", "Finance/Billing", "Medical/Campus Health", "Student Services", "General Support"],
+					},
+					category: { type: "string", description: "Concern category, e.g. \"Registration hold\" or \"Wi-Fi access\"." },
+					priority: { type: "string", enum: ["Low", "Normal", "High", "Critical"] },
+					urgencyReason: { type: "string", description: "Why this priority — deadlines, exam, access failure, etc." },
+					studentName: { type: "string" },
+					studentId: { type: "string" },
+					studentEmail: { type: "string" },
+					issueSummary: { type: "string", description: "One or two sentence summary of the concern." },
+					collectedInformation: { ...stringArray, description: "Concrete details the student provided." },
+					missingInformation: { ...stringArray, description: "Details still needed from the student or staff." },
+					guidanceOrTroubleshootingAttempted: { ...stringArray, description: "Steps already attempted in the conversation." },
+					escalationReason: { type: "string", description: "Why staff review is required." },
+					suggestedStaffAction: { type: "string", description: "Recommended next step for staff (not a decision)." },
+					conversationSummary: { type: "string", description: "Brief recap of the conversation for staff." },
+					studentFacingSummary: { type: "string", description: "Warm, plain-language summary shown back to the student." },
+				},
+			},
+		},
+	},
+];
+
 function parseArguments(value: string | Record<string, unknown> | undefined): Record<string, unknown> {
 	if (typeof value !== "string") return value ?? {};
 	try {

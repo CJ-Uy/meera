@@ -1,12 +1,13 @@
-import { MEERA_AI_SYSTEM_PROMPT } from "@/features/ai/ai-prompt";
+import { MEERA_AI_SYSTEM_PROMPT, MEERA_SUPPORT_SYSTEM_PROMPT } from "@/features/ai/ai-prompt";
 import {
 	coordinateCalibration,
 	immediateOverlayResponse,
 	isVisionRequest,
 	messagesForProvider,
 	resolveProviderResponse,
+	resolveSupportResponse,
 } from "@/features/ai/ai-provider-utils";
-import { AI_OVERLAY_TOOLS } from "@/features/ai/ai-tools";
+import { AI_OVERLAY_TOOLS, AI_SUPPORT_TOOLS } from "@/features/ai/ai-tools";
 import {
 	buildSelectionMessages,
 	parseSelection,
@@ -134,9 +135,13 @@ async function groqErrorMessage(response: Response) {
 	return `Groq HTTP ${response.status}: ${(plainText || response.statusText).slice(0, 240)}`;
 }
 
+function systemPromptForMode(request: AiChatRequest) {
+	return request.mode === "support" ? MEERA_SUPPORT_SYSTEM_PROMPT : MEERA_AI_SYSTEM_PROMPT;
+}
+
 function toGroqMessages(request: AiChatRequest, usesVision: boolean): GroqMessage[] {
 	return [
-		{ role: "system", content: MEERA_AI_SYSTEM_PROMPT },
+		{ role: "system", content: systemPromptForMode(request) },
 		...messagesForProvider(request, usesVision).map((message): GroqMessage => {
 			const calibration = coordinateCalibration(message.images);
 			const text = calibration ? `${message.content}\n\n${calibration}` : message.content;
@@ -178,8 +183,9 @@ function allowNumericStrings(value: unknown): unknown {
 	};
 }
 
-function groqOverlayTools() {
-	return allowNumericStrings(AI_OVERLAY_TOOLS);
+function groqToolsForMode(request: AiChatRequest) {
+	const tools = request.mode === "support" ? [...AI_OVERLAY_TOOLS, ...AI_SUPPORT_TOOLS] : AI_OVERLAY_TOOLS;
+	return allowNumericStrings(tools);
 }
 
 function attemptTimeouts(totalTimeoutMs: number) {
@@ -204,7 +210,7 @@ async function requestGroqChat(request: AiChatRequest, usesVision: boolean) {
 					body: JSON.stringify({
 						model,
 						messages: toGroqMessages(request, usesVision),
-						tools: groqOverlayTools(),
+						tools: groqToolsForMode(request),
 						tool_choice: "auto",
 						parallel_tool_calls: true,
 						// Grounding must be deterministic; only let text chat explore on the first attempt.
@@ -301,6 +307,20 @@ async function groundedSelectionResponse(request: AiChatRequest): Promise<AiChat
 }
 
 export async function chatWithGroq(request: AiChatRequest): Promise<AiChatResponse> {
+	// Support mode runs the orchestrator straight through the chat model — the overlay grounding
+	// short-circuits below are visual-only and would bypass the support flow.
+	if (request.mode === "support") {
+		const { data, model } = await requestGroqChat(request, isVisionRequest(request));
+		const choice = data.choices?.[0];
+		return resolveSupportResponse({
+			content: choice?.message?.content,
+			finishReason: choice?.finish_reason,
+			model: data.model || model,
+			request,
+			toolCalls: choice?.message?.tool_calls,
+		});
+	}
+
 	const immediateResponse = immediateOverlayResponse(request);
 	if (immediateResponse) return immediateResponse;
 

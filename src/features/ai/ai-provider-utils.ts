@@ -4,6 +4,7 @@ import {
 	recoverOverlayToolCallsFromText,
 	type OverlayCoordinateContext,
 } from "@/features/ai/ai-tools";
+import { parseSupportTicketArgs, stripTicketBlock } from "@/features/ai/support-ticket";
 import type {
 	AiChatInputMessage,
 	AiChatRequest,
@@ -123,5 +124,49 @@ export function resolveProviderResponse({
 		message: toolCalls.length ? "I marked that on your desktop." : normalizedContent,
 		model,
 		toolCalls,
+	};
+}
+
+/**
+ * Support-orchestrator resolver. Separates a create_support_ticket payload (tool call or fenced block)
+ * from the student-facing prose and any overlay calls, leaving persistence to the chat service. Unlike
+ * the overlay resolver it does NOT synthesize overlays from prose — support replies are mostly text.
+ */
+export function resolveSupportResponse({
+	content,
+	finishReason,
+	model,
+	request,
+	toolCalls: providerToolCalls,
+}: {
+	content?: string | null;
+	finishReason?: string | null;
+	model: string;
+	request: AiChatRequest;
+	toolCalls?: AiToolCall[];
+}): AiChatResponse {
+	const context = latestScreenFrameContext(request);
+	const supportTicketArgs = parseSupportTicketArgs(providerToolCalls, content) ?? undefined;
+	const overlayCalls = (providerToolCalls ?? []).filter((call) => call.function?.name !== "create_support_ticket");
+	const toolCalls = normalizeOverlayToolCalls(overlayCalls, context);
+	const normalizedContent = stripTicketBlock(content?.trim() ?? "");
+
+	if (!normalizedContent && !supportTicketArgs && toolCalls.length === 0) {
+		if (finishReason === "length") {
+			throw new Error("The AI model used its full response budget before completing the request. Please try again.");
+		}
+		throw new Error("The AI provider returned an empty response.");
+	}
+
+	const message =
+		normalizedContent ||
+		(toolCalls.length ? "I marked that on your desktop." : supportTicketArgs?.studentFacingSummary) ||
+		"I've organized your concern so the right office can review it.";
+
+	return {
+		message,
+		model,
+		toolCalls,
+		...(supportTicketArgs ? { supportTicketArgs } : {}),
 	};
 }

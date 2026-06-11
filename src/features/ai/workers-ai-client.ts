@@ -1,13 +1,15 @@
-import { MEERA_AI_SYSTEM_PROMPT } from "@/features/ai/ai-prompt";
+import { MEERA_AI_SYSTEM_PROMPT, MEERA_SUPPORT_SYSTEM_PROMPT } from "@/features/ai/ai-prompt";
 import {
 	coordinateCalibration,
 	immediateOverlayResponse,
 	isVisionRequest,
 	messagesForProvider,
 	resolveProviderResponse,
+	resolveSupportResponse,
 } from "@/features/ai/ai-provider-utils";
+import { AI_SUPPORT_TOOLS } from "@/features/ai/ai-tools";
 import { buildSelectionMessages, parseSelection, SELECTION_JSON_SYSTEM_PROMPT, selectionToToolCalls } from "@/features/ai/grounding/select";
-import type { AiChatRequest, AiChatResponse, AiProviderStatus } from "@/features/ai/ai-types";
+import type { AiChatRequest, AiChatResponse, AiProviderStatus, AiToolCall } from "@/features/ai/ai-types";
 
 /**
  * Cloudflare Workers AI provider (via the `meera` AI Gateway).
@@ -28,7 +30,7 @@ type CompatMessage = { role: "system" | "user" | "assistant"; content: string | 
 
 type CompatChatResponse = {
 	model?: string;
-	choices?: Array<{ finish_reason?: string | null; message?: { content?: string | null } }>;
+	choices?: Array<{ finish_reason?: string | null; message?: { content?: string | null; tool_calls?: AiToolCall[] } }>;
 };
 
 type RunVisionResponse = { result?: { response?: string | null }; success?: boolean };
@@ -125,7 +127,7 @@ async function errorMessage(response: Response) {
 
 function toCompatMessages(request: AiChatRequest, usesVision: boolean): CompatMessage[] {
 	return [
-		{ role: "system", content: MEERA_AI_SYSTEM_PROMPT },
+		{ role: "system", content: request.mode === "support" ? MEERA_SUPPORT_SYSTEM_PROMPT : MEERA_AI_SYSTEM_PROMPT },
 		...messagesForProvider(request, usesVision).map((message): CompatMessage => {
 			const calibration = coordinateCalibration(message.images);
 			const text = calibration ? `${message.content}\n\n${calibration}` : message.content;
@@ -225,13 +227,41 @@ async function groundedSelectionResponse(request: AiChatRequest): Promise<AiChat
 }
 
 export async function chatWithWorkersAi(request: AiChatRequest): Promise<AiChatResponse> {
+	const settings = config();
+
+	// Support mode: the orchestrator runs through the gateway compat chat with the create_support_ticket
+	// tool exposed, so the model packages escalations as a native tool call (resolveSupportResponse reads
+	// it; the fenced-block fallback in the system prompt covers models that decline to tool-call). Skip
+	// the overlay grounding paths — support replies are conversational, not visual.
+	if (request.mode === "support") {
+		const data = await compatChat(
+			{
+				model: settings.chatModel,
+				messages: toCompatMessages(request, false),
+				tools: AI_SUPPORT_TOOLS,
+				tool_choice: "auto",
+				temperature: 0.2,
+				max_tokens: settings.maxTokens,
+				stream: false,
+			},
+			settings.timeoutMs,
+		);
+		const choice = data.choices?.[0];
+		return resolveSupportResponse({
+			content: choice?.message?.content,
+			finishReason: choice?.finish_reason,
+			model: data.model || settings.chatModel,
+			request,
+			toolCalls: choice?.message?.tool_calls,
+		});
+	}
+
 	const immediateResponse = immediateOverlayResponse(request);
 	if (immediateResponse) return immediateResponse;
 
 	const grounded = await groundedSelectionResponse(request);
 	if (grounded) return grounded;
 
-	const settings = config();
 	if (isVisionRequest(request)) {
 		const content = await runVision(request);
 		return resolveProviderResponse({ content, model: settings.visionModel, request, toolCalls: [] });

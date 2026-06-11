@@ -1,6 +1,6 @@
 import type { users } from "./schema";
 import type { AdminDataSource, TicketPatch } from "@/features/admin/store/data-source";
-import type { AdminSnapshot } from "@/features/admin/types";
+import type { AdminSnapshot, DemoTicket } from "@/features/admin/types";
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -16,6 +16,8 @@ export interface DatabaseAdapter {
 	createUser(input: CreateUserInput): Promise<User>;
 	getUserById(id: string): Promise<User | null>;
 	loadAdminSnapshot(): Promise<AdminSnapshot>;
+	/** Persist a Meera-generated support ticket (and its conversation) created from a student chat. */
+	createTicket(ticket: DemoTicket): Promise<{ id: string }>;
 	claimTicket: AdminDataSource["claimTicket"];
 	releaseTicket: AdminDataSource["releaseTicket"];
 	addNote: AdminDataSource["addNote"];

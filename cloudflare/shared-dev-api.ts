@@ -329,6 +329,50 @@ const sharedDevApi = {
 			return new Response(null, { status: 204, headers: corsHeaders });
 		}
 
+		if (url.pathname === "/internal/admin/tickets" && request.method === "POST") {
+			const input = await request.json<{ ticket?: Record<string, unknown> }>().catch(() => null);
+			const ticket = input?.ticket;
+			if (!ticket || typeof ticket.id !== "string" || typeof ticket.title !== "string") {
+				return json({ error: "A support ticket payload is required." }, { status: 400 });
+			}
+			await env.DB.prepare(`
+				INSERT INTO tickets (
+					id, title, student, owner_dept, tag, severity, complexity, status, created_at,
+					ai_summary, collected_information, missing_information, suggested_actions, confidence,
+					claimed_by, edited, kb_ingested, cross_initiated_by, cross_active
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			`).bind(
+				ticket.id,
+				ticket.title,
+				typeof ticket.student === "string" ? ticket.student : "Anonymous student",
+				ticket.ownerDept,
+				ticket.tag,
+				ticket.severity,
+				ticket.complexity,
+				ticket.status,
+				ticket.createdAt,
+				ticket.aiSummary,
+				ticket.collectedInformation,
+				ticket.missingInformation,
+				JSON.stringify(Array.isArray(ticket.suggestedActions) ? ticket.suggestedActions : []),
+				typeof ticket.confidence === "number" ? ticket.confidence : 0.7,
+				typeof ticket.claimedBy === "string" ? ticket.claimedBy : null,
+				Number(Boolean(ticket.edited)),
+				Number(Boolean(ticket.kbIngested)),
+				null,
+				0,
+			).run();
+
+			const conversation = Array.isArray(ticket.conversation) ? ticket.conversation as Record<string, unknown>[] : [];
+			for (const [index, message] of conversation.entries()) {
+				if (typeof message.role === "string" && typeof message.text === "string" && typeof message.at === "number") {
+					await env.DB.prepare("INSERT INTO ticket_messages (id, ticket_id, role, text, at) VALUES (?, ?, ?, ?, ?)").bind(`msg-${ticket.id}-${index}`.replace(/[^a-zA-Z0-9_-]/g, "-"), ticket.id, message.role, message.text, message.at).run();
+				}
+			}
+
+			return json({ id: ticket.id }, { status: 201 });
+		}
+
 		const ticketClaim = url.pathname.match(/^\/internal\/admin\/tickets\/([^/]+)\/claim$/);
 		if (ticketClaim && request.method === "POST") {
 			const input = await request.json<{ adminId?: unknown }>().catch(() => null);
