@@ -64,8 +64,8 @@ export function useAiChat(
 						available: false,
 						provider: "workers-ai",
 						providerLabel: "Cloudflare Workers AI",
-						chatModel: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
-						visionModel: "@cf/meta/llama-3.2-11b-vision-instruct",
+						chatModel: "@cf/meta/llama-4-scout-17b-16e-instruct",
+						visionModel: "@cf/meta/llama-4-scout-17b-16e-instruct",
 						models: [],
 						error: statusError instanceof Error ? statusError.message : "Could not check AI provider status.",
 					});

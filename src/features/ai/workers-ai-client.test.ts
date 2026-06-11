@@ -78,6 +78,19 @@ describe("Workers AI client", () => {
 		expect(request.tool_choice).toBe("auto");
 	});
 
+	it("keeps support orchestration on Scout even when overlay chat has an older env override", async () => {
+		process.env.WORKERS_AI_CHAT_MODEL = "workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+		const fetchMock = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify({ choices: [{ message: { content: "Ticket path ready." } }] }), { status: 200 }),
+		);
+		vi.stubGlobal("fetch", fetchMock);
+
+		await chatWithWorkersAi({ mode: "support", messages: [{ role: "user", content: "Please create a registration ticket." }] });
+		const request = JSON.parse(fetchMock.mock.calls[0][1].body as string) as Record<string, unknown>;
+
+		expect(request.model).toBe("workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct");
+	});
+
 	it("grounds selection via JSON mode and resolves the chosen candidate to an overlay", async () => {
 		const fetchMock = vi.fn().mockResolvedValue(
 			new Response(

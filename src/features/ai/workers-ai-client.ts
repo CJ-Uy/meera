@@ -36,6 +36,7 @@ type CompatChatResponse = {
 type RunVisionResponse = { result?: { response?: string | null }; success?: boolean };
 
 const DEFAULT_BASE_URL = "https://gateway.ai.cloudflare.com/v1/compat";
+const DEFAULT_SUPPORT_MODEL = "workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct";
 const DEFAULT_CHAT_MODEL = "workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct";
 const DEFAULT_SELECTION_MODEL = "workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct";
 const DEFAULT_VISION_MODEL = "workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct";
@@ -72,6 +73,7 @@ function config() {
 		apiKey: process.env.WORKERS_AI_API_KEY?.trim(),
 		gatewayAuthToken: process.env.WORKERS_AI_GATEWAY_AUTH_TOKEN?.trim(),
 		accountId: process.env.WORKERS_AI_ACCOUNT_ID?.trim(),
+		supportModel: process.env.WORKERS_AI_SUPPORT_MODEL?.trim() || DEFAULT_SUPPORT_MODEL,
 		chatModel: process.env.WORKERS_AI_CHAT_MODEL?.trim() || DEFAULT_CHAT_MODEL,
 		selectionModel: process.env.WORKERS_AI_SELECTION_MODEL?.trim() || DEFAULT_SELECTION_MODEL,
 		visionModel: process.env.WORKERS_AI_VISION_MODEL?.trim() || DEFAULT_VISION_MODEL,
@@ -236,7 +238,7 @@ export async function chatWithWorkersAi(request: AiChatRequest): Promise<AiChatR
 	if (request.mode === "support") {
 		const data = await compatChat(
 			{
-				model: settings.chatModel,
+				model: settings.supportModel,
 				messages: toCompatMessages(request, false),
 				tools: AI_SUPPORT_TOOLS,
 				tool_choice: "auto",
@@ -250,7 +252,7 @@ export async function chatWithWorkersAi(request: AiChatRequest): Promise<AiChatR
 		return resolveSupportResponse({
 			content: choice?.message?.content,
 			finishReason: choice?.finish_reason,
-			model: data.model || settings.chatModel,
+			model: data.model || settings.supportModel,
 			request,
 			toolCalls: choice?.message?.tool_calls,
 		});
