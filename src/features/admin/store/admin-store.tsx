@@ -16,6 +16,7 @@ type AdminStoreContextValue = AdminStoreState & {
 	setSeverity: (id: string, severity: Severity) => Promise<void>;
 	setComplexity: (id: string, complexity: Complexity) => Promise<void>;
 	updateTicket: (id: string, patch: TicketPatch) => Promise<void>;
+	deleteTicket: (id: string) => Promise<void>;
 	resolveTicket: (id: string) => Promise<void>;
 	ingestKb: (node: KbNode) => Promise<void>;
 	createKbNode: (node: KbNode, edges: KbEdge[]) => Promise<void>;
@@ -75,6 +76,10 @@ export function AdminStoreProvider({ children }: { children: ReactNode }) {
 		updateTicket: async (id, patch) => {
 			await adminDataSource.updateTicket(id, patch);
 			dispatch({ type: "updateTicket", id, patch });
+		},
+		deleteTicket: async (id) => {
+			await adminDataSource.deleteTicket(id);
+			dispatch({ type: "deleteTicket", id });
 		},
 		resolveTicket: async (id) => {
 			await adminDataSource.resolveTicket(id);

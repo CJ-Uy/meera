@@ -26,6 +26,8 @@ describe("battle demo polish", () => {
 
 	it("maps departments to dynamic bosses", () => {
 		expect(pickBosses([])).toEqual([DEFAULT_BOSS]);
+		expect(DEFAULT_BOSS.kind).toContain("Hawk type");
+		expect(DEFAULT_BOSS.sprites.idle).toContain("battle/hawk/idle.png");
 		expect(pickBosses(["IT"]).map((boss) => boss.id)).toEqual(["hawk"]);
 		expect(pickBosses(["IT", "Finance", "IT", "Health", "Registrar"]).map((boss) => boss.id)).toEqual([
 			"hawk",

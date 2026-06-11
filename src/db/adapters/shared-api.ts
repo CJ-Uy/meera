@@ -65,6 +65,10 @@ export class SharedApiDatabaseAdapter implements DatabaseAdapter {
 		await this.request<void>(`/internal/admin/tickets/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify({ patch }) });
 	}
 
+	async deleteTicket(id: string): Promise<void> {
+		await this.request<void>(`/internal/admin/tickets/${encodeURIComponent(id)}`, { method: "DELETE" });
+	}
+
 	async resolveTicket(id: string): Promise<void> {
 		await this.request<void>(`/internal/admin/tickets/${encodeURIComponent(id)}/resolve`, { method: "POST", body: JSON.stringify({}) });
 	}

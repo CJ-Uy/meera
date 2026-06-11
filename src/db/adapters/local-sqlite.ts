@@ -191,6 +191,14 @@ export class LocalSqliteDatabaseAdapter implements DatabaseAdapter {
 		this.db.update(tickets).set(ticketUpdateFromPatch(patch)).where(eq(tickets.id, id)).run();
 	}
 
+	async deleteTicket(id: string): Promise<void> {
+		this.db.delete(tasks).where(eq(tasks.ticketId, id)).run();
+		this.db.delete(crossDeptParticipants).where(eq(crossDeptParticipants.ticketId, id)).run();
+		this.db.delete(ticketNotes).where(eq(ticketNotes.ticketId, id)).run();
+		this.db.delete(ticketMessages).where(eq(ticketMessages.ticketId, id)).run();
+		this.db.delete(tickets).where(eq(tickets.id, id)).run();
+	}
+
 	async resolveTicket(id: string): Promise<void> {
 		this.db.update(tickets).set({ status: "Resolved" }).where(eq(tickets.id, id)).run();
 	}

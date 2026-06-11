@@ -46,6 +46,9 @@ export function createApiAdminDataSource(getActingAdminId: () => string | null):
 		updateTicket(id: string, patch: TicketPatch) {
 			return request<void>(`/api/admin/tickets/${encodeURIComponent(id)}`, { method: "PATCH", body: withActor({ patch }) });
 		},
+		deleteTicket(id: string) {
+			return request<void>(`/api/admin/tickets/${encodeURIComponent(id)}`, { method: "DELETE", body: withActor({}) });
+		},
 		resolveTicket(id: string) {
 			return request<void>(`/api/admin/tickets/${encodeURIComponent(id)}/resolve`, { method: "POST", body: withActor({}) });
 		},

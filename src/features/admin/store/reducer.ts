@@ -19,6 +19,7 @@ export type AdminAction =
 	| { type: "setSeverity"; id: string; severity: Severity }
 	| { type: "setComplexity"; id: string; complexity: Complexity }
 	| { type: "updateTicket"; id: string; patch: TicketPatch }
+	| { type: "deleteTicket"; id: string }
 	| { type: "resolveTicket"; id: string }
 	| { type: "ingestKb"; node: KbNode }
 	| { type: "createKbNode"; node: KbNode; edges: KbEdge[] }
@@ -101,6 +102,11 @@ export function adminReducer(state: AdminStoreState, action: AdminAction): Admin
 			return { ...state, tickets: withTicket(state.tickets, action.id, (ticket) => ({ ...ticket, complexity: action.complexity, edited: true })) };
 		case "updateTicket":
 			return { ...state, tickets: withTicket(state.tickets, action.id, (ticket) => ({ ...ticket, ...action.patch, edited: true })) };
+		case "deleteTicket": {
+			const tickets = state.tickets.filter((ticket) => ticket.id !== action.id);
+			const selectedTicketId = state.selectedTicketId === action.id ? firstTicketId(tickets, state.activeDepartment) : state.selectedTicketId;
+			return { ...state, tickets, selectedTicketId };
+		}
 		case "resolveTicket":
 			return { ...state, tickets: withTicket(state.tickets, action.id, (ticket) => ({ ...ticket, status: "Resolved" })) };
 		case "ingestKb":

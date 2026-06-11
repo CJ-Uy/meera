@@ -33,9 +33,9 @@ const cobraSprites = {
 export const DEFAULT_BOSS: BossConfig = {
 	id: "snag",
 	name: "THE SNAG",
-	kind: "Campus snag / Cobra type",
+	kind: "Campus snag / Hawk type",
 	dept: "Unknown",
-	sprites: cobraSprites,
+	sprites: spriteSet("hawk"),
 	accent: "teal",
 };
 

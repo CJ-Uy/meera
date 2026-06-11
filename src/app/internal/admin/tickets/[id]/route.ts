@@ -13,3 +13,11 @@ export async function PATCH(request: Request, context: RouteContext) {
 	await auth.db.updateTicket(id, parsed.data.patch);
 	return emptyOk();
 }
+
+export async function DELETE(request: Request, context: RouteContext) {
+	const auth = authorizeInternalAdmin(request);
+	if ("response" in auth) return auth.response;
+	const { id } = await context.params;
+	await auth.db.deleteTicket(id);
+	return emptyOk();
+}

@@ -60,6 +60,9 @@ export const inMemoryAdminDataSource: AdminDataSource = {
 	async updateTicket(id: string, patch: TicketPatch) {
 		mutate({ type: "updateTicket", id, patch });
 	},
+	async deleteTicket(id: string) {
+		mutate({ type: "deleteTicket", id });
+	},
 	async resolveTicket(id: string) {
 		mutate({ type: "resolveTicket", id });
 	},

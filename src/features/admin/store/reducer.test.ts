@@ -51,6 +51,26 @@ describe("admin reducer KB ingest", () => {
 	});
 });
 
+describe("admin reducer ticket deletion", () => {
+	it("removes the selected ticket and selects the next visible ticket", () => {
+		const state: AdminStoreState = {
+			...initialAdminStoreState,
+			activeDepartment: "IT",
+			selectedTicketId: "AIC-1",
+			tickets: [
+				ticket({ id: "AIC-1", ownerDept: "IT" }),
+				ticket({ id: "AIC-2", ownerDept: "IT", status: "New" }),
+			],
+			loading: false,
+		};
+
+		const next = adminReducer(state, { type: "deleteTicket", id: "AIC-1" });
+
+		expect(next.tickets.map((item) => item.id)).toEqual(["AIC-2"]);
+		expect(next.selectedTicketId).toBe("AIC-2");
+	});
+});
+
 describe("admin reducer cross-department flow", () => {
 	it("auto-accepts the last pending department after an AI-initiated ticket is rejected by the other targets", () => {
 		const state: AdminStoreState = {

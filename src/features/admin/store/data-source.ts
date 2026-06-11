@@ -10,6 +10,7 @@ export interface AdminDataSource {
 	setSeverity(id: string, severity: Severity): Promise<void>;
 	setComplexity(id: string, complexity: Complexity): Promise<void>;
 	updateTicket(id: string, patch: TicketPatch): Promise<void>;
+	deleteTicket(id: string): Promise<void>;
 	resolveTicket(id: string): Promise<void>;
 	ingestKb(node: KbNode): Promise<void>;
 	createKbNode(node: KbNode, edges: KbEdge[]): Promise<void>;

@@ -109,6 +109,14 @@ export class D1DatabaseAdapter implements DatabaseAdapter {
 		await this.db.update(tickets).set(ticketUpdateFromPatch(patch)).where(eq(tickets.id, id));
 	}
 
+	async deleteTicket(id: string): Promise<void> {
+		await this.db.delete(tasks).where(eq(tasks.ticketId, id));
+		await this.db.delete(crossDeptParticipants).where(eq(crossDeptParticipants.ticketId, id));
+		await this.db.delete(ticketNotes).where(eq(ticketNotes.ticketId, id));
+		await this.db.delete(ticketMessages).where(eq(ticketMessages.ticketId, id));
+		await this.db.delete(tickets).where(eq(tickets.id, id));
+	}
+
 	async resolveTicket(id: string): Promise<void> {
 		await this.db.update(tickets).set({ status: "Resolved" }).where(eq(tickets.id, id));
 	}
