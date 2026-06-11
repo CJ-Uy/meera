@@ -36,13 +36,15 @@ type CompatChatResponse = {
 type RunVisionResponse = { result?: { response?: string | null }; success?: boolean };
 
 const DEFAULT_BASE_URL = "https://gateway.ai.cloudflare.com/v1/compat";
-const DEFAULT_CHAT_MODEL = "workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast";
-const DEFAULT_SELECTION_MODEL = "workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast";
-const DEFAULT_VISION_MODEL = "workers-ai/@cf/meta/llama-3.2-11b-vision-instruct";
+const DEFAULT_SUPPORT_MODEL = "workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct";
+const DEFAULT_CHAT_MODEL = "workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct";
+const DEFAULT_SELECTION_MODEL = "workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct";
+const DEFAULT_VISION_MODEL = "workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct";
 const DEFAULT_TIMEOUT_MS = 45_000;
 const SELECTION_TIMEOUT_MS = 15_000;
 const SELECTION_MAX_TOKENS = 256;
 const DEFAULT_MAX_TOKENS = 512;
+const DEFAULT_SUPPORT_MAX_TOKENS = 1200;
 
 class WorkersAiHttpError extends Error {
 	constructor(
@@ -72,11 +74,13 @@ function config() {
 		apiKey: process.env.WORKERS_AI_API_KEY?.trim(),
 		gatewayAuthToken: process.env.WORKERS_AI_GATEWAY_AUTH_TOKEN?.trim(),
 		accountId: process.env.WORKERS_AI_ACCOUNT_ID?.trim(),
+		supportModel: process.env.WORKERS_AI_SUPPORT_MODEL?.trim() || DEFAULT_SUPPORT_MODEL,
 		chatModel: process.env.WORKERS_AI_CHAT_MODEL?.trim() || DEFAULT_CHAT_MODEL,
 		selectionModel: process.env.WORKERS_AI_SELECTION_MODEL?.trim() || DEFAULT_SELECTION_MODEL,
 		visionModel: process.env.WORKERS_AI_VISION_MODEL?.trim() || DEFAULT_VISION_MODEL,
 		timeoutMs: positiveInteger(process.env.WORKERS_AI_REQUEST_TIMEOUT_MS, DEFAULT_TIMEOUT_MS),
 		maxTokens: positiveInteger(process.env.WORKERS_AI_MAX_TOKENS, DEFAULT_MAX_TOKENS),
+		supportMaxTokens: positiveInteger(process.env.WORKERS_AI_SUPPORT_MAX_TOKENS, DEFAULT_SUPPORT_MAX_TOKENS),
 	};
 }
 
@@ -236,12 +240,12 @@ export async function chatWithWorkersAi(request: AiChatRequest): Promise<AiChatR
 	if (request.mode === "support") {
 		const data = await compatChat(
 			{
-				model: settings.chatModel,
+				model: settings.supportModel,
 				messages: toCompatMessages(request, false),
 				tools: AI_SUPPORT_TOOLS,
 				tool_choice: "auto",
 				temperature: 0.2,
-				max_tokens: settings.maxTokens,
+				max_tokens: settings.supportMaxTokens,
 				stream: false,
 			},
 			settings.timeoutMs,
@@ -250,7 +254,7 @@ export async function chatWithWorkersAi(request: AiChatRequest): Promise<AiChatR
 		return resolveSupportResponse({
 			content: choice?.message?.content,
 			finishReason: choice?.finish_reason,
-			model: data.model || settings.chatModel,
+			model: data.model || settings.supportModel,
 			request,
 			toolCalls: choice?.message?.tool_calls,
 		});
@@ -285,6 +289,32 @@ export async function chatWithWorkersAi(request: AiChatRequest): Promise<AiChatR
 		request,
 		toolCalls: [],
 	});
+}
+
+export async function completeWorkersAiText({
+	system,
+	user,
+	maxTokens = 160,
+}: {
+	system: string;
+	user: string;
+	maxTokens?: number;
+}): Promise<string> {
+	const settings = config();
+	const data = await compatChat(
+		{
+			model: settings.chatModel,
+			messages: [
+				{ role: "system", content: system },
+				{ role: "user", content: user },
+			],
+			temperature: 0.4,
+			max_tokens: maxTokens,
+			stream: false,
+		},
+		Math.min(settings.timeoutMs, 10_000),
+	);
+	return data.choices?.[0]?.message?.content?.trim() ?? "";
 }
 
 export async function getWorkersAiStatus(): Promise<AiProviderStatus> {

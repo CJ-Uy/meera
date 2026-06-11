@@ -12,7 +12,7 @@
       "Bash(git -C \"c:/Users/charl/Documents/GitHub/meera\" status --short)",
       "Bash(cat \"c:/Users/charl/Documents/GitHub/meera/.claude/settings.json\" 2>/dev/null; echo \"---LOCAL---\"; cat \"c:/Users/charl/Documents/GitHub/meera/.claude/settings.local.json\" 2>/dev/null; echo \"---USER---\"; cat \"c:/Users/charl/.claude/settings.json\" 2>/dev/null)",
       "Read(//c/Users/charl/.claude/**)",
-      "Bash(node C:/Users/charl/.claude/plugins/cache/openai-codex/codex/1.0.4/scripts/codex-companion.mjs task --write 'Implement the Meera '\\\\''Open demo'\\\\'' pages in the real Next.js app, faithfully porting the just-generated reference design prototype. FRONTEND UI ONLY \u2014 this is a demo MOCKUP for show. Do NOT build or wire any backend, do NOT make anything actually functional beyond scripted UI. Explore the repo yourself, build it, verify the build. Full autonomy. Do NOT ask questions back; make reasonable decisions and report what you did. *)",
+      "Bash(node C:/Users/charl/.claude/plugins/cache/openai-codex/codex/1.0.4/scripts/codex-companion.mjs task --write 'Implement the Meera '\\\\''Open demo'\\\\'' pages in the real Next.js app, faithfully porting the just-generated reference design prototype. FRONTEND UI ONLY — this is a demo MOCKUP for show. Do NOT build or wire any backend, do NOT make anything actually functional beyond scripted UI. Explore the repo yourself, build it, verify the build. Full autonomy. Do NOT ask questions back; make reasonable decisions and report what you did. *)",
       "Bash(export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*')",
       "Bash(node \"C:/Users/charl/.claude/plugins/cache/openai-codex/codex/1.0.4/scripts/codex-companion.mjs\" cancel task-mq69prf7-6t26qu)",
       "Bash(node \"C:/Users/charl/.claude/plugins/cache/openai-codex/codex/1.0.4/scripts/codex-companion.mjs\" cancel task-mq69dtrz-un7zo5)",
@@ -20,7 +20,13 @@
       "Bash(ls -la src/components/demo)",
       "Bash(ls -la src/app/demo)",
       "Bash(echo \"=== tsc exit: $? ===\")",
-      "Bash(node C:/Users/charl/.claude/plugins/cache/openai-codex/codex/1.0.4/scripts/codex-companion.mjs task 'FIX an existing Next.js demo page so it FAITHFULLY matches the generated reference prototype. A previous attempt built it from a design brief instead of copying the actual prototype, so the whole cockpit/navigation structure is wrong. Re-port it. FRONTEND UI MOCKUP ONLY \u2014 no backend, no API, no AI, no auth; all flows are scripted static UI. *)"
+      "Bash(node C:/Users/charl/.claude/plugins/cache/openai-codex/codex/1.0.4/scripts/codex-companion.mjs task 'FIX an existing Next.js demo page so it FAITHFULLY matches the generated reference prototype. A previous attempt built it from a design brief instead of copying the actual prototype, so the whole cockpit/navigation structure is wrong. Re-port it. FRONTEND UI MOCKUP ONLY — no backend, no API, no AI, no auth; all flows are scripted static UI. *)",
+      "Bash(graphify update *)",
+      "Bash(graphify query *)",
+      "Bash(pnpm vitest *)",
+      "Bash(pnpm typecheck *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ]
   },
   "hooks": {
@@ -39,7 +45,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "HIT=$(python3 -c \"import json,sys;d=json.load(sys.stdin);t=d.get('tool_input',d);s=(str(t.get('file_path') or '')+' '+str(t.get('pattern') or '')+' '+str(t.get('path') or '')).lower().replace(chr(92),'/');exts=('.py','.js','.ts','.tsx','.jsx','.go','.rs','.java','.rb','.c','.h','.cpp','.hpp','.cc','.cs','.kt','.swift','.php','.scala','.lua','.sh','.md','.rst','.txt','.mdx');sys.stdout.write('1' if 'graphify-out/' not in s and any(e in s for e in exts) else '')\" 2>/dev/null || true); if [ \"$HIT\" = 1 ] && [ -f graphify-out/graph.json ]; then echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"MANDATORY: graphify-out/graph.json exists. You MUST run graphify before reading source files. Use: `graphify query \\\"<question>\\\"` (scoped subgraph), `graphify explain \\\"<concept>\\\"`, or `graphify path \\\"<A>\\\" \\\"<B>\\\"`. Only read raw files after graphify has oriented you, or to modify/debug specific lines. This rule applies to subagents too \u2014 include it in every subagent prompt involving code exploration.\"}}'; fi || true"
+            "command": "HIT=$(python3 -c \"import json,sys;d=json.load(sys.stdin);t=d.get('tool_input',d);s=(str(t.get('file_path') or '')+' '+str(t.get('pattern') or '')+' '+str(t.get('path') or '')).lower().replace(chr(92),'/');exts=('.py','.js','.ts','.tsx','.jsx','.go','.rs','.java','.rb','.c','.h','.cpp','.hpp','.cc','.cs','.kt','.swift','.php','.scala','.lua','.sh','.md','.rst','.txt','.mdx');sys.stdout.write('1' if 'graphify-out/' not in s and any(e in s for e in exts) else '')\" 2>/dev/null || true); if [ \"$HIT\" = 1 ] && [ -f graphify-out/graph.json ]; then echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"MANDATORY: graphify-out/graph.json exists. You MUST run graphify before reading source files. Use: `graphify query \\\"<question>\\\"` (scoped subgraph), `graphify explain \\\"<concept>\\\"`, or `graphify path \\\"<A>\\\" \\\"<B>\\\"`. Only read raw files after graphify has oriented you, or to modify/debug specific lines. This rule applies to subagents too — include it in every subagent prompt involving code exploration.\"}}'; fi || true"
           }
         ]
       }

@@ -338,6 +338,38 @@ export async function chatWithGroq(request: AiChatRequest): Promise<AiChatRespon
 	});
 }
 
+export async function completeGroqText({
+	system,
+	user,
+	maxTokens = 160,
+}: {
+	system: string;
+	user: string;
+	maxTokens?: number;
+}): Promise<string> {
+	const settings = config();
+	const response = await groqFetch(
+		"/chat/completions",
+		{
+			method: "POST",
+			body: JSON.stringify({
+				model: settings.chatModel,
+				messages: [
+					{ role: "system", content: system },
+					{ role: "user", content: user },
+				],
+				temperature: 0.4,
+				max_completion_tokens: maxTokens,
+				stream: false,
+			}),
+		},
+		Math.min(settings.timeoutMs, 10_000),
+	);
+	if (!response.ok) throw new GroqHttpError(await groqErrorMessage(response), response.status);
+	const data = (await response.json()) as GroqChatResponse;
+	return data.choices?.[0]?.message?.content?.trim() ?? "";
+}
+
 export async function getGroqStatus(): Promise<AiProviderStatus> {
 	const settings = config();
 	try {

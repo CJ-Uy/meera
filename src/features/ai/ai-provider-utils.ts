@@ -150,6 +150,8 @@ export function resolveSupportResponse({
 	const overlayCalls = (providerToolCalls ?? []).filter((call) => call.function?.name !== "create_support_ticket");
 	const toolCalls = normalizeOverlayToolCalls(overlayCalls, context);
 	const normalizedContent = stripTicketBlock(content?.trim() ?? "");
+	const contentLooksLikeInternalTicketDraft =
+		Boolean(supportTicketArgs) && /(?:^|\n)##?\s*Step\s+\d|Execute the Tool Call|Ticket Title|Responsible Office/i.test(normalizedContent);
 
 	if (!normalizedContent && !supportTicketArgs && toolCalls.length === 0) {
 		if (finishReason === "length") {
@@ -159,7 +161,7 @@ export function resolveSupportResponse({
 	}
 
 	const message =
-		normalizedContent ||
+		(contentLooksLikeInternalTicketDraft ? supportTicketArgs?.studentFacingSummary : normalizedContent) ||
 		(toolCalls.length ? "I marked that on your desktop." : supportTicketArgs?.studentFacingSummary) ||
 		"I've organized your concern so the right office can review it.";
 

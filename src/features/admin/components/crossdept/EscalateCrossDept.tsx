@@ -13,7 +13,8 @@ export function EscalateCrossDept({ ticket }: { ticket: DemoTicket }) {
 	const [submitting, setSubmitting] = useState(false);
 	const trimmedReason = reason.trim();
 	const initiatorDept = actingAdmin?.dept ?? admin.activeDepartment;
-	const options = useMemo(() => DEPARTMENT_CODES.filter((dept) => dept !== initiatorDept), [initiatorDept]);
+	const existingDepts = useMemo(() => new Set(ticket.cross?.participants.map((participant) => participant.dept) ?? []), [ticket.cross]);
+	const options = useMemo(() => DEPARTMENT_CODES.filter((dept) => dept !== initiatorDept && !existingDepts.has(dept)), [existingDepts, initiatorDept]);
 
 	function toggleDept(dept: DepartmentCode) {
 		setSelected((current) => current.includes(dept) ? current.filter((item) => item !== dept) : [...current, dept]);
@@ -28,7 +29,7 @@ export function EscalateCrossDept({ ticket }: { ticket: DemoTicket }) {
 		setSubmitting(false);
 	}
 
-	if (ticket.cross) {
+	if (options.length === 0) {
 		return null;
 	}
 
@@ -39,7 +40,7 @@ export function EscalateCrossDept({ ticket }: { ticket: DemoTicket }) {
 				<div>
 					<div className="text-sm font-[800]">Escalate cross-department</div>
 					<div className="font-['DM_Mono'] text-[10px] uppercase tracking-[0.08em]" style={{ color: "var(--muted)" }}>
-						{DEPARTMENT_LABELS[initiatorDept]} will be added automatically
+						{ticket.cross ? "Add another department to this ticket" : `${DEPARTMENT_LABELS[initiatorDept]} will be added automatically`}
 					</div>
 				</div>
 			</div>

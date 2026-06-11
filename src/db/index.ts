@@ -61,6 +61,10 @@ class LazyLocalSqliteDatabaseAdapter implements DatabaseAdapter {
 		return (await this.getAdapter()).updateTicket(id, patch);
 	}
 
+	async deleteTicket(id: string): Promise<void> {
+		return (await this.getAdapter()).deleteTicket(id);
+	}
+
 	async resolveTicket(id: string): Promise<void> {
 		return (await this.getAdapter()).resolveTicket(id);
 	}

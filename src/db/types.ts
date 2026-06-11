@@ -24,6 +24,7 @@ export interface DatabaseAdapter {
 	setSeverity: AdminDataSource["setSeverity"];
 	setComplexity: AdminDataSource["setComplexity"];
 	updateTicket(id: string, patch: TicketPatch): Promise<void>;
+	deleteTicket: AdminDataSource["deleteTicket"];
 	resolveTicket: AdminDataSource["resolveTicket"];
 	ingestKb: AdminDataSource["ingestKb"];
 	createKbNode: AdminDataSource["createKbNode"];

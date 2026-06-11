@@ -7,16 +7,8 @@ const options = [
 		href: "/demo/student",
 		emoji: "🎓",
 		title: "Student",
-		body: "Chat with Meera to solve a campus issue — try Classic or the Mound Battle mode.",
+		body: "Chat with the real Meera — it classifies your concern, files a staff-ready ticket, and you can try the Battle mode too.",
 		cta: "Open student demo",
-		tint: "var(--teal)",
-	},
-	{
-		href: "/demo/support",
-		emoji: "💬",
-		title: "Student (live AI)",
-		body: "Talk to the real Meera support orchestrator — it classifies your concern and files a staff-ready ticket.",
-		cta: "Open live support",
 		tint: "var(--teal)",
 	},
 	{

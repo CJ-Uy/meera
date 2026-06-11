@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useSpeech, useVoiceInput } from "@/features/ai/voice";
+import { useSupportConversation } from "@/features/meera-support/use-support-conversation";
 import { asset, Button, Card, Confidence, Icon, IconChip, MeerkatMark, Pill, SpeechControl, VoiceInputControl, type IconName, type Tint } from "./shared";
 import { BattleView } from "./battle";
 
@@ -203,6 +204,7 @@ function StudentMound({ preIssue }: { preIssue: string | null }) {
 	const [fixChoice, setFixChoice] = useState<"fixed" | "stuck" | null>(null);
 	const [damage, setDamage] = useState(false);
 	const [replyDraft, setReplyDraft] = useState("");
+	const battleConversation = useSupportConversation();
 	const { speakingId, speak } = useSpeech();
 	const appendReplyTranscript = useCallback((text: string) => {
 		setReplyDraft((current) => (current.trim() ? `${current} ${text}` : text));
@@ -238,7 +240,7 @@ function StudentMound({ preIssue }: { preIssue: string | null }) {
 				<ModeToggle view={view} onChange={setView} />
 			</div>
 			{view === "battle" ? (
-				<BattleView />
+				<BattleView conversation={battleConversation} />
 			) : (
 				<>
 					<div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_280px]">

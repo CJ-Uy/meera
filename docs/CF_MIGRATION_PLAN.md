@@ -40,9 +40,11 @@ The `meera` gateway + Workers AI token were probed directly:
 WORKERS_AI_BASE_URL=https://gateway.ai.cloudflare.com/v1/<acct>/meera/compat   # chat + selection
 WORKERS_AI_API_KEY=<cf token, Workers AI>
 WORKERS_AI_ACCOUNT_ID=<acct>          # for the direct run endpoints (vision/STT/TTS)
-WORKERS_AI_CHAT_MODEL=workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast
-WORKERS_AI_SELECTION_MODEL=workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast
-WORKERS_AI_VISION_MODEL=workers-ai/@cf/meta/llama-3.2-11b-vision-instruct   # strip prefix for direct run
+WORKERS_AI_SUPPORT_MODEL=workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct
+WORKERS_AI_SUPPORT_MAX_TOKENS=1200
+WORKERS_AI_CHAT_MODEL=workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct
+WORKERS_AI_SELECTION_MODEL=workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct
+WORKERS_AI_VISION_MODEL=workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct   # strip prefix for direct run
 WORKERS_AI_STT_MODEL=@cf/openai/whisper-large-v3-turbo
 WORKERS_AI_TTS_MODEL=@cf/deepgram/aura-2-en
 ```

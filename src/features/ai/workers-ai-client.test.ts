@@ -61,6 +61,37 @@ describe("Workers AI client", () => {
 		expect(result).toMatchObject({ message: "Hello.", toolCalls: [] });
 	});
 
+	it("defaults support chat to the Cloudflare-hosted Llama 4 Scout model for tool calling", async () => {
+		delete process.env.WORKERS_AI_CHAT_MODEL;
+		const fetchMock = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify({ model: "workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct", choices: [{ message: { content: "I can help." } }] }), {
+				status: 200,
+			}),
+		);
+		vi.stubGlobal("fetch", fetchMock);
+
+		await chatWithWorkersAi({ mode: "support", messages: [{ role: "user", content: "I cannot register." }] });
+		const request = JSON.parse(fetchMock.mock.calls[0][1].body as string) as Record<string, unknown>;
+
+		expect(request.model).toBe("workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct");
+		expect(request.max_tokens).toBe(1200);
+		expect(request.tools).toEqual(expect.any(Array));
+		expect(request.tool_choice).toBe("auto");
+	});
+
+	it("keeps support orchestration on Scout even when overlay chat has an older env override", async () => {
+		process.env.WORKERS_AI_CHAT_MODEL = "workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+		const fetchMock = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify({ choices: [{ message: { content: "Ticket path ready." } }] }), { status: 200 }),
+		);
+		vi.stubGlobal("fetch", fetchMock);
+
+		await chatWithWorkersAi({ mode: "support", messages: [{ role: "user", content: "Please create a registration ticket." }] });
+		const request = JSON.parse(fetchMock.mock.calls[0][1].body as string) as Record<string, unknown>;
+
+		expect(request.model).toBe("workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct");
+	});
+
 	it("grounds selection via JSON mode and resolves the chosen candidate to an overlay", async () => {
 		const fetchMock = vi.fn().mockResolvedValue(
 			new Response(

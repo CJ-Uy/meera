@@ -101,6 +101,7 @@ export function TicketDetail({ ticket }: { ticket: DemoTicket }) {
 	const admin = useAdmin();
 	const [editing, setEditing] = useState(false);
 	const [transcriptOpen, setTranscriptOpen] = useState(false);
+	const [deleting, setDeleting] = useState(false);
 	const [title, setTitle] = useState(ticket.title);
 	const [severity, setSeverity] = useState(ticket.severity);
 	const [complexity, setComplexity] = useState(ticket.complexity);
@@ -136,6 +137,16 @@ export function TicketDetail({ ticket }: { ticket: DemoTicket }) {
 		setMissing(ticket.missingInformation);
 		setActions(ticket.suggestedActions.join("\n"));
 		setEditing(false);
+	}
+
+	async function deleteTicket() {
+		if (!window.confirm(`Delete ticket ${ticket.id}? This removes it from the admin inbox.`)) return;
+		setDeleting(true);
+		try {
+			await admin.deleteTicket(ticket.id);
+		} finally {
+			setDeleting(false);
+		}
 	}
 
 	return (
@@ -209,6 +220,16 @@ export function TicketDetail({ ticket }: { ticket: DemoTicket }) {
 								<Icon name="check" size={14} />Mark resolved
 							</button>
 						)}
+						<button
+							type="button"
+							disabled={deleting}
+							onClick={() => void deleteTicket()}
+							className="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-[13px] font-[800] transition hover:bg-[#FBE7E0] disabled:cursor-wait disabled:opacity-60"
+							style={{ borderColor: "#F3D2C6", color: "var(--rose)" }}
+						>
+							<Icon name="x" size={14} />
+							{deleting ? "Deleting" : "Delete ticket"}
+						</button>
 					</>
 				)}
 			</div>

@@ -80,6 +80,21 @@ function parseToolArguments(args: string | Record<string, unknown> | undefined):
 	}
 }
 
+function unwrapSupportTicketPayload(value: unknown): unknown {
+	if (!value || typeof value !== "object") return value;
+	const raw = value as Record<string, unknown>;
+	if (raw.name === "create_support_ticket" && raw.parameters && typeof raw.parameters === "object") return raw.parameters;
+	if (raw.name === "create_support_ticket" && raw.arguments) return parseToolArguments(raw.arguments as string | Record<string, unknown>);
+
+	const fn = raw.function;
+	if (fn && typeof fn === "object") {
+		const functionCall = fn as Record<string, unknown>;
+		if (functionCall.name === "create_support_ticket") return parseToolArguments(functionCall.arguments as string | Record<string, unknown>);
+	}
+
+	return value;
+}
+
 const TICKET_BLOCK_PATTERN = /```(?:ticket|json)\s*([\s\S]*?)```/i;
 
 /**
@@ -90,14 +105,14 @@ const TICKET_BLOCK_PATTERN = /```(?:ticket|json)\s*([\s\S]*?)```/i;
 export function parseSupportTicketArgs(toolCalls: AiToolCall[] | undefined, content: string | null | undefined): SupportTicketArgs | null {
 	const ticketCall = toolCalls?.find((call) => call.function?.name === "create_support_ticket");
 	if (ticketCall) {
-		const parsed = coerceSupportTicketArgs(parseToolArguments(ticketCall.function?.arguments));
+		const parsed = coerceSupportTicketArgs(unwrapSupportTicketPayload(parseToolArguments(ticketCall.function?.arguments)));
 		if (parsed) return parsed;
 	}
 
 	const match = content ? TICKET_BLOCK_PATTERN.exec(content) : null;
 	if (match?.[1]) {
 		try {
-			return coerceSupportTicketArgs(JSON.parse(match[1].trim()));
+			return coerceSupportTicketArgs(unwrapSupportTicketPayload(JSON.parse(match[1].trim())));
 		} catch {
 			return null;
 		}

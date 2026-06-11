@@ -1,252 +1,347 @@
 "use client";
 
-import { useCallback, useRef, useState, type ReactNode } from "react";
-import { useSpeech, useVoiceInput } from "@/features/ai/voice";
-import { asset, Button, Card, Icon, IconChip, Pill, SpeechControl, VoiceInputControl } from "./shared";
-
-// --- Hardcoded quest -------------------------------------------------------
-// This is a pure frontend mockup: no AI, no backend. Each step is one "turn".
-// A correct move damages the enemy; a blocked/wrong move damages MiRA.
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+	DEFAULT_BOSS,
+	MYSTERY_BOSS,
+	pickBosses,
+	type BossConfig,
+} from "@/components/demo/battle-bosses";
+import { HowToPlayModal } from "@/components/demo/how-to-play-modal";
+import { asset, Button, Card, Icon, Pill, SpeechControl, VoiceInputControl } from "./shared";
+import type { SupportConversation, SupportMessage } from "@/features/meera-support/use-support-conversation";
+import type { SupportTicketResult } from "@/features/ai/ai-types";
 
 type Target = "enemy" | "mira";
-type Choice = {
-	label: string;
-	hint: string;
-	target: Target;
-	dmg: number;
-	say: string;
-	advance: boolean;
-};
-type Step = { prompt: string; choices: Choice[] };
 
-const ENEMY = { name: "THE HOLD", level: 12, kind: "Bureaucracy / Cobra type" };
 const MAX_HP = 100;
-const ENEMY_SPRITES = {
-	idle: "battle/cobra-idle.png",
-	attack: "battle/cobra-attack.png",
-	hurt: "battle/cobra-hurt.png",
-	defeated: "battle/cobra-defeated.png",
-} as const;
+const STAGE_HP = [100, 75, 50, 25, 0] as const;
+const CASE_NODES = ["Ready", "Heard", "Researched", "Diagnosed", "Packaged"] as const;
+const STARTER_MOVES = [
+	"My Wi-Fi will not connect.",
+	"I have a registration hold.",
+	"I need help from staff.",
+];
+const GENERAL_PREDICTION_FALLBACK_MOVES = [
+	"That helped, thanks.",
+	"I'm still stuck.",
+	"I need staff help.",
+];
 const MIRA_SPRITES = {
 	idle: "battle/mira-battle-idle.png",
 	win: "meera-celebrate.png",
 } as const;
 
-const QUEST: Step[] = [
-	{
-		prompt: "A wild THE HOLD blocks the way to your grades! Where do your grades actually live?",
-		choices: [
-			{ label: "Open the student portal", hint: "the right place to start", target: "enemy", dmg: 24, say: "You open the portal — it's super effective!", advance: true },
-			{ label: "Dig through your email", hint: "probably a dead end", target: "mira", dmg: 14, say: "Nothing useful there. The Hold lashes back!", advance: false },
-		],
-	},
-	{
-		prompt: "Good. Now prove it's really you.",
-		choices: [
-			{ label: "Log in with your student ID", hint: "use your real credentials", target: "enemy", dmg: 24, say: "Logged in! The Hold flinches.", advance: true },
-			{ label: "Guess the password a few times", hint: "risky", target: "mira", dmg: 14, say: "Locked out for 5 minutes. Ouch.", advance: false },
-		],
-	},
-	{
-		prompt: "You're in. Open the 'My Grades' page…",
-		choices: [
-			{ label: "Click 'My Grades'", hint: "go for it", target: "mira", dmg: 20, say: "A $310 FINANCIAL HOLD slams the page shut — it hits MiRA!", advance: true },
-			{ label: "Email the registrar and wait", hint: "deadline is tomorrow", target: "mira", dmg: 10, say: "Days would pass. The deadline looms — that stings.", advance: false },
-		],
-	},
-	{
-		prompt: "Meera found the real blocker: a $310 hold. Clear it to break through.",
-		choices: [
-			{ label: "Pay the $310 hold now", hint: "removes the blocker", target: "enemy", dmg: 34, say: "Hold cleared! A critical hit!", advance: true },
-			{ label: "Ignore it and retry", hint: "won't help", target: "mira", dmg: 16, say: "Still blocked. The Hold tightens its grip.", advance: false },
-		],
-	},
-	{
-		prompt: "The page is unlocking. Finish it!",
-		choices: [
-			{ label: "Load my grades", hint: "the finishing move", target: "enemy", dmg: 40, say: "Grades loaded — THE HOLD is defeated!", advance: true },
-			{ label: "Refresh five times in a panic", hint: "patience", target: "mira", dmg: 12, say: "Impatience hurts. Take a breath.", advance: false },
-		],
-	},
-];
+function predictionFallbackMoves(messages: SupportMessage[], departments: string[]) {
+	const latestUser = [...messages]
+		.reverse()
+		.find((message) => message.role === "user")
+		?.content.toLowerCase() ?? "";
+	const departmentText = departments.join(" ").toLowerCase();
+	const context = `${departmentText} ${latestUser}`;
 
-type Phase = "playing" | "won" | "lost";
-
-export function BattleView() {
-	const [enemyHp, setEnemyHp] = useState(MAX_HP);
-	const [miraHp, setMiraHp] = useState(MAX_HP);
-	const [stepIndex, setStepIndex] = useState(0);
-	const [dialogue, setDialogue] = useState(QUEST[0].prompt);
-	const [phase, setPhase] = useState<Phase>("playing");
-	const [busy, setBusy] = useState(false);
-	const [flash, setFlash] = useState<Target | null>(null);
-	const [floater, setFloater] = useState<{ target: Target; amount: number; key: number } | null>(null);
-	const [customMove, setCustomMove] = useState("");
-	const seqRef = useRef(0);
-	const { speakingId, speak } = useSpeech();
-	const appendTranscript = useCallback((text: string) => {
-		setCustomMove((current) => (current.trim() ? `${current} ${text}` : text));
-	}, []);
-	const voice = useVoiceInput(appendTranscript);
-
-	const step = QUEST[stepIndex];
-	const enemySprite = phase === "won" ? ENEMY_SPRITES.defeated : flash === "enemy" ? ENEMY_SPRITES.hurt : flash === "mira" ? ENEMY_SPRITES.attack : ENEMY_SPRITES.idle;
-	const dialogueSpeechId = `battle-dialogue-${stepIndex}-${phase}-${dialogue}`;
-
-	function reset() {
-		setEnemyHp(MAX_HP);
-		setMiraHp(MAX_HP);
-		setStepIndex(0);
-		setDialogue(QUEST[0].prompt);
-		setPhase("playing");
-		setBusy(false);
-		setFlash(null);
-		setFloater(null);
-		setCustomMove("");
+	if (/\b(sick|ill|fever|pain|injur\w*|medical|doctor|clinic|health|vomit\w*|dizzy)\b/.test(context)) {
+		return [
+			"I feel better now.",
+			"I need medical attention now.",
+			"Can health staff contact me?",
+		];
 	}
+	if (/\b(wi-?fi|wifi|internet|network|login|password|device|laptop|quiz|online)\b/.test(context)) {
+		return [
+			"It still will not connect.",
+			"I am using my laptop.",
+			"That fixed my Wi-Fi.",
+		];
+	}
+	if (/\b(register|registration|registrar|hold|deadline|course|class|enroll)\b/.test(context)) {
+		return [
+			"The hold is still there.",
+			"My deadline is tomorrow.",
+			"Who can remove the hold?",
+		];
+	}
+	if (/\b(payment|paid|unpaid|proof|bill|billing|finance|tuition|refund|fee)\b/.test(context)) {
+		return [
+			"Payment still shows unpaid.",
+			"I uploaded proof already.",
+			"I need billing staff.",
+		];
+	}
+	return GENERAL_PREDICTION_FALLBACK_MOVES;
+}
 
-	function play(choice: Choice) {
-		if (busy || phase !== "playing") return;
-		setBusy(true);
-		setDialogue(choice.say);
-		setFlash(choice.target);
-		seqRef.current += 1;
-		setFloater({ target: choice.target, amount: choice.dmg, key: seqRef.current });
-		window.setTimeout(() => setFlash(null), 440);
-		window.setTimeout(() => {
-			if (choice.target === "enemy") setEnemyHp((hp) => Math.max(0, hp - choice.dmg));
-			else setMiraHp((hp) => Math.max(0, hp - choice.dmg));
-		}, 340);
-		window.setTimeout(() => {
-			if (choice.target === "enemy" && enemyHp - choice.dmg <= 0) {
-				setPhase("won");
-				setBusy(false);
-				return;
-			}
-			if (choice.target === "mira" && miraHp - choice.dmg <= 0) {
-				setPhase("lost");
-				setBusy(false);
-				return;
-			}
-			if (choice.advance) {
-				const next = stepIndex + 1;
-				setStepIndex(next);
-				setDialogue(QUEST[next]?.prompt ?? "Victory is near…");
-			}
-			setBusy(false);
-		}, 1000);
+export function BattleView({
+	conversation,
+}: {
+	conversation: SupportConversation;
+}) {
+	const {
+		messages,
+		sending,
+		error,
+		draft,
+		setDraft,
+		sendText,
+		latestTicket,
+		caseStage,
+		suggestedReplies,
+		voice,
+		speakingId,
+		speak,
+		reset,
+	} = conversation;
+	const [flash, setFlash] = useState(false);
+	const [floater, setFloater] = useState<{ amount: number; key: number } | null>(null);
+	const [miraHp, setMiraHp] = useState(MAX_HP);
+	const [miraFlash, setMiraFlash] = useState(false);
+	const [miraFloater, setMiraFloater] = useState<{ amount: number; key: number } | null>(null);
+	const [combo, setCombo] = useState(0);
+	const [showHelp, setShowHelp] = useState(false);
+	const seqRef = useRef(0);
+	const previousStageRef = useRef(caseStage.stage);
+	const processedAssistantRef = useRef<string | null>(null);
+	const latestAssistant = useMemo(
+		() => [...messages].reverse().find((message) => message.role === "assistant"),
+		[messages],
+	);
+	const hasStudentIssue = messages.some((message) => message.role === "user");
+	const bosses = useMemo(
+		() => hasStudentIssue ? pickBosses(caseStage.activeDepartments) : [MYSTERY_BOSS],
+		[caseStage.activeDepartments, hasStudentIssue],
+	);
+	const enemyHp = STAGE_HP[caseStage.stage];
+	const enemyName = bosses.length > 1 ? "THE TANGLE" : bosses[0]?.name ?? DEFAULT_BOSS.name;
+	const enemyKind =
+		bosses.length > 1
+			? bosses.map((boss) => boss.dept).join(" + ")
+			: bosses[0]?.kind ?? DEFAULT_BOSS.kind;
+	const dialogue = sending
+		? "Meera is sizing up the situation..."
+		: latestAssistant?.content ?? "Tell Meera what is blocking you.";
+	const dialogueSpeechId = `battle-dialogue-${latestAssistant?.id ?? "ready"}-${sending ? "sending" : "idle"}`;
+	const moves = useMemo(
+		() => suggestedReplies.length ? suggestedReplies : hasStudentIssue ? predictionFallbackMoves(messages, caseStage.activeDepartments) : STARTER_MOVES,
+		[caseStage.activeDepartments, hasStudentIssue, messages, suggestedReplies],
+	);
+	const won = caseStage.fixed;
+
+	useEffect(() => {
+		if (caseStage.stage < previousStageRef.current) {
+			previousStageRef.current = caseStage.stage;
+			processedAssistantRef.current = null;
+			setCombo(0);
+			setFlash(false);
+			setFloater(null);
+			setMiraHp(MAX_HP);
+			setMiraFlash(false);
+			setMiraFloater(null);
+		}
+	}, [caseStage.stage]);
+
+	useEffect(() => {
+		if (!latestAssistant || latestAssistant.id === "welcome" || sending) return;
+		if (processedAssistantRef.current === latestAssistant.id) return;
+		processedAssistantRef.current = latestAssistant.id;
+		const oldStage = previousStageRef.current;
+		const newStage = caseStage.stage;
+		previousStageRef.current = newStage;
+
+		if (newStage > oldStage) {
+			const amount = STAGE_HP[oldStage] - STAGE_HP[newStage];
+			seqRef.current += 1;
+			setFlash(true);
+			setFloater({ amount, key: seqRef.current });
+			setCombo((current) => current + 1);
+			const timer = window.setTimeout(() => setFlash(false), 460);
+			return () => window.clearTimeout(timer);
+		}
+		if (hasStudentIssue && !won) {
+			const amount = caseStage.damage ? 20 : 14;
+			seqRef.current += 1;
+			setCombo(0);
+			setMiraFlash(true);
+			setMiraFloater({ amount, key: seqRef.current });
+			setMiraHp((current) => Math.max(1, current - amount));
+			const timer = window.setTimeout(() => setMiraFlash(false), 460);
+			return () => window.clearTimeout(timer);
+		}
+		setCombo(0);
+	}, [caseStage.damage, caseStage.stage, hasStudentIssue, latestAssistant, sending, won]);
+
+	function submitMove(text?: string) {
+		void sendText(text, { wantsSuggestedReplies: true });
 	}
 
 	return (
 		<div className="relative flex min-h-0 flex-1 flex-col">
-			{/* Arena */}
 			<div
-				className="relative min-h-[330px] flex-1 overflow-hidden"
+				className="battle-arena-shell relative min-h-[380px] flex-1 overflow-hidden"
 				style={{
 					backgroundImage: `url(${asset("battle/arena-field.png")})`,
 					backgroundPosition: "center",
 					backgroundSize: "cover",
 				}}
 			>
-				<div className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(255,255,255,.06), rgba(251,246,238,.12) 64%, rgba(217,166,90,.08))" }} />
+				<div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(circle at 72% 24%, rgba(231,155,107,.28), transparent 28%), linear-gradient(180deg, rgba(255,255,255,.06), rgba(251,246,238,.12) 64%, rgba(217,166,90,.08))" }} />
+				<div className="pointer-events-none absolute inset-x-0 top-0 h-24" style={{ background: "linear-gradient(180deg, rgba(28,51,73,.18), transparent)" }} />
+				<div className="pointer-events-none absolute inset-0" style={{ boxShadow: "inset 0 0 120px 30px rgba(28,51,73,.16)" }} />
+				<div className="pointer-events-none absolute right-[6%] top-[34%] h-5 w-40 rounded-[100%] sm:right-[10%] sm:top-[40%]" style={{ background: "radial-gradient(ellipse at center, rgba(28,51,73,.28), transparent 70%)" }} />
+				<div className="pointer-events-none absolute bottom-[7%] left-[6%] h-5 w-36 rounded-[100%] sm:left-[9%]" style={{ background: "radial-gradient(ellipse at center, rgba(28,51,73,.26), transparent 70%)" }} />
 
-				{/* Enemy info — top left */}
-				<div className="absolute left-4 top-4 z-10 w-[min(300px,62%)]">
-					<NamePlate name={ENEMY.name} level={ENEMY.level} hp={enemyHp} side="enemy" />
-					<div className="mt-1 pl-1 font-['DM_Mono'] text-[10px] uppercase tracking-[0.1em]" style={{ color: "var(--muted)" }}>{ENEMY.kind}</div>
+				<div className="absolute left-4 top-4 z-10 w-[min(312px,66%)]">
+					<NamePlate name={enemyName} level={12 + bosses.length} hp={enemyHp} side="enemy" />
+					<div className="mt-1 pl-1 font-['DM_Mono'] text-[10px] uppercase tracking-[0.1em]" style={{ color: "var(--muted)" }}>{enemyKind}</div>
 				</div>
 
-				{/* Enemy sprite — top right */}
+				<QuestTracker stage={caseStage.stage} combo={combo} fixed={caseStage.fixed} />
+
 				<div
-					className="absolute right-[3%] top-[13%] z-0 flex flex-col items-center sm:right-[7%] sm:top-[14%]"
+					className="absolute right-[3%] top-[13%] z-0 flex items-end justify-center gap-0 sm:right-[7%] sm:top-[14%]"
 					style={{
-						animation: flash === "enemy" ? "mound-shake .44s ease" : flash === "mira" ? undefined : "bob 3.4s ease-in-out infinite",
-						transform: flash === "mira" ? "translateX(-18px) rotate(-2deg)" : undefined,
-						transition: "transform .18s ease",
+						animation: flash ? "mound-shake .44s ease" : "bob 3.4s ease-in-out infinite",
 					}}
 				>
-					<div className="relative grid place-items-center">
-						<EnemySprite sprite={enemySprite} defeated={phase === "won"} attacking={flash === "mira"} />
-					</div>
-					{floater?.target === "enemy" ? <FloatingDamage key={floater.key} amount={floater.amount} tone="enemy" /> : null}
+					{bosses.map((boss, index) => (
+						<div
+							key={boss.id}
+							className={bosses.length > 1 ? "-mx-4 sm:-mx-5" : ""}
+							style={{
+								animation: bosses.length > 1 ? `bob 3.4s ease-in-out ${index * 140}ms infinite` : undefined,
+								transform: bosses.length > 1 ? `scale(.78) translateY(${index % 2 ? 14 : 0}px)` : undefined,
+							}}
+						>
+							<EnemySprite boss={boss} defeated={won} hurt={flash} />
+						</div>
+					))}
+					{floater ? <FloatingDamage key={floater.key} amount={floater.amount} tone="enemy" /> : null}
 				</div>
 
-				{/* MiRA sprite — bottom left */}
-				<div className="absolute bottom-[5%] left-[4%] z-0 flex flex-col items-center sm:left-[7%]" style={{ animation: flash === "mira" ? "mound-shake .44s ease" : "none" }}>
-					<div className="relative grid place-items-center">
-						<img
-							src={asset(phase === "won" ? MIRA_SPRITES.win : MIRA_SPRITES.idle)}
-							alt="MiRA"
-							className="relative z-10 w-[132px] select-none sm:w-[200px] md:w-[228px]"
-							style={{ filter: flash === "mira" ? "drop-shadow(0 0 0 #fff) saturate(1.6) hue-rotate(-12deg)" : "none", transition: "filter .2s" }}
-							draggable={false}
-						/>
-						{floater?.target === "mira" ? <FloatingDamage key={floater.key} amount={floater.amount} tone="mira" /> : null}
-					</div>
+				<div
+					className="absolute bottom-[5%] left-[4%] z-0 flex flex-col items-center sm:left-[7%]"
+					style={{
+						animation: miraFlash ? "mound-shake .44s ease" : undefined,
+					}}
+				>
+					<img
+						src={asset(won ? MIRA_SPRITES.win : MIRA_SPRITES.idle)}
+						alt="MiRA"
+						className="relative z-10 w-[132px] select-none sm:w-[200px] md:w-[228px]"
+						style={{
+							filter: miraFlash ? "saturate(1.15) brightness(1.03)" : "none",
+							transform: miraFlash ? "scale(1.03)" : "none",
+							transition: "filter .24s ease, transform .24s ease",
+						}}
+						draggable={false}
+					/>
+					{miraFloater ? <FloatingDamage key={miraFloater.key} amount={miraFloater.amount} tone="mira" /> : null}
 				</div>
 
-				{/* MiRA info — bottom right */}
 				<div className="absolute bottom-5 right-4 z-10 w-[min(280px,58%)] sm:w-[min(300px,62%)]">
-					<NamePlate name="MiRA" level={15} hp={miraHp} side="mira" />
+					<NamePlate name="MiRA" level={15} hp={won ? MAX_HP : miraHp} side="mira" />
 				</div>
 
-				{phase === "won" ? <WinOverlay onReset={reset} /> : null}
-				{phase === "lost" ? <LoseOverlay onReset={reset} /> : null}
+				{won ? (
+					<WinOverlay
+						resolution={caseStage.resolution}
+						ticket={latestTicket}
+						onReset={reset}
+					/>
+				) : null}
+				<HowToPlayModal open={showHelp} onClose={() => setShowHelp(false)} />
 			</div>
 
-			{/* Dialogue box */}
 			<div className="shrink-0 border-t bg-white px-4 py-3" style={{ borderColor: "var(--line)" }}>
 				<div className="mx-auto max-w-[900px]">
-					<div className="relative rounded-2xl border-2 px-4 py-3 text-[15px] font-semibold leading-6" style={{ borderColor: "var(--ink)", background: "#FFFDF8", color: "var(--ink)", boxShadow: "0 4px 0 0 rgba(28,51,73,.14), inset 0 0 0 3px #F5ECDD" }}>
-						<div className="flex items-start gap-3">
+					<div className="overflow-hidden rounded-2xl border-2" style={{ borderColor: "var(--ink)", background: "#FFFDF8", boxShadow: "0 4px 0 0 rgba(28,51,73,.14), inset 0 0 0 3px #F5ECDD" }}>
+						<div className="flex items-center gap-2 border-b-2 px-4 py-1.5" style={{ borderColor: "#F0E4D2", background: "linear-gradient(180deg,#FBF3E4,#FFFDF8)" }}>
+							<span className="grid size-5 place-items-center rounded-md" style={{ background: "var(--teal)", color: "#fff" }}>
+								<Icon name="sparkle" size={12} stroke={2.2} />
+							</span>
+							<span className="font-['DM_Mono'] text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: "var(--teal-700)" }}>Meera</span>
+							<button
+								type="button"
+								onClick={() => setShowHelp(true)}
+								className="rounded-full border px-2.5 py-1 font-['DM_Mono'] text-[10px] font-bold uppercase tracking-[0.1em] transition hover:-translate-y-0.5"
+								style={{ borderColor: "var(--teal-100)", color: "var(--teal-700)", background: "var(--teal-050)" }}
+							>
+								How to play
+							</button>
+							<span className="ml-auto font-['DM_Mono'] text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: "var(--muted)" }}>
+								{won ? "Battle won" : `Case stage ${caseStage.stage + 1} / ${CASE_NODES.length}`}
+							</span>
+						</div>
+
+						<div className="flex items-start gap-3 px-4 py-3 text-[15px] font-semibold leading-6" style={{ color: "var(--ink)" }}>
 							<p className="m-0 min-w-0 flex-1">
 								<span className="mr-2 inline-block" style={{ color: "var(--teal)", animation: "tdot 1s infinite" }}>▶</span>
 								{dialogue}
 							</p>
 							<SpeechControl compact isSpeaking={speakingId === dialogueSpeechId} onClick={() => void speak(dialogueSpeechId, dialogue)} className="shrink-0" />
 						</div>
-					</div>
 
-					{/* Command box — multiple choice */}
-					{phase === "playing" ? (
-						<div className="mt-3 grid gap-2 sm:grid-cols-2">
-							{step.choices.map((choice) => (
-								<button
-									key={choice.label}
-									type="button"
-									disabled={busy}
-									onClick={() => play(choice)}
-									className="group flex items-center gap-3 rounded-xl border-2 bg-white px-3.5 py-3 text-left transition enabled:hover:-translate-y-0.5 disabled:opacity-55"
-									style={{ borderColor: "var(--line-2)" }}
-								>
-									<span className="grid size-7 shrink-0 place-items-center rounded-lg" style={{ background: choice.target === "enemy" ? "var(--teal-050)" : "var(--sand-050)", color: choice.target === "enemy" ? "var(--teal-700)" : "var(--sand-600)" }}>
-										<Icon name={choice.target === "enemy" ? "sword" : "shield"} size={15} />
-									</span>
-									<span className="min-w-0 flex-1">
-										<span className="block text-[14px] font-bold leading-tight">{choice.label}</span>
-										<span className="font-['DM_Mono'] text-[10.5px]" style={{ color: "var(--muted)" }}>{choice.hint}</span>
-									</span>
-								</button>
-							))}
-						</div>
-					) : null}
+						{!won ? (
+							<div className="grid gap-2 border-t-2 p-3 sm:grid-cols-3" style={{ borderColor: "#F0E4D2", background: "#FFFBF2" }}>
+								{moves.map((move, index) => (
+									<button
+										key={`${move}-${index}`}
+										type="button"
+										disabled={sending}
+										onClick={() => submitMove(move)}
+										className="group flex items-center gap-3 rounded-xl border-2 bg-white px-3.5 py-3 text-left transition enabled:hover:-translate-y-0.5 enabled:hover:shadow-[0_3px_0_0_rgba(28,51,73,.1)] disabled:opacity-55"
+										style={{ borderColor: "var(--line-2)" }}
+									>
+										<span className="grid w-3 shrink-0 place-items-center text-[14px] font-[800] opacity-0 transition group-enabled:group-hover:opacity-100" style={{ color: "var(--teal)" }}>▸</span>
+										<span className="grid size-7 shrink-0 place-items-center rounded-lg" style={{ background: "var(--teal-050)", color: "var(--teal-700)" }}>
+											<Icon name="sword" size={15} />
+										</span>
+										<span className="min-w-0 flex-1">
+											<span className="block text-[14px] font-bold leading-tight">{move}</span>
+											<span className="font-['DM_Mono'] text-[10.5px]" style={{ color: "var(--muted)" }}>
+												{hasStudentIssue ? "predicted reply" : "starter move"}
+											</span>
+										</span>
+										<span className="grid size-5 shrink-0 place-items-center rounded-md font-['DM_Mono'] text-[10px] font-bold" style={{ background: "var(--cream-2)", color: "var(--muted)" }}>{index + 1}</span>
+									</button>
+								))}
+							</div>
+						) : null}
+					</div>
 				</div>
 			</div>
 
-			{/* Chat input stays at the bottom */}
 			<div className="shrink-0 border-t bg-white p-3" style={{ borderColor: "var(--line)" }}>
 				<div className="mx-auto max-w-[900px]">
 					<div className="flex gap-2">
 						<input
-							value={customMove}
-							onChange={(event) => setCustomMove(event.target.value)}
-							className="h-11 min-w-0 flex-1 rounded-2xl border px-4 text-sm outline-none"
+							value={draft}
+							onChange={(event) => setDraft(event.target.value)}
+							onKeyDown={(event) => {
+								if (event.key === "Enter") {
+									event.preventDefault();
+									submitMove();
+								}
+							}}
+							disabled={sending || won}
+							className="h-11 min-w-0 flex-1 rounded-2xl border px-4 text-sm outline-none disabled:opacity-60"
 							style={{ borderColor: "var(--line-2)" }}
-							placeholder={voice.isRecording ? "Listening..." : "…or type your own move"}
+							placeholder={voice.isRecording ? "Listening..." : "...or type your own move"}
 						/>
 						<VoiceInputControl compact isRecording={voice.isRecording} isTranscribing={voice.isTranscribing} onClick={voice.toggle} className="size-11 px-0" />
-						<Button variant="primary" className="rounded-2xl px-4"><Icon name="arrow" size={16} /></Button>
+						<button
+							type="button"
+							disabled={sending || won}
+							onClick={() => submitMove()}
+							className="inline-flex size-11 shrink-0 items-center justify-center rounded-2xl border text-sm font-bold transition enabled:hover:-translate-y-0.5 disabled:opacity-55"
+							style={{ background: "var(--teal)", borderColor: "var(--teal)", color: "#fff", boxShadow: "0 10px 24px rgba(46,156,142,.22)" }}
+						>
+							<Icon name="arrow" size={16} />
+						</button>
 					</div>
+					<p className="mt-2 mb-0 font-['DM_Mono'] text-[10px] uppercase tracking-[0.1em]" style={{ color: "var(--muted)" }}>
+						Type your own move anytime. Battle is real support chat underneath.
+					</p>
+					{error ? <p className="mt-2 mb-0 text-[11px] font-semibold" style={{ color: "var(--rose)" }}>{error}</p> : null}
 					{voice.error ? <p className="mt-2 mb-0 text-[11px] font-semibold" style={{ color: "var(--rose)" }}>{voice.error}</p> : null}
 				</div>
 			</div>
@@ -261,21 +356,21 @@ function NamePlate({ name, level, hp, side }: { name: string; level: number; hp:
 				<span className="text-[13px] font-[800] tracking-tight">{name}</span>
 				<span className="font-['DM_Mono'] text-[11px]" style={{ color: "var(--muted)" }}>Lv.{level}</span>
 			</div>
-			<HpBar hp={hp} />
+			<HpBar hp={hp} label={side === "mira" ? "Morale" : "HP"} />
 			<div className="mt-1 flex items-center justify-between">
-				<span className="font-['DM_Mono'] text-[10px] uppercase tracking-[0.12em]" style={{ color: side === "mira" ? "var(--teal-700)" : "var(--muted)" }}>{side === "mira" ? "you" : "enemy"}</span>
+				<span className="font-['DM_Mono'] text-[10px] uppercase tracking-[0.12em]" style={{ color: side === "mira" ? "var(--teal-700)" : "var(--muted)" }}>{side === "mira" ? "ally" : "case progress"}</span>
 				<span className="font-['DM_Mono'] text-[11px] font-medium" style={{ color: "var(--ink-2)" }}>{hp} / {MAX_HP}</span>
 			</div>
 		</div>
 	);
 }
 
-function HpBar({ hp }: { hp: number }) {
+function HpBar({ hp, label }: { hp: number; label: string }) {
 	const pct = (hp / MAX_HP) * 100;
 	const color = pct > 50 ? "var(--green)" : pct > 20 ? "var(--gold)" : "var(--rose)";
 	return (
 		<div className="mt-1.5 flex items-center gap-1.5">
-			<span className="font-['DM_Mono'] text-[9px] font-bold" style={{ color: "var(--teal-700)" }}>HP</span>
+			<span className="font-['DM_Mono'] text-[9px] font-bold" style={{ color: "var(--teal-700)" }}>{label}</span>
 			<span className="h-2.5 flex-1 overflow-hidden rounded-full" style={{ background: "repeating-linear-gradient(90deg, #E9E0CF 0 15px, #DED1BD 15px 17px)", boxShadow: "inset 0 1px 2px rgba(28,51,73,.18)" }}>
 				<span className="block h-full rounded-full" style={{ width: `${pct}%`, background: `repeating-linear-gradient(90deg, ${color} 0 15px, rgba(255,255,255,.45) 15px 17px)`, transition: "width .8s cubic-bezier(.3,.9,.3,1), background .4s" }} />
 			</span>
@@ -283,15 +378,46 @@ function HpBar({ hp }: { hp: number }) {
 	);
 }
 
-function EnemySprite({ sprite, defeated, attacking }: { sprite: string; defeated: boolean; attacking: boolean }) {
+function QuestTracker({ stage, combo, fixed }: { stage: number; combo: number; fixed: boolean }) {
+	return (
+		<div className="absolute left-1/2 top-3 z-20 hidden -translate-x-1/2 sm:block">
+			<div className="flex items-center gap-1.5 rounded-full border bg-white/92 px-3 py-1.5 backdrop-blur" style={{ borderColor: "var(--line)", boxShadow: "var(--sh-sm)" }}>
+				{CASE_NODES.map((node, index) => {
+					const active = index <= stage || fixed;
+					const current = !fixed && index === stage;
+					return (
+						<div key={node} className="flex items-center gap-1.5">
+							{index > 0 ? <span className="h-px w-3 md:w-5" style={{ background: active ? "var(--teal)" : "var(--line-2)" }} /> : null}
+							<span
+								className="grid size-5 shrink-0 place-items-center rounded-full text-[10px] font-[800]"
+								style={{ background: active ? "var(--teal)" : "var(--cream-2)", color: active ? "#fff" : "var(--muted)", boxShadow: current ? "0 0 0 3px var(--teal-050)" : "none" }}
+							>
+								{index + 1}
+							</span>
+							<span className="hidden text-[11px] font-bold md:inline" style={{ color: active ? "var(--teal-700)" : "var(--muted)" }}>{node}</span>
+						</div>
+					);
+				})}
+				<span className="mx-0.5 h-3.5 w-px shrink-0" style={{ background: "var(--line-2)" }} />
+				<span className="inline-flex shrink-0 items-center gap-1" title="combo">
+					<Icon name="bolt" size={12} className="text-[#D9844F]" />
+					<span className="text-[11px] font-[800]" style={{ color: combo > 1 ? "var(--teal-700)" : "var(--ink)" }}>{combo}x</span>
+				</span>
+			</div>
+		</div>
+	);
+}
+
+function EnemySprite({ boss, defeated, hurt }: { boss: BossConfig; defeated: boolean; hurt: boolean }) {
+	const sprite = defeated ? boss.sprites.defeated : hurt ? boss.sprites.hurt : boss.sprites.idle;
 	return (
 		<img
-			src={asset(sprite)}
-			alt={defeated ? "Defeated cobra boss" : "The Hold cobra boss"}
+			src={sprite}
+			alt={defeated ? `Defeated ${boss.name}` : boss.name}
 			className="relative z-10 w-[166px] select-none sm:w-[220px] md:w-[248px]"
 			style={{
-				filter: defeated ? "grayscale(.45) saturate(.8) opacity(.86)" : attacking ? "saturate(1.16)" : "none",
-				transform: defeated ? "rotate(3deg) translateY(8px)" : attacking ? "scale(1.04)" : "none",
+				filter: defeated ? "grayscale(.45) saturate(.8) opacity(.86)" : hurt ? "saturate(1.22) brightness(1.03)" : "none",
+				transform: defeated ? "rotate(3deg) translateY(8px)" : hurt ? "scale(1.04)" : "none",
 				transition: "filter .24s ease, transform .24s ease",
 			}}
 			draggable={false}
@@ -310,51 +436,62 @@ function FloatingDamage({ amount, tone }: { amount: number; tone: Target }) {
 	);
 }
 
-function WinOverlay({ onReset }: { onReset: () => void }) {
+function WinOverlay({
+	resolution,
+	ticket,
+	onReset,
+}: {
+	resolution: "ticket" | "self-serve" | null;
+	ticket: SupportTicketResult | null;
+	onReset: () => void;
+}) {
+	const ticketWin = resolution === "ticket";
 	return (
 		<div className="absolute inset-0 z-20 grid place-items-center p-5" style={{ background: "rgba(251,246,238,.86)", backdropFilter: "blur(2px)", animation: "fadeUp .4s ease" }}>
-			<Card className="w-full max-w-[440px] p-6 text-center">
+			<Card className="w-full max-w-[460px] p-6 text-center">
 				<img src={asset("meera-celebrate.png")} alt="" className="mx-auto mb-3 w-28" />
 				<div className="font-['DM_Mono'] text-[10px] uppercase tracking-[0.16em]" style={{ color: "var(--green)" }}>Victory</div>
-				<h2 className="mt-1 text-2xl font-[800]">Issue resolved!</h2>
-				<p className="mx-auto mt-2 max-w-xs text-sm leading-6" style={{ color: "var(--ink-2)" }}>THE HOLD is defeated. Your grades are unlocked — no human needed.</p>
-				<div className="mt-4 flex flex-wrap justify-center gap-2">
-					<Pill tint="green"><Icon name="check" size={11} />Grades unlocked</Pill>
-					<Pill tint="teal"><Icon name="sparkle" size={11} />Solved by Meera</Pill>
+				<h2 className="mt-1 text-2xl font-[800]">
+					{ticketWin ? "Backup called!" : "THE SNAG defeated!"}
+				</h2>
+				<p className="mx-auto mt-2 max-w-sm text-sm leading-6" style={{ color: "var(--ink-2)" }}>
+					{ticketWin
+						? "Staff are on it. Meera filed a real ticket with the support team."
+						: "Solved with self-service guidance. No ticket needed."}
+				</p>
+				{ticketWin && ticket ? <TicketMini ticket={ticket} /> : null}
+				<div className="mt-5">
+					<Button variant="primary" onClick={onReset}>
+						<Icon name="refresh" size={14} />
+						{ticketWin ? "New battle" : "Play again"}
+					</Button>
 				</div>
-				<div className="mt-5"><Button variant="primary" onClick={onReset}><Icon name="refresh" size={14} />Play again</Button></div>
 			</Card>
 		</div>
 	);
 }
 
-function LoseOverlay({ onReset }: { onReset: () => void }) {
-	return (
-		<div className="absolute inset-0 z-20 grid place-items-center p-5" style={{ background: "rgba(28,41,59,.42)", backdropFilter: "blur(2px)", animation: "fadeUp .4s ease" }}>
-			<Card className="w-full max-w-[460px] p-6 text-center">
-				<img src={asset("meera-clipboard.png")} alt="" className="mx-auto mb-3 w-24 opacity-90" />
-				<div className="font-['DM_Mono'] text-[10px] uppercase tracking-[0.16em]" style={{ color: "var(--rose)" }}>MiRA fainted</div>
-				<h2 className="mt-1 text-2xl font-[800]">Let&apos;s get a human on this</h2>
-				<p className="mx-auto mt-2 max-w-sm text-sm leading-6" style={{ color: "var(--ink-2)" }}>No worries — Meera packaged everything and escalated it for you.</p>
-				<TicketStub />
-				<div className="mt-5"><Button onClick={onReset}><Icon name="refresh" size={14} />Try again</Button></div>
-			</Card>
-		</div>
-	);
-}
-
-function TicketStub(): ReactNode {
+function TicketMini({ ticket }: { ticket: SupportTicketResult }) {
 	return (
 		<div className="mt-4 overflow-hidden rounded-2xl border text-left" style={{ borderColor: "var(--line-2)" }}>
 			<div className="flex items-center gap-3 border-b p-3" style={{ borderColor: "var(--line)" }}>
-				<IconChip name="ticket" tint="sand" size={34} />
-				<div className="flex-1">
-					<div className="text-[13px] font-bold">Registration blocked by financial hold</div>
-					<div className="font-['DM_Mono'] text-[10px]" style={{ color: "var(--muted)" }}>#NV-4827 · routed to Registrar · just now</div>
+				<span className="grid size-9 place-items-center rounded-xl" style={{ background: "var(--sand-050)", color: "var(--sand-600)" }}>
+					<Icon name="ticket" size={18} stroke={2.1} />
+				</span>
+				<div className="min-w-0 flex-1">
+					<div className="text-[13px] font-bold">{ticket.office}</div>
+					<div className="font-['DM_Mono'] text-[10px]" style={{ color: "var(--muted)" }}>Ticket {ticket.ticketNumber}</div>
 				</div>
-				<Pill tint="rose">High</Pill>
+				<Pill tint="teal">{ticket.priority}</Pill>
 			</div>
-			<p className="p-3 text-[12.5px] leading-6" style={{ color: "var(--ink-2)" }}>Student cannot view grades — a $310 financial hold is blocking access. Identity verified; full transcript attached.</p>
+			<p className="m-0 p-3 text-[12.5px] leading-6" style={{ color: "var(--ink-2)" }}>{ticket.studentFacingSummary}</p>
+			<a
+				href="/demo/admin/inbox"
+				className="mx-3 mb-3 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-bold"
+				style={{ borderColor: "var(--teal-100)", color: "var(--teal-700)" }}
+			>
+				Visible in admin <Icon name="arrow" size={13} stroke={2.2} />
+			</a>
 		</div>
 	);
 }

@@ -191,6 +191,14 @@ export class LocalSqliteDatabaseAdapter implements DatabaseAdapter {
 		this.db.update(tickets).set(ticketUpdateFromPatch(patch)).where(eq(tickets.id, id)).run();
 	}
 
+	async deleteTicket(id: string): Promise<void> {
+		this.db.delete(tasks).where(eq(tasks.ticketId, id)).run();
+		this.db.delete(crossDeptParticipants).where(eq(crossDeptParticipants.ticketId, id)).run();
+		this.db.delete(ticketNotes).where(eq(ticketNotes.ticketId, id)).run();
+		this.db.delete(ticketMessages).where(eq(ticketMessages.ticketId, id)).run();
+		this.db.delete(tickets).where(eq(tickets.id, id)).run();
+	}
+
 	async resolveTicket(id: string): Promise<void> {
 		this.db.update(tickets).set({ status: "Resolved" }).where(eq(tickets.id, id)).run();
 	}
@@ -213,9 +221,26 @@ export class LocalSqliteDatabaseAdapter implements DatabaseAdapter {
 
 	async escalateCrossDept(id: string, depts: DepartmentCode[], by: "ai" | string, reason: string): Promise<void> {
 		const [ticket] = this.db.select().from(tickets).where(eq(tickets.id, id)).limit(1).all();
-		if (!ticket || ticket.crossInitiatedBy) return;
+		if (!ticket) return;
 
 		const initiatorDept = by === "ai" ? ticket.ownerDept : this.adminDepartment(by) ?? ticket.ownerDept;
+		if (ticket.crossInitiatedBy) {
+			const existing = this.db.select().from(crossDeptParticipants).where(eq(crossDeptParticipants.ticketId, id)).all();
+			const existingDepts = new Set(existing.map((participant) => participant.dept));
+			const newParticipantDepts = depts.filter((dept) => dept !== initiatorDept && !existingDepts.has(dept));
+			if (newParticipantDepts.length > 0) {
+				this.db.insert(crossDeptParticipants).values(
+					newParticipantDepts.map((dept) => ({
+						ticketId: id,
+						dept,
+						decision: "pending" as const,
+						reason,
+					})),
+				).run();
+			}
+			return;
+		}
+
 		const participantDepts = Array.from(new Set([initiatorDept, ...depts.filter((dept) => dept !== initiatorDept)]));
 
 		this.db.update(tickets).set({ crossInitiatedBy: by, crossActive: false }).where(eq(tickets.id, id)).run();

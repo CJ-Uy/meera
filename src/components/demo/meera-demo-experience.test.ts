@@ -21,7 +21,7 @@ describe("Meera demo experience", () => {
 		expect(source).toContain("function StudentMound(");
 		expect(source).toContain('setStudentView("mound")');
 		expect(source).toContain("<ModeToggle view={view} onChange={setView} />");
-		expect(source).toContain("<BattleView />");
+		expect(source).toContain("<BattleView conversation={battleConversation} />");
 		expect(source).toContain("<CaseMeter stage={stage} damage={damage} fixed={fixChoice === \"fixed\"} />");
 	});
 
@@ -42,12 +42,13 @@ describe("Meera demo experience", () => {
 describe("Mound Battle view", () => {
 	const battle = read("src/components/demo/battle.tsx");
 
-	it("is a self-contained hardcoded battle with HP, win and lose states", () => {
+	it("is a real support battle with HP and victory states", () => {
 		expect(battle).toContain("export function BattleView(");
 		expect(battle).toContain("function HpBar(");
 		expect(battle).toContain("WinOverlay");
-		expect(battle).toContain("LoseOverlay");
-		// Losing escalates to the admin ticket flow.
-		expect(battle).toContain("#NV-4827");
+		expect(battle).toContain("suggestedReplies");
+		expect(battle).toContain("HowToPlayModal");
+		expect(battle).not.toContain("LoseOverlay");
+		expect(battle).not.toContain("#NV-4827");
 	});
 });
