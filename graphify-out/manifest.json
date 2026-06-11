@@ -520,8 +520,8 @@
     "semantic_hash": "a8a3a640b033af08600684f685f2c609"
   },
   "src/components/demo/battle.tsx": {
-    "mtime": 1781204893.7191193,
-    "ast_hash": "b493b8b96479e99e94cdc0c342e0c9ce",
+    "mtime": 1781208037.905332,
+    "ast_hash": "cbe739d48d124cbd824ac3c4e1cce26d",
     "semantic_hash": ""
   },
   "src/components/demo/meera-demo-experience.test.ts": {
@@ -910,13 +910,13 @@
     "semantic_hash": ""
   },
   "src/features/ai/ai-service.test.ts": {
-    "mtime": 1781204815.3793468,
-    "ast_hash": "cc24b0c52e0ca7f9fa608ffb882ad9c3",
+    "mtime": 1781207877.529914,
+    "ast_hash": "74dff1aa6ca786e7c6213b1b291cd73c",
     "semantic_hash": ""
   },
   "src/features/ai/ai-service.ts": {
-    "mtime": 1781204577.4677618,
-    "ast_hash": "c0c85df12700e84e5dff66c1f284ed61",
+    "mtime": 1781207857.630339,
+    "ast_hash": "110834e6116bd6dff0b6750df3676035",
     "semantic_hash": ""
   },
   "src/features/ai/ai-tools.test.ts": {
@@ -1960,8 +1960,8 @@
     "semantic_hash": ""
   },
   "src/components/demo/battle.test.ts": {
-    "mtime": 1781206238.3677473,
-    "ast_hash": "1ea5152fe7e1ccaeb0011fbd28e0338d",
+    "mtime": 1781208044.881879,
+    "ast_hash": "67b4f2cfc3409e66c3fe5231f5fb21f5",
     "semantic_hash": ""
   },
   "src/features/ai/ai-prompt.test.ts": {
@@ -1995,8 +1995,8 @@
     "semantic_hash": ""
   },
   "src/components/demo/battle-bosses.ts": {
-    "mtime": 1781206133.7076926,
-    "ast_hash": "48531638d69b9c9951c84cbe66ad98c7",
+    "mtime": 1781207772.0361996,
+    "ast_hash": "c14b3652549da4a6e1b3e0b02141cdb8",
     "semantic_hash": ""
   },
   "src/components/demo/how-to-play-modal.tsx": {
@@ -2094,9 +2094,24 @@
     "ast_hash": "68fc69f7e6da5f01ce4f1e02dea15e4e",
     "semantic_hash": ""
   },
-  ".playwright-mcp/page-2026-06-11T19-36-32-621Z.yml": {
-    "mtime": 1781206592.6223266,
-    "ast_hash": "6041d1e3faee4fe878830dbb5d3eafc9",
+  "public/assets/battle/mystery/attack.png": {
+    "mtime": 1781207760.5516987,
+    "ast_hash": "25e9f38d8cbddcc97c4293f02eaf280e",
+    "semantic_hash": ""
+  },
+  "public/assets/battle/mystery/defeated.png": {
+    "mtime": 1781207760.5630343,
+    "ast_hash": "dbfb095077e1ef6a1e0c597c68e00a01",
+    "semantic_hash": ""
+  },
+  "public/assets/battle/mystery/hurt.png": {
+    "mtime": 1781207760.5393722,
+    "ast_hash": "045d2d31ac6272dded68d11138bbd761",
+    "semantic_hash": ""
+  },
+  "public/assets/battle/mystery/idle.png": {
+    "mtime": 1781207760.5187545,
+    "ast_hash": "b0a88bd679e598f97acca52957dab0ae",
     "semantic_hash": ""
   }
 }

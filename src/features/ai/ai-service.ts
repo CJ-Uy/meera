@@ -88,7 +88,7 @@ function transcriptForSuggestions(messages: AiChatInputMessage[], assistantMessa
 
 async function generateSuggestedReplies(request: AiChatRequest, assistantMessage: string): Promise<string[]> {
 	const system =
-		"You write 2-3 SHORT first-person replies the STUDENT might send next in this support chat. Each <= 8 words, natural, varied, and one can decline or close. Return ONLY a JSON array of strings.";
+		'You generate 2-3 predictive quick replies the STUDENT may want to send next in this support chat. Each <= 8 words, first-person, natural, context-specific, and varied across likely paths: resolved/feeling better, still stuck, urgent help, provide missing info, decline/close, or request staff. If the context is health-related, options may include replies like "I feel better now" or "I need medical attention now". Return ONLY a JSON array of strings.';
 	const user = transcriptForSuggestions(request.messages, assistantMessage);
 	const raw =
 		configuredAiProvider() === "groq"

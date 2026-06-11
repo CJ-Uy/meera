@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { chatWithAi, configuredAiProvider, getAiStatus, parseSuggestedReplies } from "@/features/ai/ai-service";
 
@@ -92,5 +94,13 @@ describe("AI provider service", () => {
 		expect(parseSuggestedReplies('Here: ["One","Two","Three","Four"]')).toEqual(["One", "Two", "Three"]);
 		expect(parseSuggestedReplies("not json")).toEqual([]);
 		expect(parseSuggestedReplies('{"not":"array"}')).toEqual([]);
+	});
+
+	it("prompts for predictive student quick replies", () => {
+		const source = readFileSync(join(process.cwd(), "src/features/ai/ai-service.ts"), "utf8");
+
+		expect(source).toContain("predictive quick replies");
+		expect(source).toContain("I feel better now");
+		expect(source).toContain("I need medical attention now");
 	});
 });

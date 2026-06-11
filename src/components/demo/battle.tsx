@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	DEFAULT_BOSS,
+	MYSTERY_BOSS,
 	pickBosses,
 	type BossConfig,
 } from "@/components/demo/battle-bosses";
 import { HowToPlayModal } from "@/components/demo/how-to-play-modal";
 import { asset, Button, Card, Icon, Pill, SpeechControl, VoiceInputControl } from "./shared";
-import type { SupportConversation } from "@/features/meera-support/use-support-conversation";
+import type { SupportConversation, SupportMessage } from "@/features/meera-support/use-support-conversation";
 import type { SupportTicketResult } from "@/features/ai/ai-types";
 
 type Target = "enemy" | "mira";
@@ -16,15 +17,59 @@ type Target = "enemy" | "mira";
 const MAX_HP = 100;
 const STAGE_HP = [100, 75, 50, 25, 0] as const;
 const CASE_NODES = ["Ready", "Heard", "Researched", "Diagnosed", "Packaged"] as const;
-const FALLBACK_MOVES = [
+const STARTER_MOVES = [
 	"My Wi-Fi will not connect.",
 	"I have a registration hold.",
 	"I need help from staff.",
+];
+const GENERAL_PREDICTION_FALLBACK_MOVES = [
+	"That helped, thanks.",
+	"I'm still stuck.",
+	"I need staff help.",
 ];
 const MIRA_SPRITES = {
 	idle: "battle/mira-battle-idle.png",
 	win: "meera-celebrate.png",
 } as const;
+
+function predictionFallbackMoves(messages: SupportMessage[], departments: string[]) {
+	const latestUser = [...messages]
+		.reverse()
+		.find((message) => message.role === "user")
+		?.content.toLowerCase() ?? "";
+	const departmentText = departments.join(" ").toLowerCase();
+	const context = `${departmentText} ${latestUser}`;
+
+	if (/\b(sick|ill|fever|pain|injur\w*|medical|doctor|clinic|health|vomit\w*|dizzy)\b/.test(context)) {
+		return [
+			"I feel better now.",
+			"I need medical attention now.",
+			"Can health staff contact me?",
+		];
+	}
+	if (/\b(wi-?fi|wifi|internet|network|login|password|device|laptop|quiz|online)\b/.test(context)) {
+		return [
+			"It still will not connect.",
+			"I am using my laptop.",
+			"That fixed my Wi-Fi.",
+		];
+	}
+	if (/\b(register|registration|registrar|hold|deadline|course|class|enroll)\b/.test(context)) {
+		return [
+			"The hold is still there.",
+			"My deadline is tomorrow.",
+			"Who can remove the hold?",
+		];
+	}
+	if (/\b(payment|paid|unpaid|proof|bill|billing|finance|tuition|refund|fee)\b/.test(context)) {
+		return [
+			"Payment still shows unpaid.",
+			"I uploaded proof already.",
+			"I need billing staff.",
+		];
+	}
+	return GENERAL_PREDICTION_FALLBACK_MOVES;
+}
 
 export function BattleView({
 	conversation,
@@ -57,9 +102,10 @@ export function BattleView({
 		() => [...messages].reverse().find((message) => message.role === "assistant"),
 		[messages],
 	);
+	const hasStudentIssue = messages.some((message) => message.role === "user");
 	const bosses = useMemo(
-		() => pickBosses(caseStage.activeDepartments),
-		[caseStage.activeDepartments],
+		() => hasStudentIssue ? pickBosses(caseStage.activeDepartments) : [MYSTERY_BOSS],
+		[caseStage.activeDepartments, hasStudentIssue],
 	);
 	const enemyHp = STAGE_HP[caseStage.stage];
 	const enemyName = bosses.length > 1 ? "THE TANGLE" : bosses[0]?.name ?? DEFAULT_BOSS.name;
@@ -71,7 +117,10 @@ export function BattleView({
 		? "Meera is sizing up the situation..."
 		: latestAssistant?.content ?? "Tell Meera what is blocking you.";
 	const dialogueSpeechId = `battle-dialogue-${latestAssistant?.id ?? "ready"}-${sending ? "sending" : "idle"}`;
-	const moves = suggestedReplies.length ? suggestedReplies : FALLBACK_MOVES;
+	const moves = useMemo(
+		() => suggestedReplies.length ? suggestedReplies : hasStudentIssue ? predictionFallbackMoves(messages, caseStage.activeDepartments) : STARTER_MOVES,
+		[caseStage.activeDepartments, hasStudentIssue, messages, suggestedReplies],
+	);
 	const won = caseStage.fixed;
 
 	useEffect(() => {
@@ -222,7 +271,7 @@ export function BattleView({
 										<span className="min-w-0 flex-1">
 											<span className="block text-[14px] font-bold leading-tight">{move}</span>
 											<span className="font-['DM_Mono'] text-[10.5px]" style={{ color: "var(--muted)" }}>
-												{suggestedReplies.length ? "AI suggested move" : "starter move"}
+												{hasStudentIssue ? "predicted reply" : "starter move"}
 											</span>
 										</span>
 										<span className="grid size-5 shrink-0 place-items-center rounded-md font-['DM_Mono'] text-[10px] font-bold" style={{ background: "var(--cream-2)", color: "var(--muted)" }}>{index + 1}</span>

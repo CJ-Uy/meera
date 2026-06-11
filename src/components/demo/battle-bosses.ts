@@ -39,6 +39,15 @@ export const DEFAULT_BOSS: BossConfig = {
 	accent: "teal",
 };
 
+export const MYSTERY_BOSS: BossConfig = {
+	id: "mystery",
+	name: "???",
+	kind: "Unknown issue / Mystery type",
+	dept: "Unknown",
+	sprites: spriteSet("mystery"),
+	accent: "teal",
+};
+
 export const BOSS_BY_DEPT: Record<string, BossConfig> = {
 	IT: {
 		id: "hawk",

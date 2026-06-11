@@ -17430,7 +17430,7 @@
       "label": ".respondCrossDept()",
       "file_type": "code",
       "source_file": "src/db/adapters/d1.ts",
-      "source_location": "L158",
+      "source_location": "L175",
       "_origin": "ast",
       "id": "adapters_d1_d1databaseadapter_respondcrossdept",
       "community": 49,
@@ -17440,7 +17440,7 @@
       "label": ".addTask()",
       "file_type": "code",
       "source_file": "src/db/adapters/d1.ts",
-      "source_location": "L182",
+      "source_location": "L199",
       "_origin": "ast",
       "id": "adapters_d1_d1databaseadapter_addtask",
       "community": 49,
@@ -17450,7 +17450,7 @@
       "label": ".updateTask()",
       "file_type": "code",
       "source_file": "src/db/adapters/d1.ts",
-      "source_location": "L186",
+      "source_location": "L203",
       "_origin": "ast",
       "id": "adapters_d1_d1databaseadapter_updatetask",
       "community": 49,
@@ -17460,7 +17460,7 @@
       "label": ".seedAdminSnapshot()",
       "file_type": "code",
       "source_file": "src/db/adapters/d1.ts",
-      "source_location": "L199",
+      "source_location": "L216",
       "_origin": "ast",
       "id": "adapters_d1_d1databaseadapter_seedadminsnapshot",
       "community": 49,
@@ -17470,7 +17470,7 @@
       "label": ".insertKbNode()",
       "file_type": "code",
       "source_file": "src/db/adapters/d1.ts",
-      "source_location": "L223",
+      "source_location": "L240",
       "_origin": "ast",
       "id": "adapters_d1_d1databaseadapter_insertkbnode",
       "community": 49,
@@ -17480,7 +17480,7 @@
       "label": ".adminDepartment()",
       "file_type": "code",
       "source_file": "src/db/adapters/d1.ts",
-      "source_location": "L227",
+      "source_location": "L244",
       "_origin": "ast",
       "id": "adapters_d1_d1databaseadapter_admindepartment",
       "community": 49,
@@ -17690,7 +17690,7 @@
       "label": ".respondCrossDept()",
       "file_type": "code",
       "source_file": "src/db/adapters/local-sqlite.ts",
-      "source_location": "L240",
+      "source_location": "L257",
       "_origin": "ast",
       "id": "adapters_local_sqlite_localsqlitedatabaseadapter_respondcrossdept",
       "community": 49,
@@ -17700,7 +17700,7 @@
       "label": ".addTask()",
       "file_type": "code",
       "source_file": "src/db/adapters/local-sqlite.ts",
-      "source_location": "L263",
+      "source_location": "L280",
       "_origin": "ast",
       "id": "adapters_local_sqlite_localsqlitedatabaseadapter_addtask",
       "community": 49,
@@ -17710,7 +17710,7 @@
       "label": ".updateTask()",
       "file_type": "code",
       "source_file": "src/db/adapters/local-sqlite.ts",
-      "source_location": "L267",
+      "source_location": "L284",
       "_origin": "ast",
       "id": "adapters_local_sqlite_localsqlitedatabaseadapter_updatetask",
       "community": 49,
@@ -17720,7 +17720,7 @@
       "label": ".seedAdminSnapshot()",
       "file_type": "code",
       "source_file": "src/db/adapters/local-sqlite.ts",
-      "source_location": "L281",
+      "source_location": "L298",
       "_origin": "ast",
       "id": "adapters_local_sqlite_localsqlitedatabaseadapter_seedadminsnapshot",
       "community": 49,
@@ -17730,7 +17730,7 @@
       "label": ".insertKbNode()",
       "file_type": "code",
       "source_file": "src/db/adapters/local-sqlite.ts",
-      "source_location": "L305",
+      "source_location": "L322",
       "_origin": "ast",
       "id": "adapters_local_sqlite_localsqlitedatabaseadapter_insertkbnode",
       "community": 49,
@@ -17740,7 +17740,7 @@
       "label": ".adminDepartment()",
       "file_type": "code",
       "source_file": "src/db/adapters/local-sqlite.ts",
-      "source_location": "L309",
+      "source_location": "L326",
       "_origin": "ast",
       "id": "adapters_local_sqlite_localsqlitedatabaseadapter_admindepartment",
       "community": 49,
@@ -53393,9 +53393,9 @@
       "source_file": "src/app/api/admin/tickets/[id]/route.ts",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_api_admin_tickets_id_route_ts_id_route",
-      "target": "api_schemas_actingadminschema",
-      "confidence_score": 1.0
+      "target": "api_schemas_actingadminschema"
     },
     {
       "relation": "imports",
@@ -53447,9 +53447,9 @@
       "source_file": "src/app/api/admin/tickets/[id]/route.ts",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_api_admin_tickets_id_route_ts_id_route",
-      "target": "src_app_api_admin_tickets_id_route_ts_id_route_delete",
-      "confidence_score": 1.0
+      "target": "src_app_api_admin_tickets_id_route_ts_id_route_delete"
     },
     {
       "relation": "contains",
@@ -57738,9 +57738,9 @@
       "source_file": "src/app/internal/admin/tickets/[id]/route.ts",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_internal_admin_tickets_id_route_ts_id_route",
-      "target": "src_app_internal_admin_tickets_id_route_ts_id_route_delete",
-      "confidence_score": 1.0
+      "target": "src_app_internal_admin_tickets_id_route_ts_id_route_delete"
     },
     {
       "relation": "contains",
@@ -63638,9 +63638,9 @@
       "source_file": "src/db/adapters/d1.ts",
       "source_location": "L112",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "adapters_d1_d1databaseadapter",
-      "target": "adapters_d1_d1databaseadapter_deleteticket",
-      "confidence_score": 1.0
+      "target": "adapters_d1_d1databaseadapter_deleteticket"
     },
     {
       "relation": "method",
@@ -64658,9 +64658,9 @@
       "source_file": "src/db/adapters/local-sqlite.ts",
       "source_location": "L194",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "adapters_local_sqlite_localsqlitedatabaseadapter",
-      "target": "adapters_local_sqlite_localsqlitedatabaseadapter_deleteticket",
-      "confidence_score": 1.0
+      "target": "adapters_local_sqlite_localsqlitedatabaseadapter_deleteticket"
     },
     {
       "relation": "method",
@@ -65392,9 +65392,9 @@
       "source_file": "src/db/adapters/shared-api.ts",
       "source_location": "L68",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "adapters_shared_api_sharedapidatabaseadapter",
-      "target": "adapters_shared_api_sharedapidatabaseadapter_deleteticket",
-      "confidence_score": 1.0
+      "target": "adapters_shared_api_sharedapidatabaseadapter_deleteticket"
     },
     {
       "relation": "method",
@@ -66665,9 +66665,9 @@
       "source_file": "src/db/index.ts",
       "source_location": "L64",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "db_index_lazylocalsqlitedatabaseadapter",
-      "target": "db_index_lazylocalsqlitedatabaseadapter_deleteticket",
-      "confidence_score": 1.0
+      "target": "db_index_lazylocalsqlitedatabaseadapter_deleteticket"
     },
     {
       "relation": "method",
@@ -66904,9 +66904,9 @@
       "source_file": "src/db/index.ts",
       "source_location": "L65",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "db_index_lazylocalsqlitedatabaseadapter_deleteticket",
-      "target": "db_index_lazylocalsqlitedatabaseadapter_getadapter",
-      "confidence_score": 1.0
+      "target": "db_index_lazylocalsqlitedatabaseadapter_getadapter"
     },
     {
       "relation": "calls",
@@ -96302,5 +96302,5 @@
       "confidence_score": 1.0
     }
   ],
-  "built_at_commit": "7a3cbfce2522e32d2d52399f8eb0d751c5698d7d"
+  "built_at_commit": "5f2f9b8b81231777e59e5bebab6e24338392dd4e"
 }
