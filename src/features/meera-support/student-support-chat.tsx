@@ -8,13 +8,12 @@ import {
   Card,
   Icon,
   type IconName,
-  MeerkatMark,
   Pill,
   SpeechControl,
   VoiceInputControl,
 } from "@/components/demo/shared";
 import { BattleView } from "@/components/demo/battle";
-import { PersonaSwitch } from "@/components/demo/persona-switch";
+import { DemoHeader } from "@/components/demo/demo-header";
 import { useSpeech, useVoiceInput } from "@/features/ai/voice";
 import {
   CASE_DEPARTMENTS,
@@ -160,7 +159,7 @@ const moundLayers: { label: string; icon: IconName; note: string }[] = [
  * a shake when a turn fails. Driven by `deriveCaseStage` against the live transcript and ticket result.
  */
 function CaseMeter({ stage, damage, fixed, resolution, activeDepartments }: CaseStage) {
-  const conf = [0, 34, 61, 84, 97][stage] ?? 0;
+  const conf = fixed ? 100 : ([0, 34, 61, 84, 97][stage] ?? 0);
   const radius = 46;
   const circumference = 2 * Math.PI * radius;
   const ringColor = damage ? "var(--sand)" : fixed ? "var(--green)" : "var(--teal)";
@@ -215,6 +214,9 @@ function CaseMeter({ stage, damage, fixed, resolution, activeDepartments }: Case
           const done = index < stage;
           const isCurrent = index === stage - 1;
           const isDamage = damage && isCurrent;
+          const isFinalSelfServe = index === moundLayers.length - 1 && resolution === "self-serve";
+          const label = isFinalSelfServe ? "Resolved" : layer.label;
+          const note = isFinalSelfServe ? "no ticket needed" : layer.note;
           const bg = isDamage ? "var(--sand-050)" : done ? "var(--teal-050)" : "#fff";
           const border = isDamage ? "#F3D2C6" : done ? "var(--teal-100)" : "var(--line)";
           return (
@@ -236,10 +238,10 @@ function CaseMeter({ stage, damage, fixed, resolution, activeDepartments }: Case
               </span>
               <div className="min-w-0">
                 <div className="text-[12.5px] font-bold leading-tight" style={{ color: done ? "var(--ink)" : "var(--muted)" }}>
-                  {layer.label}
+                  {label}
                 </div>
                 <div className="font-['DM_Mono'] text-[9.5px]" style={{ color: "var(--muted)" }}>
-                  {layer.note}
+                  {note}
                 </div>
               </div>
             </div>
@@ -281,7 +283,7 @@ function CaseMeter({ stage, damage, fixed, resolution, activeDepartments }: Case
 
       <div className="mt-auto rounded-2xl border bg-white/70 p-3 text-center" style={{ borderColor: "var(--line)" }}>
         <div className="text-[13px] font-bold" style={{ color: damage ? "var(--sand-600)" : stage >= 4 ? "var(--teal-700)" : "var(--ink-2)" }}>
-          {damage ? "Regrouping…" : caseLabels[stage]}
+          {damage ? "Regrouping…" : fixed ? "Resolved" : caseLabels[stage]}
         </div>
         {fixed ? (
           <div className="mt-1 font-['DM_Mono'] text-[9.5px] uppercase tracking-[0.1em]" style={{ color: "var(--muted)" }}>
@@ -364,6 +366,7 @@ export function StudentSupportChat() {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [continuing, setContinuing] = useState(false);
   const { speakingId, speak } = useSpeech();
   const appendTranscript = useCallback((text: string) => {
     setDraft((current) => (current.trim() ? `${current} ${text}` : text));
@@ -377,6 +380,12 @@ export function StudentSupportChat() {
       behavior: "smooth",
     });
   }, [messages, sending]);
+
+  // After Meera replies, drop any manual "keep chatting" override so a fresh closing message can
+  // re-show the resolved state. The student opts back in per turn via the resolved bar.
+  useEffect(() => {
+    if (messages.at(-1)?.role === "assistant") setContinuing(false);
+  }, [messages]);
 
   const latestTicket = useMemo(
     () =>
@@ -455,27 +464,18 @@ export function StudentSupportChat() {
         className="flex min-h-dvh flex-col"
         style={{ background: "var(--cream)", color: "var(--ink)" }}
       >
-        <div
-          className="flex items-center gap-3 border-b bg-white px-5 py-3"
-          style={{ borderColor: "var(--line)" }}
-        >
-          <MeerkatMark size={38} />
-          <div className="min-w-0 flex-1">
-            <div className="font-bold">Meera</div>
-            <div
-              className="flex items-center gap-1.5 font-['DM_Mono'] text-[11px]"
-              style={{ color: "var(--green)" }}
-            >
-              <span
-                className="size-1.5 rounded-full"
-                style={{ background: "var(--green)" }}
-              />
-              Battle mode - Mound showdown
-            </div>
+        <DemoHeader persona="student">
+          <span
+            className="flex items-center gap-1.5 font-['DM_Mono'] text-[11px]"
+            style={{ color: "var(--green)" }}
+          >
+            <span className="size-1.5 rounded-full" style={{ background: "var(--green)" }} />
+            Battle mode - Mound showdown
+          </span>
+          <div className="ml-auto">
+            <ViewToggle view={view} onChange={setView} />
           </div>
-          <ViewToggle view={view} onChange={setView} />
-          <PersonaSwitch active="student" />
-        </div>
+        </DemoHeader>
         <div className="min-h-0 flex-1 overflow-hidden">
           <BattleView />
         </div>
@@ -488,27 +488,18 @@ export function StudentSupportChat() {
       className="flex min-h-dvh flex-col"
       style={{ background: "var(--cream)", color: "var(--ink)" }}
     >
-      <div
-        className="flex items-center gap-3 border-b bg-white px-5 py-3"
-        style={{ borderColor: "var(--line)" }}
-      >
-        <MeerkatMark size={38} />
-        <div className="min-w-0 flex-1">
-          <div className="font-bold">Meera</div>
-          <div
-            className="flex items-center gap-1.5 font-['DM_Mono'] text-[11px]"
-            style={{ color: "var(--green)" }}
-          >
-            <span
-              className="size-1.5 rounded-full"
-              style={{ background: "var(--green)" }}
-            />
-            Live support - Cloudflare AI Gateway
-          </div>
+      <DemoHeader persona="student">
+        <span
+          className="flex items-center gap-1.5 font-['DM_Mono'] text-[11px]"
+          style={{ color: "var(--green)" }}
+        >
+          <span className="size-1.5 rounded-full" style={{ background: "var(--green)" }} />
+          Live support - Cloudflare AI Gateway
+        </span>
+        <div className="ml-auto">
+          <ViewToggle view={view} onChange={setView} />
         </div>
-        <ViewToggle view={view} onChange={setView} />
-        <PersonaSwitch active="student" />
-      </div>
+      </DemoHeader>
 
       <div className="mx-auto grid w-full max-w-295 flex-1 grid-cols-1 gap-4 overflow-hidden px-4 py-4 lg:grid-cols-[minmax(0,1fr)_300px]">
         <Card className="flex min-h-0 flex-col overflow-hidden p-0">
@@ -590,39 +581,73 @@ export function StudentSupportChat() {
         style={{ borderColor: "var(--line)" }}
       >
         <div className="mx-auto max-w-180">
-          <div className="flex gap-2">
-            <textarea
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault();
-                  void sendText();
-                }
-              }}
-              className="h-11 min-w-0 flex-1 resize-none rounded-2xl border px-4 py-2 text-sm outline-none"
-              style={{ borderColor: "var(--line-2)" }}
-              placeholder={
-                voice.isRecording
-                  ? "Listening..."
-                  : "Tell Meera what's going on..."
-              }
-            />
-            <VoiceInputControl
-              compact
-              isRecording={voice.isRecording}
-              isTranscribing={voice.isTranscribing}
-              onClick={voice.toggle}
-              className="size-11 px-0"
-            />
-            <Button
-              variant="primary"
-              className="rounded-2xl px-4"
-              onClick={() => void sendText()}
+          {caseStage.fixed && !continuing ? (
+            <div
+              className="flex flex-wrap items-center gap-3 rounded-2xl border px-4 py-2.5"
+              style={{ borderColor: "var(--teal-100)", background: "var(--teal-050)" }}
             >
-              <Icon name="arrow" size={16} />
-            </Button>
-          </div>
+              <span
+                className="grid size-8 shrink-0 place-items-center rounded-full"
+                style={{ background: "var(--teal)", color: "#fff" }}
+              >
+                <Icon name="check" size={16} stroke={2.4} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-extrabold" style={{ color: "var(--teal-700)" }}>
+                  {caseStage.resolution === "ticket"
+                    ? "Ticket filed — you're all set"
+                    : "Resolved — you're all set"}
+                </div>
+                <div className="text-[12px] leading-5" style={{ color: "var(--ink-2)" }}>
+                  {caseStage.resolution === "ticket"
+                    ? "Staff will follow up. Need anything else?"
+                    : "Meera sorted this out — no ticket needed. Need anything else?"}
+                </div>
+              </div>
+              <Button
+                variant="primary"
+                className="rounded-2xl px-4"
+                onClick={() => setContinuing(true)}
+              >
+                <Icon name="chat" size={15} />
+                Continue chatting
+              </Button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <textarea
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    void sendText();
+                  }
+                }}
+                className="h-11 min-w-0 flex-1 resize-none rounded-2xl border px-4 py-2 text-sm outline-none"
+                style={{ borderColor: "var(--line-2)" }}
+                placeholder={
+                  voice.isRecording
+                    ? "Listening..."
+                    : "Tell Meera what's going on..."
+                }
+              />
+              <VoiceInputControl
+                compact
+                isRecording={voice.isRecording}
+                isTranscribing={voice.isTranscribing}
+                onClick={voice.toggle}
+                className="size-11 px-0"
+              />
+              <Button
+                variant="primary"
+                className="rounded-2xl px-4"
+                onClick={() => void sendText()}
+              >
+                <Icon name="arrow" size={16} />
+              </Button>
+            </div>
+          )}
           {error ? (
             <p
               className="mt-2 mb-0 text-[11px] font-semibold"

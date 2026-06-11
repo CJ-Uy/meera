@@ -50,9 +50,11 @@ export const CASE_DEPARTMENTS = ["IT", "Registrar", "Finance", "Health", "Studen
 // insensitively, they collide with common words (e.g. the pronoun "it").
 const ROUTING_SIGNAL = /(rout|escalat|\boffice\b|\bstaff\b|registrar|finance|billing|department|campus health|student services)/i;
 
-// Strong closing language that means Meera believes the issue is solved without filing a ticket.
+// Closing language that means Meera is wrapping up — the issue is solved (or there is nothing to do)
+// and no ticket is being filed. Deliberately excludes mid-troubleshooting phrases like "let me know if
+// that works" (the student still needs to reply) and opener-ish phrases like "happy to help".
 const RESOLUTION_SIGNAL =
-	/(all set|glad i could help|glad to help|happy i could help|hope (that|this) helps|that should (fix|resolve|sort|do it)|should be (good to go|all set|resolved|fixed|working)|is there anything else|anything else i can help|you'?re good to go|problem solved|that did the trick|no ticket needed|you should be able to|that resolves it|reach out again if)/i;
+	/(all set|glad i could help|glad to have helped|happy i could help|hope (that|this) helps|that should (fix|resolve|sort|do it)|should be (good to go|all set|resolved|fixed|working)|is there anything else|anything else i can (help|do)|you'?re good to go|problem solved|that did the trick|no ticket needed|you should be able to|that resolves it|reach out (again )?if|feel free to reach out|reach out any ?time|have a (great|good|nice|wonderful) (day|one|rest)|take care|nice (chatting|talking) (with|to) you|no (need|reason) to escalate|did ?n'?t need to escalate|do ?n'?t need to escalate|any other (questions|concerns)|you'?re welcome|you'?re most welcome)/i;
 
 const DEPARTMENT_KEYWORDS: { dept: string; match: RegExp }[] = [
 	{ dept: "IT", match: /(wi-?fi|password|log ?in|laptop|network|printer|\bdevice\b|portal|account|internet|computer|\bemail\b|outage|\bvpn\b|software|browser)/i },
