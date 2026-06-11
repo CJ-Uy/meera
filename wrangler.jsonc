@@ -36,7 +36,17 @@
 	"upload_source_maps": true,
 	"vars": {
 		"APP_ENV": "local",
-		"STORAGE_MODE": "binding"
+		"STORAGE_MODE": "binding",
+		"NEXTJS_ENV": "test",
+		"AI_PROVIDER": "workers-ai",
+		"WORKERS_AI_ACCOUNT_ID": "8527ec1369d46f55304a6f59ab5356e4",
+		"WORKERS_AI_BASE_URL": "https://gateway.ai.cloudflare.com/v1/8527ec1369d46f55304a6f59ab5356e4/meera/compat",
+		"WORKERS_AI_SUPPORT_MODEL": "workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct",
+		"WORKERS_AI_CHAT_MODEL": "workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct",
+		"WORKERS_AI_SELECTION_MODEL": "workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct",
+		"WORKERS_AI_VISION_MODEL": "workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct",
+		"WORKERS_AI_STT_MODEL": "@cf/openai/whisper-large-v3-turbo",
+		"WORKERS_AI_TTS_MODEL": "@cf/deepgram/aura-2-en"
 	},
 	"d1_databases": [
 		{
@@ -58,7 +68,17 @@
 			"workers_dev": true,
 			"vars": {
 				"APP_ENV": "local",
-				"STORAGE_MODE": "binding"
+				"STORAGE_MODE": "binding",
+				"NEXTJS_ENV": "test",
+				"AI_PROVIDER": "workers-ai",
+				"WORKERS_AI_ACCOUNT_ID": "8527ec1369d46f55304a6f59ab5356e4",
+				"WORKERS_AI_BASE_URL": "https://gateway.ai.cloudflare.com/v1/8527ec1369d46f55304a6f59ab5356e4/meera/compat",
+				"WORKERS_AI_SUPPORT_MODEL": "workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct",
+				"WORKERS_AI_CHAT_MODEL": "workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct",
+				"WORKERS_AI_SELECTION_MODEL": "workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct",
+				"WORKERS_AI_VISION_MODEL": "workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct",
+				"WORKERS_AI_STT_MODEL": "@cf/openai/whisper-large-v3-turbo",
+				"WORKERS_AI_TTS_MODEL": "@cf/deepgram/aura-2-en"
 			},
 			"images": {
 				"binding": "IMAGES"

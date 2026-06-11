@@ -167,7 +167,7 @@ export const AI_SUPPORT_TOOLS: AiToolDefinition[] = [
 		function: {
 			name: "create_support_ticket",
 			description:
-				"Package the student's concern into a structured, staff-ready support ticket. Call this only when the issue needs human review or staff-only action and you have collected the details this concern needs. Use only facts the student provided.",
+				"Package the student's concern into a structured, staff-ready support ticket. Call this only after appropriate probing and safe resolution attempts, when the issue remains unresolved or needs human review/staff-only action. Use only facts the student provided.",
 			parameters: {
 				type: "object",
 				required: ["ticketTitle", "responsibleOffice", "category", "priority", "issueSummary"],

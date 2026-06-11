@@ -5,8 +5,6 @@ import {
 	type AdminDemoFaqDraft,
 } from "@/server/admin-demo-cloudflare";
 
-export const runtime = "edge";
-
 const corsHeaders = {
 	"Access-Control-Allow-Origin": "*",
 	"Access-Control-Allow-Methods": "GET, PUT, OPTIONS",
