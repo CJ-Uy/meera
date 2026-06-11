@@ -17,6 +17,7 @@ import { BattleView } from "@/components/demo/battle";
 import { PersonaSwitch } from "@/components/demo/persona-switch";
 import { useSpeech, useVoiceInput } from "@/features/ai/voice";
 import {
+  CASE_DEPARTMENTS,
   deriveCaseStage,
   type CaseStage,
 } from "@/features/meera-support/support-stage";
@@ -158,7 +159,7 @@ const moundLayers: { label: string; icon: IconName; note: string }[] = [
  * conversation unfolds — a confidence ring plus stacking "mound" layers that light up per stage, and
  * a shake when a turn fails. Driven by `deriveCaseStage` against the live transcript and ticket result.
  */
-function CaseMeter({ stage, damage, fixed }: CaseStage) {
+function CaseMeter({ stage, damage, fixed, resolution, activeDepartments }: CaseStage) {
   const conf = [0, 34, 61, 84, 97][stage] ?? 0;
   const radius = 46;
   const circumference = 2 * Math.PI * radius;
@@ -246,10 +247,47 @@ function CaseMeter({ stage, damage, fixed }: CaseStage) {
         })}
       </div>
 
+      {/* Department knowledge bases — all online, with the ones Meera engaged highlighted */}
+      <div className="mt-1">
+        <div className="mb-2 flex items-center gap-2">
+          <Icon name="layers" size={14} className="text-[#2E9C8E]" />
+          <span className="font-['DM_Mono'] text-[9.5px] font-medium uppercase tracking-[0.14em]" style={{ color: "var(--muted)" }}>
+            Knowledge bases
+          </span>
+          <span className="ml-auto inline-flex items-center gap-1 font-['DM_Mono'] text-[9px] uppercase tracking-[0.1em]" style={{ color: "#5E9438" }}>
+            <span className="size-1.5 rounded-full" style={{ background: "var(--green)" }} />
+            online
+          </span>
+        </div>
+        <div className="grid gap-1">
+          {CASE_DEPARTMENTS.map((department) => {
+            const matched = activeDepartments.includes(department);
+            return (
+              <div
+                key={department}
+                className="flex items-center gap-2 rounded-xl border px-2.5 py-1.5 transition-all"
+                style={{ background: matched ? "var(--teal-050)" : "#fff", borderColor: matched ? "var(--teal-100)" : "var(--line)" }}
+              >
+                <span className="size-1.5 rounded-full" style={{ background: matched ? "var(--teal)" : "var(--green)" }} />
+                <span className="text-[12px] font-bold" style={{ color: matched ? "var(--teal-700)" : "var(--ink-2)" }}>{department}</span>
+                <span className="ml-auto font-['DM_Mono'] text-[9px] uppercase tracking-[0.08em]" style={{ color: matched ? "var(--teal-700)" : "var(--muted)" }}>
+                  {matched ? "needed" : "online"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="mt-auto rounded-2xl border bg-white/70 p-3 text-center" style={{ borderColor: "var(--line)" }}>
         <div className="text-[13px] font-bold" style={{ color: damage ? "var(--sand-600)" : stage >= 4 ? "var(--teal-700)" : "var(--ink-2)" }}>
           {damage ? "Regrouping…" : caseLabels[stage]}
         </div>
+        {fixed ? (
+          <div className="mt-1 font-['DM_Mono'] text-[9.5px] uppercase tracking-[0.1em]" style={{ color: "var(--muted)" }}>
+            {resolution === "self-serve" ? "Solved · no ticket needed" : "Filed to the admin inbox"}
+          </div>
+        ) : null}
         <div className="mt-2 flex justify-center gap-1.5">
           {[1, 2, 3, 4].map((i) => (
             <span key={i} className="h-1.5 rounded-full transition-all" style={{ width: i <= stage ? 18 : 6, background: i <= stage ? "var(--teal)" : "var(--line-2)" }} />
@@ -257,6 +295,21 @@ function CaseMeter({ stage, damage, fixed }: CaseStage) {
         </div>
       </div>
     </aside>
+  );
+}
+
+/** Inline confirmation shown in the chat when Meera resolves an issue without filing a ticket. */
+function ResolvedNote() {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border px-4 py-3" style={{ borderColor: "var(--teal-100)", background: "var(--teal-050)" }}>
+      <span className="grid size-9 shrink-0 place-items-center rounded-full" style={{ background: "var(--teal)", color: "#fff" }}>
+        <Icon name="check" size={18} stroke={2.4} />
+      </span>
+      <div className="min-w-0">
+        <div className="text-sm font-extrabold" style={{ color: "var(--teal-700)" }}>Resolved — you&apos;re all set</div>
+        <div className="text-[12.5px] leading-5" style={{ color: "var(--ink-2)" }}>Meera sorted this out with self-service guidance. No ticket needed — but reach out again anytime.</div>
+      </div>
+    </div>
   );
 }
 
@@ -506,6 +559,7 @@ export function StudentSupportChat() {
                 <span className="ml-1.5">Meera is thinking...</span>
               </div>
             ) : null}
+            {!sending && caseStage.resolution === "self-serve" ? <ResolvedNote /> : null}
           </div>
           {messages.length === 1 ? (
             <div
@@ -528,7 +582,7 @@ export function StudentSupportChat() {
             </div>
           ) : null}
         </Card>
-        <CaseMeter stage={caseStage.stage} damage={caseStage.damage} fixed={caseStage.fixed} />
+        <CaseMeter {...caseStage} />
       </div>
 
       <div

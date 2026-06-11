@@ -101,6 +101,7 @@ describe("student demo live support page", () => {
     const packaged = deriveCaseStage({ messages: [], ticket });
     expect(packaged.stage).toBe(4);
     expect(packaged.fixed).toBe(true);
+    expect(packaged.resolution).toBe("ticket");
     expect(
       deriveCaseStage({
         messages: [{ role: "user", content: "help" }],
@@ -108,6 +109,31 @@ describe("student demo live support page", () => {
         hasError: true,
       }).damage,
     ).toBe(true);
+  });
+
+  it("marks a self-service fix as done even with no ticket", () => {
+    const resolved = deriveCaseStage({
+      messages: [
+        { role: "user", content: "My Wi-Fi will not connect" },
+        { role: "assistant", content: "Try forgetting the network and reconnecting." },
+        { role: "user", content: "That worked, thanks!" },
+        { role: "assistant", content: "Great — you're all set. Is there anything else I can help with?" },
+      ],
+      ticket: null,
+    });
+    expect(resolved.stage).toBe(4);
+    expect(resolved.fixed).toBe(true);
+    expect(resolved.resolution).toBe("self-serve");
+  });
+
+  it("identifies which department knowledge bases are needed", () => {
+    expect(
+      deriveCaseStage({
+        messages: [{ role: "user", content: "I cannot register because of a hold" }],
+        ticket: null,
+      }).activeDepartments,
+    ).toContain("Registrar");
+    expect(deriveCaseStage({ messages: [], ticket }).activeDepartments).toEqual(["Finance"]);
   });
 
   it("includes a chat-to-battle toggle on the student screen", () => {
