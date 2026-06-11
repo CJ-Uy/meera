@@ -74,6 +74,7 @@ describe("Workers AI client", () => {
 		const request = JSON.parse(fetchMock.mock.calls[0][1].body as string) as Record<string, unknown>;
 
 		expect(request.model).toBe("workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct");
+		expect(request.max_tokens).toBe(1200);
 		expect(request.tools).toEqual(expect.any(Array));
 		expect(request.tool_choice).toBe("auto");
 	});

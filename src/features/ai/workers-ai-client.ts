@@ -44,6 +44,7 @@ const DEFAULT_TIMEOUT_MS = 45_000;
 const SELECTION_TIMEOUT_MS = 15_000;
 const SELECTION_MAX_TOKENS = 256;
 const DEFAULT_MAX_TOKENS = 512;
+const DEFAULT_SUPPORT_MAX_TOKENS = 1200;
 
 class WorkersAiHttpError extends Error {
 	constructor(
@@ -79,6 +80,7 @@ function config() {
 		visionModel: process.env.WORKERS_AI_VISION_MODEL?.trim() || DEFAULT_VISION_MODEL,
 		timeoutMs: positiveInteger(process.env.WORKERS_AI_REQUEST_TIMEOUT_MS, DEFAULT_TIMEOUT_MS),
 		maxTokens: positiveInteger(process.env.WORKERS_AI_MAX_TOKENS, DEFAULT_MAX_TOKENS),
+		supportMaxTokens: positiveInteger(process.env.WORKERS_AI_SUPPORT_MAX_TOKENS, DEFAULT_SUPPORT_MAX_TOKENS),
 	};
 }
 
@@ -243,7 +245,7 @@ export async function chatWithWorkersAi(request: AiChatRequest): Promise<AiChatR
 				tools: AI_SUPPORT_TOOLS,
 				tool_choice: "auto",
 				temperature: 0.2,
-				max_tokens: settings.maxTokens,
+				max_tokens: settings.supportMaxTokens,
 				stream: false,
 			},
 			settings.timeoutMs,

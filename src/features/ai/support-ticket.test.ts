@@ -70,6 +70,28 @@ describe("parseSupportTicketArgs", () => {
 		expect(args?.responsibleOffice).toBe("IT");
 	});
 
+	it("reads a fenced compat tool-call block from Workers AI", () => {
+		const content = `Ready to file.
+\`\`\`json
+{
+  "name": "create_support_ticket",
+  "parameters": {
+    "ticketTitle": "Delayed scholarship refund",
+    "responsibleOffice": "Finance/Billing",
+    "category": "Payment/Billing Issue",
+    "priority": "High",
+    "issueSummary": "Scholarship refund shows as disbursed but was not received in the bank."
+  }
+}
+\`\`\``;
+		const args = parseSupportTicketArgs([], content);
+		expect(args).toMatchObject({
+			ticketTitle: "Delayed scholarship refund",
+			responsibleOffice: "Finance/Billing",
+			priority: "High",
+		});
+	});
+
 	it("returns null when neither a tool call nor a block is present", () => {
 		expect(parseSupportTicketArgs([], "Just a normal reply.")).toBeNull();
 	});
