@@ -15,8 +15,13 @@ session — same gateway, same ticket creation as chat — wrapped in the RPG sk
    - resolution `"self-serve"` → "THE SNAG defeated!" (resolved, no ticket).
    - resolution `"ticket"` → "Backup called — staff are on it!" (ticket filed; show the real ticket).
    Remove the MiRA faint / `LoseOverlay` lose path entirely.
-4. **Any issue, like chat.** The boss is a generic "bureaucracy" mascot (rename `THE HOLD` → `THE SNAG`
-   or similar) — no longer tied to the grades/financial-hold storyline.
+4. **Any issue, like chat.** No longer tied to the grades/financial-hold storyline.
+5. **Dynamic department bosses.** The boss(es) shown depend on which departments `deriveCaseStage`
+   detects (`caseStage.activeDepartments`). Each department maps to a different **predator of
+   meerkats** (cute, only a *little* threatening). Multiple detected departments ⇒ multiple bosses
+   appear together (a "pack"). Before any department is detected, show the generic fallback boss.
+6. **How-to-play modal.** A "How to play" button opens a modal explaining the whole mode (goal, moves,
+   bosses = departments, multi-boss = multi-department, two victories, voice, "it's real AI").
 
 ## Key existing code to reuse (do NOT reinvent)
 - Chat send loop + state: `src/features/meera-support/student-support-chat.tsx`
@@ -108,14 +113,76 @@ Map conversation → battle:
 - **QuestTracker**: repoint the 5 nodes to case stages so it tracks real progress, e.g.
   `["Ready","Heard","Researched","Diagnosed","Packaged"]`, `active = index <= caseStage.stage`.
   Keep the component name `QuestTracker` and the `combo` pill (battle.test.ts asserts these).
-- **Enemy identity**: rename `THE HOLD` → `THE SNAG` (generic bureaucracy boss). Keep cobra sprites.
+- **Enemy identity**: dynamic — chosen from `caseStage.activeDepartments` (see "Dynamic department
+  bosses" below). Single boss → its nameplate; multiple → render them clustered on the right and use a
+  combined name (e.g. "THE TANGLE"). HP stays a single bar (case progress). No department yet → generic
+  fallback boss (`THE SNAG`, reuse existing cobra sprites). Re-pick the boss set whenever
+  `activeDepartments` changes mid-battle.
+- **How-to-play**: a small "How to play" button (see "How-to-play modal" below) in the command-console
+  header strip (next to the "MEERA" label) opens the modal.
+
+## Dynamic department bosses (image assets to generate)
+Create `src/components/demo/battle-bosses.ts`:
+```ts
+export type BossConfig = {
+  id: string;            // "hawk"
+  name: string;          // "GLITCH HAWK"
+  kind: string;          // "IT gremlin / hawk type"
+  dept: string;          // matches CASE_DEPARTMENTS values
+  sprites: { idle: string; hurt: string; attack: string; defeated: string }; // asset() paths
+  accent: "teal" | "sand" | "gold" | "green" | "rose";
+};
+export const BOSS_BY_DEPT: Record<string, BossConfig> = { /* IT, Registrar, Finance, Health, Student Services */ };
+export const DEFAULT_BOSS: BossConfig; // the generic "THE SNAG" cobra (existing battle/cobra-*.png)
+export function pickBosses(activeDepartments: string[]): BossConfig[]; // [] → [DEFAULT_BOSS]; dedupe; cap 3
+```
+Suggested predator-of-meerkat mapping (cute, slightly threatening — Codex may rename):
+- **IT** → Hawk — "GLITCH HAWK" (swooping outages)
+- **Registrar** → Cobra — "RED-TAPE COBRA" (can reuse existing `battle/cobra-*.png`)
+- **Finance** → Jackal — "FEE JACKAL" (coin-scavenger)
+- **Health** → Eagle — "BACKLOG EAGLE"
+- **Student Services** → Caracal (wild cat) — "RUNAROUND LYNX"
+- **fallback (no dept)** → existing cobra as `THE SNAG`
+
+**Assets to generate** (Codex): for each NEW boss, transparent PNGs under
+`public/assets/battle/<id>/` named `idle.png`, `hurt.png`, `attack.png`, `defeated.png` (mirror the
+existing `public/assets/battle/cobra-*.png` contract). To limit asset count, `hurt`/`attack` MAY reuse
+`idle` (the code already applies CSS filters/transitions for hurt/attack); **`idle` + `defeated` are the
+minimum** per boss. Match dimensions/framing to the cobra sprites (~square, the creature centered,
+facing LEFT toward MiRA who stands bottom-left).
+**Art direction:** flat, soft, rounded, warm Meera palette (cream/teal/sand), big friendly eyes, only
+a *little* menacing — same illustration style as `public/assets/meera-avatar.png` and the cobra. No
+gore, kid-friendly, plush-toy energy. `defeated` = dizzy/swirly-eyes/comically toppled, not hurt.
+
+**Multi-boss render:** when `pickBosses` returns >1, render them side-by-side on the right (scale each
+to ~70–80% so 2–3 fit), stagger their `bob` animation delays, and the shared HP bar still tracks
+`caseStage.stage`. Damage flash applies to all. Combined nameplate name when >1.
+
+## How-to-play modal
+Create `src/components/demo/how-to-play-modal.tsx` (`HowToPlayModal({ open, onClose })`). Reuse the
+overlay pattern from `WinOverlay` (absolute inset-0, translucent backdrop, centered `Card`, `fadeUp`
+anim, an `Icon name="x"` close button; close on backdrop click + Esc). Trigger from a "How to play"
+button in the command-console header. Content (concise, friendly):
+- **Goal:** Tell Meera your real campus problem — she solves it or files a staff ticket for you.
+- **Moves:** Tap a suggested reply or type your own. It's a real AI conversation, just gamified.
+- **Bosses = departments:** Each foe is the office your issue needs (IT, Registrar, Finance, Health,
+  Student Services). Cross-department issues summon a whole pack.
+- **HP bar:** drops as Meera makes progress on your case.
+- **Two ways to win:** Solve it yourself (boss defeated, no ticket) — or call in backup (ticket filed &
+  routed to staff, visible in the Admin inbox).
+- **Voice:** tap the mic to speak your move.
 
 ## Files to create / modify
 - **create** `src/features/meera-support/use-support-conversation.ts` — shared hook (+ `reset`).
+- **create** `src/components/demo/battle-bosses.ts` — boss configs + `pickBosses`.
+- **create** `src/components/demo/how-to-play-modal.tsx` — the modal.
+- **create** `public/assets/battle/<id>/{idle,defeated[,hurt,attack]}.png` — new boss sprites
+  (hawk, jackal, eagle, caracal; registrar/fallback reuse the cobra).
 - **modify** `src/features/meera-support/student-support-chat.tsx` — use the hook; pass conversation to
   `BattleView`; chat send uses `wantsSuggestedReplies:false`.
 - **modify** `src/components/demo/battle.tsx` — props-driven; delete scripted quest/lose; wire HP/moves/
-  victory to `caseStage`/`suggestedReplies`/`latestTicket`; repoint `QuestTracker`.
+  victory to `caseStage`/`suggestedReplies`/`latestTicket`; repoint `QuestTracker`; render boss(es) via
+  `pickBosses(caseStage.activeDepartments)`; add the "How to play" button + `HowToPlayModal` (open state).
 - **modify** `src/features/ai/ai-types.ts` — `wantsSuggestedReplies` + `suggestedReplies` + validation.
 - **modify** `src/features/ai/ai-service.ts` — `generateSuggestedReplies` + attach when requested.
 - **maybe** `src/features/ai/groq-client.ts` / `workers-ai-client.ts` — minimal completion helper for
@@ -123,8 +190,12 @@ Map conversation → battle:
 
 ## Tests
 - `src/components/demo/battle.test.ts`: keep `QuestTracker`/`combo`/`battle-arena-shell` asserts (still
-  present). Add: source no longer contains `const QUEST` / `LoseOverlay`; contains `suggestedReplies`
-  and `sendText`.
+  present). Add: source no longer contains `const QUEST` / `LoseOverlay`; contains `suggestedReplies`,
+  `sendText`, `pickBosses`, `HowToPlayModal`.
+- `battle-bosses` unit test: `pickBosses([])` → `[DEFAULT_BOSS]`; `pickBosses(["IT"])` → the IT boss;
+  multi-dept returns multiple, deduped, capped at 3.
+- Asset existence test (mirror the cobra-size test): each generated boss has at least `idle.png` +
+  `defeated.png` present in `public/assets/battle/<id>/` and non-trivial size.
 - `src/features/ai/ai-types` test (if present) / add: `isAiChatRequest` accepts/validates
   `wantsSuggestedReplies`.
 - `student-support-chat.test.ts`: unaffected derive tests stay; if state moved to the hook, update the
@@ -170,6 +241,19 @@ Map conversation → battle:
 >    `"lost"` phase and `LoseOverlay`. Two victories: `resolution==="self-serve"` → "defeated, no
 >    ticket"; `resolution==="ticket"` → "Backup called" + show the real `latestTicket`; both offer
 >    reset. Keep a static fallback move set when `suggestedReplies` is empty.
-> 4) Update/extend tests (`battle.test.ts`, ai-types validation, suggestion parser, keep
->    `deriveCaseStage` + `QuestTracker`/`combo` asserts). Run `pnpm typecheck && pnpm test && pnpm
->    build`, then `graphify update .`, then commit on `demo-page-fixes` (no "claude" in the message).
+> 4) Add dynamic department bosses: create `src/components/demo/battle-bosses.ts`
+>    (`BOSS_BY_DEPT`, `DEFAULT_BOSS`, `pickBosses(activeDepartments)`), map each department to a
+>    cute predator-of-meerkats (IT=hawk, Registrar=cobra/reuse, Finance=jackal, Health=eagle, Student
+>    Services=caracal; no dept = generic cobra `THE SNAG`). Render the picked boss(es) in `battle.tsx`
+>    from `caseStage.activeDepartments`; multiple → cluster them on the right with a combined name.
+>    **Generate the new boss image assets yourself** as transparent PNGs under
+>    `public/assets/battle/<id>/` (`idle.png`+`defeated.png` minimum, optional `hurt.png`/`attack.png`),
+>    matching the existing `battle/cobra-*.png` style: flat, soft, rounded, warm Meera palette, big
+>    friendly eyes, only slightly threatening, kid-friendly, creature centered facing LEFT.
+> 5) Add a "How to play" button + `src/components/demo/how-to-play-modal.tsx` (reuse the `WinOverlay`
+>    overlay pattern; close on backdrop/Esc/X) explaining goal, moves, bosses=departments,
+>    multi-department packs, the two win conditions, and voice input.
+> 6) Update/extend tests (`battle.test.ts` incl. `pickBosses`/`HowToPlayModal`, a `battle-bosses` unit
+>    test, boss-asset existence test, ai-types validation, suggestion parser; keep `deriveCaseStage` +
+>    `QuestTracker`/`combo` asserts). Run `pnpm typecheck && pnpm test && pnpm build`, then
+>    `graphify update .`, then commit on `demo-page-fixes` (no "claude" in the message).
