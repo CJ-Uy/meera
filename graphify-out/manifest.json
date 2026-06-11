@@ -10,8 +10,8 @@
     "semantic_hash": ""
   },
   ".remember/tmp/last-save.json": {
-    "mtime": 1781199743.8359652,
-    "ast_hash": "c7271f2a3998b8aabf8cf30430f9ecbb",
+    "mtime": 1781201405.411523,
+    "ast_hash": "d7f71f1d2ea086cb52362307f41b9330",
     "semantic_hash": ""
   },
   ".vscode/settings.json": {
@@ -520,8 +520,8 @@
     "semantic_hash": "a8a3a640b033af08600684f685f2c609"
   },
   "src/components/demo/battle.tsx": {
-    "mtime": 1781195399.082118,
-    "ast_hash": "35026a33a9ef774b9455a368b8178139",
+    "mtime": 1781201437.1917756,
+    "ast_hash": "4d3f498a9ab12f04d675ccddcd248141",
     "semantic_hash": ""
   },
   "src/components/demo/meera-demo-experience.test.ts": {
@@ -1045,8 +1045,8 @@
     "semantic_hash": ""
   },
   "src/features/meera-support/student-support-chat.tsx": {
-    "mtime": 1781201097.6284893,
-    "ast_hash": "a342417bf346c0481f2155645567d492",
+    "mtime": 1781201445.4079156,
+    "ast_hash": "fa43c3ba8605195557a6bd9368455607",
     "semantic_hash": ""
   },
   "src/features/overlay/desktop-overlay.tsx": {
@@ -1615,9 +1615,9 @@
     "semantic_hash": "b25150c9b3e97b954f6fdb178b61f0cc"
   },
   ".remember/now.md": {
-    "mtime": 1781199916.76217,
-    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
-    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+    "mtime": 1781201405.1892374,
+    "ast_hash": "3d6ac7a178d348b0b691fa9a2791767b",
+    "semantic_hash": ""
   },
   ".remember/recent.md": {
     "mtime": 1781149992.4564319,
@@ -1960,8 +1960,8 @@
     "semantic_hash": ""
   },
   "src/components/demo/battle.test.ts": {
-    "mtime": 1781193013.7083685,
-    "ast_hash": "10878ab21e44eb6de2e6ced1842c9a32",
+    "mtime": 1781201485.2144363,
+    "ast_hash": "c3eedc490218dd618acd3368dde0f5a1",
     "semantic_hash": ""
   },
   "src/features/ai/ai-prompt.test.ts": {

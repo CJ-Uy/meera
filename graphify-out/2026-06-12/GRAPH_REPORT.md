@@ -1,16 +1,16 @@
 # Graph Report - meera  (2026-06-12)
 
 ## Corpus Check
-- 368 files · ~586,480 words
+- 369 files · ~586,798 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3626 nodes · 5513 edges · 272 communities (168 shown, 104 thin omitted)
+- 3628 nodes · 5522 edges · 273 communities (169 shown, 104 thin omitted)
 - Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 250 edges (avg confidence: 0.84)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `b96dbd92`
+- Built from commit: `6a30eca7`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -64,6 +64,7 @@
 - [[_COMMUNITY_Home Page Content|Home Page Content]]
 - [[_COMMUNITY_Overlay Client|Overlay Client]]
 - [[_COMMUNITY_User CRUD Adapters|User CRUD Adapters]]
+- [[_COMMUNITY_Community 50|Community 50]]
 - [[_COMMUNITY_Workers AI Audio|Workers AI Audio]]
 - [[_COMMUNITY_Department FAQ Knowledge Base|Department FAQ Knowledge Base]]
 - [[_COMMUNITY_Overlay Protocol Commands|Overlay Protocol Commands]]
@@ -92,6 +93,7 @@
 - [[_COMMUNITY_Demo Shell & Navigation|Demo Shell & Navigation]]
 - [[_COMMUNITY_Notifications Page|Notifications Page]]
 - [[_COMMUNITY_Desktop Smoke Tests|Desktop Smoke Tests]]
+- [[_COMMUNITY_Community 79|Community 79]]
 - [[_COMMUNITY_Meera Connect Icons|Meera Connect Icons]]
 - [[_COMMUNITY_Project Memory & Milestones|Project Memory & Milestones]]
 - [[_COMMUNITY_KB Add Form|KB Add Form]]
@@ -235,7 +237,6 @@
 - [[_COMMUNITY_Community 232|Community 232]]
 - [[_COMMUNITY_Community 233|Community 233]]
 - [[_COMMUNITY_Community 234|Community 234]]
-- [[_COMMUNITY_Community 235|Community 235]]
 - [[_COMMUNITY_Community 236|Community 236]]
 - [[_COMMUNITY_Community 237|Community 237]]
 - [[_COMMUNITY_Community 238|Community 238]]
@@ -314,7 +315,7 @@
 - **Student Demo Views (Meera Site / Embedded / Screenshare / Chat / Mound)** —  [EXTRACTED 1.00]
 - **Cloudflare Resources (D1 dev/prod, R2 dev/prod, Shared API Worker)** —  [EXTRACTED 1.00]
 
-## Communities (272 total, 104 thin omitted)
+## Communities (273 total, 104 thin omitted)
 
 ### Community 0 - "Cloudflare Workers Types"
 Cohesion: 0.00
@@ -329,48 +330,48 @@ Cohesion: 0.05
 Nodes (46): adminDemoFallback, AdminDemoSnapshot, AdminDepartment, ArticleRow, D1DatabaseLike, DepartmentCode, DepartmentFaq, DepartmentTicket (+38 more)
 
 ### Community 3 - "AI Tool Definitions"
-Cohesion: 0.08
-Nodes (54): AiToolDefinition, annotationId(), axisSize(), clamp(), compactOverlayMessage(), coordinateArgumentNames, coordinatePairPatterns, coordinateSpace() (+46 more)
+Cohesion: 0.11
+Nodes (37): AI_OVERLAY_TOOLS, AiToolDefinition, annotationId(), axisSize(), clamp(), coordinateArgumentNames, coordinatePairPatterns, coordinateSpace() (+29 more)
 
 ### Community 4 - "Insights & Analytics Dashboard"
 Cohesion: 0.06
 Nodes (41): IconChip(), avg(), BACKLOG_BUCKETS, buildBacklogAging(), buildConfidenceBuckets(), buildHeatmap(), buildInsightsMetrics(), buildKbCoverageGaps() (+33 more)
 
 ### Community 5 - "Knowledge Base Adapters"
-Cohesion: 0.23
-Nodes (9): ArrowShowCommand, BubbleShowCommand, clampNormalized(), CursorMoveCommand, HighlightShowCommand, normalizePoint(), normalizeRect(), initialOverlayState (+1 more)
+Cohesion: 0.18
+Nodes (20): resolveProviderResponse(), compactOverlayMessage(), extractGridPoint(), extractPoint(), extractSize(), hasOverlayActionIntent(), highlightArgsFromPoint(), isOverlayDemoPrompt() (+12 more)
 
 ### Community 6 - "Demo Experience Views"
 Cohesion: 0.04
-Nodes (22): AdminDept, adminDepts, adminNavItems, AdminView, caseLabels, ChatItem, DeptData, diagnosticChecks (+14 more)
+Nodes (24): AdminDept, adminDepts, adminNavItems, AdminView, caseLabels, ChatItem, DeptData, diagnosticChecks (+16 more)
 
 ### Community 7 - "AI Provider Documentation"
 Cohesion: 0.05
 Nodes (45): ai-service.ts (Groq Selector), POST /api/ai/chat Route, groq-client.ts (OpenAI-Compatible Chat), Groq AI Provider, Llama 4 Scout 17B (Vision/Multimodal Model), Llama 3.1 8B Instant (Text Chat Model), visual-grounding.ts (Zoom-Refine Loop), Visual Grounding Zoom-Refine Pass (+37 more)
 
 ### Community 8 - "Visual Grounding Candidates"
-Cohesion: 0.09
-Nodes (33): candidates, image, buildCandidatesFromOcr(), BuildOptions, candidateById(), candidateCenter(), candidateToOverlayToolCall(), clamp01() (+25 more)
+Cohesion: 0.10
+Nodes (32): buildCandidatesFromOcr(), BuildOptions, candidateById(), candidateCenter(), candidateToOverlayToolCall(), clamp01(), groupIntoRows(), positionLabel() (+24 more)
 
 ### Community 9 - "AI Provider Utilities"
-Cohesion: 0.11
-Nodes (32): coordinateCalibration(), immediateOverlayResponse(), isVisionRequest(), latestScreenFrameContext(), messagesForProvider(), resolveProviderResponse(), resolveSupportResponse(), AI_OVERLAY_TOOLS (+24 more)
+Cohesion: 0.12
+Nodes (29): immediateOverlayResponse(), isVisionRequest(), latestScreenFrameContext(), messagesForProvider(), resolveSupportResponse(), OverlayCoordinateContext, allowNumericStrings(), attemptTimeouts() (+21 more)
 
 ### Community 10 - "Landing Page Components"
 Cohesion: 0.06
 Nodes (11): asset(), BrandSection(), cardStyle, CTA(), Hero(), IconName, iconPaths, LogoMark() (+3 more)
 
 ### Community 11 - "Admin Dept Theme & Layout"
-Cohesion: 0.13
-Nodes (14): Persona, PersonaSwitch(), targets, MeerkatMark(), ActAsSwitcher(), DepartmentDropdown(), LeftRail(), TopBar() (+6 more)
+Cohesion: 0.21
+Nodes (8): LeftRail(), TopBar(), AdminStoreProvider(), createApiAdminDataSource(), inMemoryAdminDataSource, AdminSourceMode, createConfiguredAdminDataSource(), getAdminSourceMode()
 
 ### Community 12 - "Admin DB Records"
 Cohesion: 0.09
-Nodes (38): SharedApiOptions, AdminNote, AdminSnapshot, KbEdge, adminFromRow(), AdminRow, CrossDeptParticipantRow, kbEdgeFromRow() (+30 more)
+Nodes (39): SharedApiOptions, AdminNote, Complexity, CrossDeptState, KbEdge, adminFromRow(), AdminRow, CrossDeptParticipantRow (+31 more)
 
 ### Community 13 - "Cross-Dept Workflow UI"
-Cohesion: 0.05
-Nodes (69): DEPARTMENT_ACCENT, departmentAccent, initialsOf(), CrossDeptDecision, DEPARTMENT_LABELS, AcceptRejectPanel(), CollaborationWorkspace(), CrossDeptBadge() (+61 more)
+Cohesion: 0.07
+Nodes (50): CrossDeptDecision, DemoTicket, DEPARTMENT_LABELS, AcceptRejectPanel(), CollaborationWorkspace(), CrossDeptBadge(), EscalateCrossDept(), statuses (+42 more)
 
 ### Community 14 - "Project Spec & AI Config"
 Cohesion: 0.18
@@ -381,24 +382,24 @@ Cohesion: 0.06
 Nodes (9): ACCENTS, App(), demoInpS, demoLblS, TWEAK_DEFAULTS, useResponsiveCSS(), I_PATHS, useReveal() (+1 more)
 
 ### Community 16 - "Ticket Status & Decisions"
-Cohesion: 0.07
-Nodes (26): TicketStatus, Collapsible(), ClaimFilter, claims, InboxFilters(), InboxFilterState, statuses, AdminInboxPage() (+18 more)
+Cohesion: 0.18
+Nodes (10): cellColor(), complexities, COOL, easeWeight, HOT, mix(), PriorityMatrix(), PriorityMatrixSelection (+2 more)
 
 ### Community 17 - "AI Type Definitions"
-Cohesion: 0.11
-Nodes (25): AI_LIMITS, AiActionResult, AiChatInputMessage, AiChatMessage, AiChatMode, AiChatResponse, AiChatRole, AiGroundingMode (+17 more)
+Cohesion: 0.10
+Nodes (28): AI_LIMITS, AiActionResult, AiChatInputMessage, AiChatMessage, AiChatMode, AiChatRole, AiGroundingMode, AiImageAttachment (+20 more)
 
 ### Community 18 - "AI Prompts & Workers Client"
-Cohesion: 0.15
-Nodes (23): MEERA_AI_SYSTEM_PROMPT, MEERA_SUPPORT_SYSTEM_PROMPT, AI_SUPPORT_TOOLS, authHeaders(), bareModelId(), chatWithWorkersAi(), compatChat(), CompatChatResponse (+15 more)
+Cohesion: 0.13
+Nodes (25): MEERA_AI_SYSTEM_PROMPT, MEERA_SUPPORT_SYSTEM_PROMPT, coordinateCalibration(), AI_SUPPORT_TOOLS, authHeaders(), bareModelId(), chatWithWorkersAi(), compatChat() (+17 more)
 
 ### Community 19 - "Storage Adapters"
 Cohesion: 0.13
 Nodes (9): R2BindingStorageAdapter, R2S3Options, R2S3StorageAdapter, SharedApiStorageAdapter, SharedApiStorageOptions, bodyToArrayBuffer(), GetObjectOutput, PutObjectInput (+1 more)
 
 ### Community 20 - "KB Graph & Dept Codes"
-Cohesion: 0.57
-Nodes (4): clearDesktopOverlay(), isDesktopOverlayAvailable(), sendOverlayCommand(), OverlayCommand
+Cohesion: 0.21
+Nodes (12): DEPARTMENT_ACCENT, departmentAccent, initialsOf(), ActAsSwitcher(), Avatar(), DepartmentDropdown(), Dropdown(), DropdownProps (+4 more)
 
 ### Community 21 - "Electron Desktop Shell"
 Cohesion: 0.11
@@ -417,8 +418,8 @@ Cohesion: 0.05
 Nodes (26): Use Set/Map for O(1) Lookups, Use toSorted() Instead of sort() for Immutability, Use Activity Component for Show/Hide, Animate SVG Wrapper Instead of SVG Element, Use Explicit Conditional Rendering, CSS content-visibility for Long Lists, Hoist Static JSX Elements, Prevent Hydration Mismatch Without Flickering (+18 more)
 
 ### Community 25 - "AI Image Input"
-Cohesion: 0.15
-Nodes (21): attachmentId(), AUTO_CAPTURE_PATTERNS, calibrateOverlayFramesForPrompt(), calibrateScreenFrameForOverlay(), CALIBRATION_GRID, canvasFor(), canvasForExact(), captureDesktopScreenFrame() (+13 more)
+Cohesion: 0.16
+Nodes (19): attachmentId(), AUTO_CAPTURE_PATTERNS, calibrateOverlayFramesForPrompt(), calibrateScreenFrameForOverlay(), CALIBRATION_GRID, canvasFor(), canvasForExact(), captureSharedScreenFrame() (+11 more)
 
 ### Community 26 - "Server Health & DB Index"
 Cohesion: 0.15
@@ -429,12 +430,12 @@ Cohesion: 0.13
 Nodes (20): cn(), Badge(), BadgeProps, BadgeVariant, variants, Button(), ButtonProps, ButtonSize (+12 more)
 
 ### Community 28 - "Ticket Inbox & Sorting"
-Cohesion: 0.13
-Nodes (20): CrossDeptState, DemoTicket, DEPARTMENT_CODES, clusterKey(), computeKbGraphLayout(), filterKbGraphForDepartment(), getKbGraphForScope(), KbGraphScope (+12 more)
+Cohesion: 0.10
+Nodes (24): DEPARTMENT_CODES, clusterKey(), computeKbGraphLayout(), filterKbGraphForDepartment(), getKbGraphForScope(), KbGraphScope, PositionedKbNode, KbAddForm() (+16 more)
 
 ### Community 29 - "Visual Grounding Engine"
-Cohesion: 0.17
-Nodes (19): AiImageAttachment, buildRefinePrompt(), clamp01(), cropRegionForTarget(), GroundTarget, mapCropPointToFull(), mapCropRectToFull(), NormalizedRegion (+11 more)
+Cohesion: 0.18
+Nodes (18): buildRefinePrompt(), clamp01(), cropRegionForTarget(), GroundTarget, mapCropPointToFull(), mapCropRectToFull(), NormalizedRegion, numericArg() (+10 more)
 
 ### Community 30 - "Shared Dev API Worker"
 Cohesion: 0.09
@@ -445,12 +446,12 @@ Cohesion: 0.11
 Nodes (3): LazyLocalSqliteDatabaseAdapter, CreateUserInput, User
 
 ### Community 32 - "AI Assistant Component"
-Cohesion: 0.19
-Nodes (4): AiAssistant(), AiAssistantProps, useAiChat(), useAiOverlayActions()
+Cohesion: 0.15
+Nodes (9): AiAssistant(), AiAssistantProps, captureDesktopScreenFrame(), isDesktopScreenFrameCaptureAvailable(), useAiChat(), useSpeech(), useVoiceInput(), BattleView() (+1 more)
 
 ### Community 33 - "Seed Data"
-Cohesion: 0.10
-Nodes (20): ChatMessage, admins, baseTickets, departmentMeta, departmentNodes, entityNodes, faqEdges, faqNodes (+12 more)
+Cohesion: 0.08
+Nodes (25): TicketStatus, admins, baseTickets, departmentMeta, departmentNodes, entityNodes, faqEdges, faqNodes (+17 more)
 
 ### Community 34 - "Grounding Regions"
 Cohesion: 0.17
@@ -469,12 +470,12 @@ Cohesion: 0.09
 Nodes (19): Choice, ENEMY, ENEMY_SPRITES, EnemySprite(), LoseOverlay(), MIRA_SPRITES, Phase, QUEST (+11 more)
 
 ### Community 39 - "Ticket Types & Support"
-Cohesion: 0.19
-Nodes (18): SupportOffice, SupportPriority, SupportTicketArgs, asString(), asStringArray(), coerceSupportTicketArgs(), joinLines(), OFFICE_TO_DEPT (+10 more)
+Cohesion: 0.18
+Nodes (18): ChatMessage, SupportOffice, SupportPriority, SupportTicketArgs, asString(), asStringArray(), coerceSupportTicketArgs(), joinLines() (+10 more)
 
 ### Community 40 - "Electron IPC & Overlay Protocol"
-Cohesion: 0.17
-Nodes (19): configureIpc(), CursorHideCommand, hasStringId(), hasValidDisplayTarget(), isNormalizedNumber(), isOptionalDuration(), isOptionalPlacement(), isOptionalString() (+11 more)
+Cohesion: 0.10
+Nodes (28): configureIpc(), createGuidedOverlayDemo(), ArrowShowCommand, BubbleShowCommand, CursorHideCommand, CursorMoveCommand, hasStringId(), hasValidDisplayTarget() (+20 more)
 
 ### Community 41 - "Dev Dependencies"
 Cohesion: 0.11
@@ -497,12 +498,16 @@ Cohesion: 0.20
 Nodes (14): architectureFlow, boundaryCards, comparisonRows, demoPrompts, Integration, integrations, landingSections, meeraIconAsset (+6 more)
 
 ### Community 48 - "Overlay Client"
-Cohesion: 0.33
-Nodes (6): createGuidedOverlayDemo(), NormalizedPoint, OverlaySequenceStep, cursorStops, OverlaySimulator(), useDesktopOverlay()
+Cohesion: 0.31
+Nodes (7): actionsToBody(), buildKbIngestDraft(), buildKbNodeFromDraft(), KbIngestDraft, KbIngestKind, inputStyle, KbIngestForm()
 
 ### Community 49 - "User CRUD Adapters"
 Cohesion: 0.33
 Nodes (7): createId(), DELETE(), GET(), RouteContext, POST(), getStorageAdapter(), safeUploadKey()
+
+### Community 50 - "Community 50"
+Cohesion: 0.31
+Nodes (6): compareTicketsByPriority(), complexityWeights, compositePriorityScore(), InboxSortMode, severityWeights, sortTickets()
 
 ### Community 51 - "Workers AI Audio"
 Cohesion: 0.31
@@ -514,7 +519,7 @@ Nodes (14): Escalation Package Template, Finance/Billing Support FAQs, IT Depart
 
 ### Community 53 - "Overlay Protocol Commands"
 Cohesion: 0.09
-Nodes (22): 23. Suggested Page Sections in Order, 24. Suggested Component Structure, 28. Accessibility Requirements, 2. Product Narrative, 30. Initial Build Checklist, 31. Recommended First Prompt to Codex, 32. Final Creative Direction, 3. Target Audience (+14 more)
+Nodes (22): 23. Suggested Page Sections in Order, 24. Suggested Component Structure, 28. Accessibility Requirements, 29. Recommended Tech Notes for Codex, 2. Product Narrative, 30. Initial Build Checklist, 31. Recommended First Prompt to Codex, 32. Final Creative Direction (+14 more)
 
 ### Community 54 - "AI Service Layer"
 Cohesion: 0.31
@@ -525,8 +530,8 @@ Cohesion: 0.15
 Nodes (5): CHAT_SCRIPT, CHECKS, _demoStyle, MEEROR_STEPS, trayBtn
 
 ### Community 56 - "Desktop Overlay Components"
-Cohesion: 0.22
-Nodes (9): Arrow(), Bubble(), Cursor(), DesktopOverlay(), placementClasses, positionStyle(), OverlayAnnotation, OverlayState (+1 more)
+Cohesion: 0.15
+Nodes (14): Arrow(), Bubble(), Cursor(), DesktopOverlay(), placementClasses, positionStyle(), clampNormalized(), normalizePoint() (+6 more)
 
 ### Community 57 - "Cloudflare Resource Setup"
 Cohesion: 0.18
@@ -545,8 +550,8 @@ Cohesion: 0.18
 Nodes (12): Admin Dashboard Phase 3: Cross-Department Flow, Admin Meera Lookout Dashboard (DashboardPreview), Student View: Build the Mound (Gamified Co-op), Student View: Chat (ChatTicketDemo), Demo Convergence: Escalated/Auto-created Ticket State, Demo Convergence: Resolved State, Cross-Department Workflow Stepper, Demo Cockpit / Persona Switcher Shell (+4 more)
 
 ### Community 61 - "Screen Frame & Preload Bridge"
-Cohesion: 0.18
-Nodes (9): AiScreenFrameMetadata, api, assistantApi, AssistantScreenFrame, DesktopAssistantBridge, DesktopAssistantScreenFrame, DesktopOverlayBridge, DesktopOverlayStatus (+1 more)
+Cohesion: 0.16
+Nodes (13): AiScreenFrameMetadata, api, assistantApi, AssistantScreenFrame, clearDesktopOverlay(), isDesktopOverlayAvailable(), sendOverlayCommand(), OverlayCommand (+5 more)
 
 ### Community 62 - "CF HTTP Error Types"
 Cohesion: 0.18
@@ -565,8 +570,8 @@ Cohesion: 0.38
 Nodes (10): buildHeaders(), chat(), getConfig(), listModels(), loadEnvLocalIfNeeded(), main(), parseArgs(), readFlagValue() (+2 more)
 
 ### Community 66 - "Voice & Speech API"
-Cohesion: 0.12
-Nodes (12): useSpeech(), useVoiceInput(), BattleView(), StudentExperience(), caseLabels, moundLayers, priorityTint, StudentSupportChat() (+4 more)
+Cohesion: 0.13
+Nodes (13): AiChatResponse, DemoHeader(), Persona, PersonaSwitch(), targets, MeerkatMark(), caseLabels, moundLayers (+5 more)
 
 ### Community 67 - "Student Demo Views"
 Cohesion: 0.20
@@ -607,6 +612,10 @@ Nodes (16): 5.10 Subscribe to Derived State, 5.11 Use Functional setState Update
 ### Community 78 - "Desktop Smoke Tests"
 Cohesion: 0.33
 Nodes (4): electronArgs, finish(), stopProcess(), web
+
+### Community 79 - "Community 79"
+Cohesion: 0.67
+Nodes (3): 7. Typography, Suggested type scale, Tone
 
 ### Community 80 - "Meera Connect Icons"
 Cohesion: 0.33
@@ -730,7 +739,7 @@ Nodes (10): 3.10 Use after() for Non-Blocking Operations, 3.1 Authenticate Serve
 
 ### Community 189 - "Community 189"
 Cohesion: 0.06
-Nodes (6): D1DatabaseAdapter, LocalSqliteDatabaseAdapter, SharedApiDatabaseAdapter, DepartmentCode, KbNode, Task
+Nodes (7): D1DatabaseAdapter, LocalSqliteDatabaseAdapter, SharedApiDatabaseAdapter, AdminSnapshot, DepartmentCode, KbNode, Task
 
 ### Community 190 - "Community 190"
 Cohesion: 0.20
@@ -777,8 +786,8 @@ Cohesion: 0.25
 Nodes (8): 19. Section 10: Architecture Preview, Concern, Data objects to display, Headline, Purpose, Student/User, Suggested architecture diagram, Ticket
 
 ### Community 201 - "Community 201"
-Cohesion: 0.36
-Nodes (8): extractWords(), getWorker(), isBox(), pushWord(), runOcrWords(), TesseractWorker, warmUpOcr(), OcrWord
+Cohesion: 0.43
+Nodes (7): extractWords(), getWorker(), isBox(), pushWord(), runOcrWords(), TesseractWorker, warmUpOcr()
 
 ### Community 202 - "Community 202"
 Cohesion: 0.25
@@ -912,13 +921,9 @@ Nodes (3): Next.js App Router (React 19, Tailwind v4, shadcn/ui), frontend-desig
 Cohesion: 0.67
 Nodes (3): 22. Footer, Footer copy, Include
 
-### Community 235 - "Community 235"
-Cohesion: 0.67
-Nodes (3): 29. Recommended Tech Notes for Codex, If using Next.js + Tailwind, Layout container
-
 ### Community 236 - "Community 236"
-Cohesion: 0.12
-Nodes (14): Admin, Complexity, Severity, mutate(), snapshot, AdminAction, adminReducer(), adminsForDepartment() (+6 more)
+Cohesion: 0.14
+Nodes (13): Admin, Severity, mutate(), snapshot, AdminAction, adminReducer(), adminsForDepartment(), AdminStoreState (+5 more)
 
 ### Community 278 - "Community 278"
 Cohesion: 0.67
@@ -934,10 +939,10 @@ _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `getDatabaseAdapter()` connect `Admin API & Route Utilities` to `Server Health & DB Index`, `Shared API Auth`, `AI Service Layer`?**
   _High betweenness centrality (0.008) - this node is a cross-community bridge._
-- **Why does `Task` connect `Community 189` to `Admin API & Route Utilities`, `Admin DB Records`, `Cross-Dept Workflow UI`, `Community 236`, `Electron Desktop Shell`, `Ticket Inbox & Sorting`, `Lazy Local SQLite Adapter`?**
+- **Why does `DemoTicket` connect `Cross-Dept Workflow UI` to `Seed Data`, `Admin API & Route Utilities`, `Insights & Analytics Dashboard`, `Ticket Types & Support`, `Admin DB Records`, `Community 236`, `Ticket Status & Decisions`, `Overlay Client`, `Community 50`, `KB Graph & Dept Codes`, `Community 189`, `Lazy Local SQLite Adapter`?**
+  _High betweenness centrality (0.008) - this node is a cross-community bridge._
+- **Why does `Task` connect `Community 189` to `Admin API & Route Utilities`, `Admin DB Records`, `Cross-Dept Workflow UI`, `Community 236`, `Electron Desktop Shell`, `Lazy Local SQLite Adapter`?**
   _High betweenness centrality (0.007) - this node is a cross-community bridge._
-- **Why does `withMeeraWindowsHidden()` connect `Electron Desktop Shell` to `Community 189`?**
-  _High betweenness centrality (0.006) - this node is a cross-community bridge._
 - **Are the 30 inferred relationships involving `emptyOk()` (e.g. with `POST()` and `DELETE()`) actually correct?**
   _`emptyOk()` has 30 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 25 inferred relationships involving `parseJsonBody()` (e.g. with `POST()` and `DELETE()`) actually correct?**

@@ -815,8 +815,8 @@
     "semantic_hash": "bd377257969fe59cbd761f2d80727e41"
   },
   "src/features/admin/components/shell/TopBar.tsx": {
-    "mtime": 1781194784.5608332,
-    "ast_hash": "e847ccf002e8956b017c0f6fd7af36b0",
+    "mtime": 1781201060.8871348,
+    "ast_hash": "5d3debb5756cd3383fcb6217007e335c",
     "semantic_hash": ""
   },
   "src/features/admin/components/thread/AdminThread.tsx": {
@@ -1045,8 +1045,8 @@
     "semantic_hash": ""
   },
   "src/features/meera-support/student-support-chat.tsx": {
-    "mtime": 1781200185.73736,
-    "ast_hash": "2efe0def6ecf70f655d9d39d83bf6644",
+    "mtime": 1781201097.6284893,
+    "ast_hash": "a342417bf346c0481f2155645567d492",
     "semantic_hash": ""
   },
   "src/features/overlay/desktop-overlay.tsx": {
@@ -1975,8 +1975,8 @@
     "semantic_hash": ""
   },
   "src/features/meera-support/support-stage.ts": {
-    "mtime": 1781199968.3078854,
-    "ast_hash": "cb14db81bd24e4485b8d93f14199a48d",
+    "mtime": 1781200898.5378873,
+    "ast_hash": "4441d6d642ebac412724bc9fe83b4165",
     "semantic_hash": ""
   },
   "AGENTS.md": {
@@ -1987,6 +1987,11 @@
   "src/components/demo/persona-switch.tsx": {
     "mtime": 1781194743.3656697,
     "ast_hash": "d0cf5ab80e669e3c6529ff7dbad587b3",
+    "semantic_hash": ""
+  },
+  "src/components/demo/demo-header.tsx": {
+    "mtime": 1781201050.811289,
+    "ast_hash": "651aa0e56c822a4fb4ca67a301c0357b",
     "semantic_hash": ""
   }
 }
