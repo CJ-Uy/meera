@@ -5,14 +5,14 @@
     "semantic_hash": "3ab18e9c45a0081e54ffe9f4200aa4aa"
   },
   ".remember/tmp/last-ndc.ts": {
-    "mtime": 1781177060.7382364,
-    "ast_hash": "a3957130ab5bb9ead8cdde084a9d08a6",
-    "semantic_hash": "a3957130ab5bb9ead8cdde084a9d08a6"
+    "mtime": 1781199747.2235703,
+    "ast_hash": "1b7e7de5c5538175df7b5f741a831ef7",
+    "semantic_hash": ""
   },
   ".remember/tmp/last-save.json": {
-    "mtime": 1781177060.2892544,
-    "ast_hash": "e412af33dd49d4be5aa5f0c4cf9f5e39",
-    "semantic_hash": "e412af33dd49d4be5aa5f0c4cf9f5e39"
+    "mtime": 1781199743.8359652,
+    "ast_hash": "c7271f2a3998b8aabf8cf30430f9ecbb",
+    "semantic_hash": ""
   },
   ".vscode/settings.json": {
     "mtime": 1779196829.0,
@@ -1045,8 +1045,8 @@
     "semantic_hash": ""
   },
   "src/features/meera-support/student-support-chat.tsx": {
-    "mtime": 1781195121.4246764,
-    "ast_hash": "4a9b246b6bcf78f620f58a76fbcab615",
+    "mtime": 1781200185.73736,
+    "ast_hash": "2efe0def6ecf70f655d9d39d83bf6644",
     "semantic_hash": ""
   },
   "src/features/overlay/desktop-overlay.tsx": {
@@ -1615,7 +1615,7 @@
     "semantic_hash": "b25150c9b3e97b954f6fdb178b61f0cc"
   },
   ".remember/now.md": {
-    "mtime": 1781177082.5634885,
+    "mtime": 1781199916.76217,
     "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
@@ -1645,9 +1645,9 @@
     "semantic_hash": "66dc00925acef965280c6df7587c2c11"
   },
   ".remember/today-2026-06-11.md": {
-    "mtime": 1781177082.5634885,
-    "ast_hash": "9894c0542679c92c7d4578e159644790",
-    "semantic_hash": "9894c0542679c92c7d4578e159644790"
+    "mtime": 1781199916.6783404,
+    "ast_hash": "220bba48911aafa7217325ee0254d184",
+    "semantic_hash": ""
   },
   "CLAUDE.md": {
     "mtime": 1781186144.5705516,
@@ -1970,13 +1970,13 @@
     "semantic_hash": ""
   },
   "src/features/meera-support/student-support-chat.test.ts": {
-    "mtime": 1781195191.5259879,
-    "ast_hash": "2a23e15426784b41b3d2af90bbb4d07a",
+    "mtime": 1781200242.6519547,
+    "ast_hash": "dab2dfc1d7daa17246e174e708c9bf74",
     "semantic_hash": ""
   },
   "src/features/meera-support/support-stage.ts": {
-    "mtime": 1781195594.2892976,
-    "ast_hash": "f1f0c4a507cea433fef99dc07719b164",
+    "mtime": 1781199968.3078854,
+    "ast_hash": "cb14db81bd24e4485b8d93f14199a48d",
     "semantic_hash": ""
   },
   "AGENTS.md": {

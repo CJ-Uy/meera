@@ -200,8 +200,8 @@
     "semantic_hash": "207826557e4648241f8ae7c906406f99"
   },
   "src/app/api/admin-demo/route.ts": {
-    "mtime": 1781188991.7293468,
-    "ast_hash": "8403e60b07a7f03cdf6f373776ae7abc",
+    "mtime": 1781193013.7043557,
+    "ast_hash": "a2aab3e434957d4eb3cd959a8021b528",
     "semantic_hash": ""
   },
   "src/app/api/admin/admin-routes.test.ts": {
@@ -370,19 +370,14 @@
     "semantic_hash": "373b1c500abeaaa39b5db920b24106e8"
   },
   "src/app/demo/page.tsx": {
-    "mtime": 1781177131.708377,
-    "ast_hash": "34ab45093c1ea41a2ce60f81d5188c16",
-    "semantic_hash": "34ab45093c1ea41a2ce60f81d5188c16"
-  },
-  "src/app/demo/student/page.tsx": {
-    "mtime": 1781187484.1000836,
-    "ast_hash": "00069a9c1359271ac587e0f99a4cb143",
+    "mtime": 1781195292.6867752,
+    "ast_hash": "15038c9d3c9d3d67306284d3df42ce6e",
     "semantic_hash": ""
   },
-  "src/app/demo/support/page.tsx": {
-    "mtime": 1781177131.712377,
-    "ast_hash": "a5c39b9886d69f2846ab819913e3587d",
-    "semantic_hash": "a5c39b9886d69f2846ab819913e3587d"
+  "src/app/demo/student/page.tsx": {
+    "mtime": 1781193013.7053545,
+    "ast_hash": "c01851874e2b58392de2df0a05bd2185",
+    "semantic_hash": ""
   },
   "src/app/home-content.test.ts": {
     "mtime": 1780969422.5685873,
@@ -505,8 +500,8 @@
     "semantic_hash": "41f50abff8152fb3a74769422b06ed88"
   },
   "src/app/layout.tsx": {
-    "mtime": 1781187681.3832273,
-    "ast_hash": "c2a3741860dcb190638a3101bc9baea9",
+    "mtime": 1781193013.7068543,
+    "ast_hash": "d52537f4f3d91696e621372047842bd4",
     "semantic_hash": ""
   },
   "src/app/overlay/page.tsx": {
@@ -525,8 +520,8 @@
     "semantic_hash": "a8a3a640b033af08600684f685f2c609"
   },
   "src/components/demo/battle.tsx": {
-    "mtime": 1781187714.4749956,
-    "ast_hash": "e44d4175540c493fb309e5fb9155ae2e",
+    "mtime": 1781195399.082118,
+    "ast_hash": "35026a33a9ef774b9455a368b8178139",
     "semantic_hash": ""
   },
   "src/components/demo/meera-demo-experience.test.ts": {
@@ -820,9 +815,9 @@
     "semantic_hash": "bd377257969fe59cbd761f2d80727e41"
   },
   "src/features/admin/components/shell/TopBar.tsx": {
-    "mtime": 1781117356.6245756,
-    "ast_hash": "1322c9ff2847aabadd994589d51b00b5",
-    "semantic_hash": "1322c9ff2847aabadd994589d51b00b5"
+    "mtime": 1781194784.5608332,
+    "ast_hash": "e847ccf002e8956b017c0f6fd7af36b0",
+    "semantic_hash": ""
   },
   "src/features/admin/components/thread/AdminThread.tsx": {
     "mtime": 1781109220.1923926,
@@ -870,9 +865,9 @@
     "semantic_hash": "25d12925cc17c2723f509385ef68a1cd"
   },
   "src/features/admin/store/in-memory-source.ts": {
-    "mtime": 1781106306.7536244,
-    "ast_hash": "96088b6e7be26a42c18e2c4bafde9cef",
-    "semantic_hash": "96088b6e7be26a42c18e2c4bafde9cef"
+    "mtime": 1781194702.2847016,
+    "ast_hash": "9df37f897bdc01ec9d0226d1bdf858d0",
+    "semantic_hash": ""
   },
   "src/features/admin/store/reducer.test.ts": {
     "mtime": 1781109653.683683,
@@ -905,13 +900,13 @@
     "semantic_hash": "c2bc316bbb6191b806ac0c48430d1600"
   },
   "src/features/ai/ai-prompt.ts": {
-    "mtime": 1781189867.9299667,
-    "ast_hash": "8a6aab50fe5aee3903552f61dc25edb9",
+    "mtime": 1781193013.7123764,
+    "ast_hash": "4a275c63a4ebb7789d496184c86b82e9",
     "semantic_hash": ""
   },
   "src/features/ai/ai-provider-utils.ts": {
-    "mtime": 1781190201.7585979,
-    "ast_hash": "ff36e3a4bfa301b9df86765464dec7e9",
+    "mtime": 1781193013.7138734,
+    "ast_hash": "f779838fcb611214abf741e0f26b7765",
     "semantic_hash": ""
   },
   "src/features/ai/ai-service.test.ts": {
@@ -930,8 +925,8 @@
     "semantic_hash": "3726f2aac6310d8ac3c05ddc9425ab05"
   },
   "src/features/ai/ai-tools.ts": {
-    "mtime": 1781189867.9309669,
-    "ast_hash": "feef35eac4b1af784e355b9c751b95db",
+    "mtime": 1781193013.715874,
+    "ast_hash": "3e6da03cbaeb2ebeb22fef9264789de7",
     "semantic_hash": ""
   },
   "src/features/ai/ai-types.test.ts": {
@@ -1000,18 +995,18 @@
     "semantic_hash": "b17eb8b3c8973c0eda310a8252bd738d"
   },
   "src/features/ai/support-ticket.test.ts": {
-    "mtime": 1781190227.7282622,
-    "ast_hash": "62eab908c423d9aa96d40dd5a4bf4697",
+    "mtime": 1781193013.7163813,
+    "ast_hash": "d20e4cf56bd7e07361bd73eb6c702eaf",
     "semantic_hash": ""
   },
   "src/features/ai/support-ticket.ts": {
-    "mtime": 1781190201.7575972,
-    "ast_hash": "6b6ea563a4f15ebf83d848fd8b3bccb9",
+    "mtime": 1781193013.7173865,
+    "ast_hash": "f1af7c834c8cd3d4d3589ba13889f757",
     "semantic_hash": ""
   },
   "src/features/ai/use-ai-chat.ts": {
-    "mtime": 1781188050.2501948,
-    "ast_hash": "7fea7198e99d783f61193e1bb11a159e",
+    "mtime": 1781193013.7189262,
+    "ast_hash": "2b308aa42aebf1f77516a2f386f6ea07",
     "semantic_hash": ""
   },
   "src/features/ai/use-ai-overlay-actions.ts": {
@@ -1040,18 +1035,18 @@
     "semantic_hash": "c445f7d09c04658c8df8baef23d42a52"
   },
   "src/features/ai/workers-ai-client.test.ts": {
-    "mtime": 1781190227.7292662,
-    "ast_hash": "0cbbe58dd6eb480bc82345576492d8c5",
+    "mtime": 1781193013.7204232,
+    "ast_hash": "326ffc6c24f8a8e0405a942d46c0805e",
     "semantic_hash": ""
   },
   "src/features/ai/workers-ai-client.ts": {
-    "mtime": 1781190201.7616038,
-    "ast_hash": "af7af09c2fd11542fafabee5215384c1",
+    "mtime": 1781193013.721423,
+    "ast_hash": "3e944db2e56095e465e746eb18616a51",
     "semantic_hash": ""
   },
   "src/features/meera-support/student-support-chat.tsx": {
-    "mtime": 1781187581.1387932,
-    "ast_hash": "cb77482fa2e03358d5e88ee1f04a4cbd",
+    "mtime": 1781195121.4246764,
+    "ast_hash": "4a9b246b6bcf78f620f58a76fbcab615",
     "semantic_hash": ""
   },
   "src/features/overlay/desktop-overlay.tsx": {
@@ -1690,8 +1685,8 @@
     "semantic_hash": "a557d446adaef8a6a734f074742ecf38"
   },
   "docs/CF_MIGRATION_PLAN.md": {
-    "mtime": 1781190258.464122,
-    "ast_hash": "52d0a97f7e0d9a0c6984e157d4aa0e4a",
+    "mtime": 1781193013.5443642,
+    "ast_hash": "e93a8a5f2f1ec9770678b958e7799d91",
     "semantic_hash": ""
   },
   "docs/OVERLAY_GROUNDING_PLAN.md": {
@@ -1885,7 +1880,7 @@
     "semantic_hash": "aa54a93b31b9ea26344fad94dc9989a6"
   },
   "public/assets/battle/cobra-idle.png": {
-    "mtime": 1781187752.1508834,
+    "mtime": 1781193013.7033541,
     "ast_hash": "b0231faf9460e73e22bcce853214edb4",
     "semantic_hash": ""
   },
@@ -1960,33 +1955,38 @@
     "semantic_hash": ""
   },
   "src/app/layout.test.ts": {
-    "mtime": 1781187656.5033002,
-    "ast_hash": "1695fc7557c7d468719b3f7c3fe30f8e",
+    "mtime": 1781193013.7058544,
+    "ast_hash": "0bdc8e3e443dc45f2b086d4c56e22ff4",
     "semantic_hash": ""
   },
   "src/components/demo/battle.test.ts": {
-    "mtime": 1781187645.8519385,
-    "ast_hash": "f0921f9df00851c6be4f98ccc3723eb0",
+    "mtime": 1781193013.7083685,
+    "ast_hash": "10878ab21e44eb6de2e6ced1842c9a32",
     "semantic_hash": ""
   },
   "src/features/ai/ai-prompt.test.ts": {
-    "mtime": 1781189867.9309669,
-    "ast_hash": "c83ab3c5c1cfb58e66feffc66a62664d",
+    "mtime": 1781193013.7108736,
+    "ast_hash": "bac695a99c4a746e6a3e295854990f16",
     "semantic_hash": ""
   },
   "src/features/meera-support/student-support-chat.test.ts": {
-    "mtime": 1781187397.8122432,
-    "ast_hash": "c5bbadf246f5465321cbd6e45eceb0ab",
+    "mtime": 1781195191.5259879,
+    "ast_hash": "2a23e15426784b41b3d2af90bbb4d07a",
     "semantic_hash": ""
   },
   "src/features/meera-support/support-stage.ts": {
-    "mtime": 1781187474.7062254,
-    "ast_hash": "845d23ebcd793dd3c31d8c5128e2275b",
+    "mtime": 1781195594.2892976,
+    "ast_hash": "f1f0c4a507cea433fef99dc07719b164",
     "semantic_hash": ""
   },
   "AGENTS.md": {
     "mtime": 1781186144.561414,
     "ast_hash": "dbf24b24df9181e86e340868171c6da3",
+    "semantic_hash": ""
+  },
+  "src/components/demo/persona-switch.tsx": {
+    "mtime": 1781194743.3656697,
+    "ast_hash": "d0cf5ab80e669e3c6529ff7dbad587b3",
     "semantic_hash": ""
   }
 }
