@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 type DropdownProps = {
 	/** Renders the trigger button contents; receives the current open state. */
@@ -20,18 +20,19 @@ export function Dropdown({ trigger, children, align = "start", width = 268, labe
 	const [open, setOpen] = useState(false);
 	const [entered, setEntered] = useState(false);
 	const ref = useRef<HTMLDivElement>(null);
+	const close = useCallback(() => {
+		setEntered(false);
+		setOpen(false);
+	}, []);
 
 	useEffect(() => {
-		if (!open) {
-			setEntered(false);
-			return;
-		}
+		if (!open) return;
 		const frame = requestAnimationFrame(() => setEntered(true));
 		const onPointer = (event: MouseEvent) => {
-			if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
+			if (ref.current && !ref.current.contains(event.target as Node)) close();
 		};
 		const onKey = (event: KeyboardEvent) => {
-			if (event.key === "Escape") setOpen(false);
+			if (event.key === "Escape") close();
 		};
 		document.addEventListener("mousedown", onPointer);
 		document.addEventListener("keydown", onKey);
@@ -40,13 +41,16 @@ export function Dropdown({ trigger, children, align = "start", width = 268, labe
 			document.removeEventListener("mousedown", onPointer);
 			document.removeEventListener("keydown", onKey);
 		};
-	}, [open]);
+	}, [close, open]);
 
 	return (
 		<div ref={ref} className="relative shrink-0">
 			<button
 				type="button"
-				onClick={() => setOpen((value) => !value)}
+				onClick={() => {
+					if (open) close();
+					else setOpen(true);
+				}}
 				aria-haspopup="menu"
 				aria-expanded={open}
 				aria-label={label}
@@ -60,7 +64,7 @@ export function Dropdown({ trigger, children, align = "start", width = 268, labe
 					className="absolute z-50 mt-2 overflow-hidden rounded-2xl border bg-white"
 					style={{
 						[align === "end" ? "right" : "left"]: 0,
-						width,
+						width: `min(${width}px, calc(100vw - 1rem))`,
 						borderColor: "var(--line-2)",
 						boxShadow: "var(--sh-lg)",
 						opacity: entered ? 1 : 0,
@@ -69,7 +73,7 @@ export function Dropdown({ trigger, children, align = "start", width = 268, labe
 						transition: "opacity 0.15s ease, transform 0.15s ease",
 					}}
 				>
-					{children(() => setOpen(false))}
+					{children(close)}
 				</div>
 			) : null}
 		</div>

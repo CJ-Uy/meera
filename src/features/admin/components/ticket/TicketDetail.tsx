@@ -150,9 +150,9 @@ export function TicketDetail({ ticket }: { ticket: DemoTicket }) {
 	}
 
 	return (
-		<section className="px-6 py-6">
+		<section className="px-4 py-5 sm:px-6 sm:py-6">
 			{/* Header */}
-			<div className="flex items-start justify-between gap-4">
+			<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
 				<div className="min-w-0 flex-1">
 					{editing ? (
 						<input value={title} onChange={(event) => setTitle(event.target.value)} className={`text-[18px] font-[800] ${inputClass}`} />
@@ -161,7 +161,7 @@ export function TicketDetail({ ticket }: { ticket: DemoTicket }) {
 					)}
 					<p className="mt-1.5 font-['DM_Mono'] text-[11px]" style={{ color: "var(--muted)" }}>#{ticket.id} · routed to {DEPARTMENT_LABELS[ticket.ownerDept]}</p>
 				</div>
-				<div className="flex shrink-0 flex-col items-end gap-2">
+				<div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:shrink-0 sm:flex-col sm:items-end">
 					<Confidence value={Math.round(ticket.confidence * 100)} label="AI confidence" />
 					<button type="button" onClick={() => setTranscriptOpen(true)} className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-bold transition hover:bg-[var(--cream)]" style={{ borderColor: "var(--line-2)", color: "var(--ink-2)" }}>
 						<Icon name="chat" size={14} />Transcript
@@ -212,7 +212,7 @@ export function TicketDetail({ ticket }: { ticket: DemoTicket }) {
 							<Icon name="wand" size={14} />Edit triage
 						</button>
 						<DibsButton ticket={ticket} />
-						<span className="flex-1" />
+						<span className="hidden flex-1 sm:block" />
 						{resolved ? (
 							<Pill tint="green">Resolved</Pill>
 						) : (

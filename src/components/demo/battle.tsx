@@ -176,7 +176,7 @@ export function BattleView({
 	return (
 		<div className="relative flex min-h-0 flex-1 flex-col">
 			<div
-				className="battle-arena-shell relative min-h-[380px] flex-1 overflow-hidden"
+				className="battle-arena-shell relative min-h-[260px] flex-1 overflow-hidden sm:min-h-[380px]"
 				style={{
 					backgroundImage: `url(${asset("battle/arena-field.png")})`,
 					backgroundPosition: "center",
@@ -251,7 +251,7 @@ export function BattleView({
 				<HowToPlayModal open={showHelp} onClose={() => setShowHelp(false)} />
 			</div>
 
-			<div className="shrink-0 border-t bg-white px-4 py-3" style={{ borderColor: "var(--line)" }}>
+			<div className="shrink-0 border-t bg-white px-2.5 py-2.5 sm:px-4 sm:py-3" style={{ borderColor: "var(--line)" }}>
 				<div className="mx-auto max-w-[900px]">
 					<div className="overflow-hidden rounded-2xl border-2" style={{ borderColor: "var(--ink)", background: "#FFFDF8", boxShadow: "0 4px 0 0 rgba(28,51,73,.14), inset 0 0 0 3px #F5ECDD" }}>
 						<div className="flex items-center gap-2 border-b-2 px-4 py-1.5" style={{ borderColor: "#F0E4D2", background: "linear-gradient(180deg,#FBF3E4,#FFFDF8)" }}>
@@ -272,7 +272,7 @@ export function BattleView({
 							</span>
 						</div>
 
-						<div className="flex items-start gap-3 px-4 py-3 text-[15px] font-semibold leading-6" style={{ color: "var(--ink)" }}>
+						<div className="flex items-start gap-3 px-3 py-2.5 text-[14px] font-semibold leading-6 sm:px-4 sm:py-3 sm:text-[15px]" style={{ color: "var(--ink)" }}>
 							<p className="m-0 min-w-0 flex-1">
 								<span className="mr-2 inline-block" style={{ color: "var(--teal)", animation: "tdot 1s infinite" }}>▶</span>
 								{dialogue}
@@ -281,14 +281,14 @@ export function BattleView({
 						</div>
 
 						{!won ? (
-							<div className="grid gap-2 border-t-2 p-3 sm:grid-cols-3" style={{ borderColor: "#F0E4D2", background: "#FFFBF2" }}>
+							<div className="grid gap-2 border-t-2 p-2 sm:grid-cols-3 sm:p-3" style={{ borderColor: "#F0E4D2", background: "#FFFBF2" }}>
 								{moves.map((move, index) => (
 									<button
 										key={`${move}-${index}`}
 										type="button"
 										disabled={sending}
 										onClick={() => submitMove(move)}
-										className="group flex items-center gap-3 rounded-xl border-2 bg-white px-3.5 py-3 text-left transition enabled:hover:-translate-y-0.5 enabled:hover:shadow-[0_3px_0_0_rgba(28,51,73,.1)] disabled:opacity-55"
+										className="group flex items-center gap-2.5 rounded-xl border-2 bg-white px-3 py-2.5 text-left transition enabled:hover:-translate-y-0.5 enabled:hover:shadow-[0_3px_0_0_rgba(28,51,73,.1)] disabled:opacity-55 sm:gap-3 sm:px-3.5 sm:py-3"
 										style={{ borderColor: "var(--line-2)" }}
 									>
 										<span className="grid w-3 shrink-0 place-items-center text-[14px] font-[800] opacity-0 transition group-enabled:group-hover:opacity-100" style={{ color: "var(--teal)" }}>▸</span>
@@ -310,7 +310,7 @@ export function BattleView({
 				</div>
 			</div>
 
-			<div className="shrink-0 border-t bg-white p-3" style={{ borderColor: "var(--line)" }}>
+			<div className="shrink-0 border-t bg-white p-2.5 sm:p-3" style={{ borderColor: "var(--line)" }}>
 				<div className="mx-auto max-w-[900px]">
 					<div className="flex gap-2">
 						<input

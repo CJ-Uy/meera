@@ -34,7 +34,7 @@ export function ActAsSwitcher() {
 					style={{ borderColor: open ? "var(--teal)" : "var(--line-2)", background: "#fff", boxShadow: open ? "var(--sh-sm)" : "none" }}
 				>
 					{acting ? <Avatar name={acting.name} code={department} /> : <span className="grid size-[26px] place-items-center rounded-full" style={{ background: "var(--cream-2)" }}><Icon name="users" size={14} /></span>}
-					<span className="flex min-w-0 flex-col leading-tight">
+					<span className="hidden min-w-0 flex-col leading-tight sm:flex">
 						<span className="font-['DM_Mono'] text-[8.5px] uppercase tracking-[0.16em]" style={{ color: "var(--muted)" }}>Acting as</span>
 						<span className="max-w-[150px] truncate text-[12.5px] font-[800]" style={{ color: "var(--ink)" }}>{acting?.name ?? "Unassigned"}</span>
 					</span>

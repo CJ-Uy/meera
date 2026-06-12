@@ -32,14 +32,14 @@ export function PersonaSwitch({ active }: { active: Persona }) {
 					return (
 						<span key={option.id} aria-current="page" className={className} style={style}>
 							<Icon name={option.icon} size={13} />
-							<span>{option.label}</span>
+							<span className="sr-only sm:not-sr-only">{option.label}</span>
 						</span>
 					);
 				}
 				return (
 					<Link key={option.id} href={targets[option.id]} className={`${className} hover:-translate-y-0.5`} style={style}>
 						<Icon name={option.icon} size={13} />
-						<span>{option.label}</span>
+						<span className="sr-only sm:not-sr-only">{option.label}</span>
 					</Link>
 				);
 			})}

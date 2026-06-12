@@ -634,9 +634,9 @@ function DashboardPreview() {
 					))}
 				</div>
 				<div className="bg-[#FCFAF6] p-5">
-					<div className="mb-4 flex items-start gap-3">
+					<div className="mb-4 flex flex-wrap items-start gap-3">
 						<IconChip name="ticket" tint="sand" size={42} />
-						<div className="flex-1">
+						<div className="min-w-0 flex-1">
 							<h3 className="text-lg font-[800] leading-tight" style={{ color: "var(--ink)" }}>
 								Registration blocked by financial hold
 							</h3>
@@ -644,7 +644,9 @@ function DashboardPreview() {
 								#NV-4827 · routed to Bursar’s Office
 							</div>
 						</div>
-						<Confidence value={97} label="AI confidence" />
+						<span className="ml-auto">
+							<Confidence value={97} label="AI confidence" />
+						</span>
 					</div>
 					<DashboardBlock icon="sparkle" tint="teal" label="AI-generated summary">
 						Student cannot submit Fall 2026 registration. Submit is disabled by an active financial hold. Transcript and term are valid.

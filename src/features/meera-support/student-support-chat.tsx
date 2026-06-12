@@ -330,7 +330,7 @@ function ViewToggle({
             }}
           >
             <Icon name={option.icon} size={13} />
-            <span className="hidden sm:inline">{option.label}</span>
+            <span className="sr-only sm:not-sr-only">{option.label}</span>
           </button>
         );
       })}
@@ -384,7 +384,7 @@ export function StudentSupportChat() {
             <ViewToggle view={view} onChange={setView} />
           </div>
         </DemoHeader>
-        <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div className="flex min-h-0 flex-1 overflow-y-auto sm:overflow-hidden">
           <BattleView conversation={conversation} />
         </div>
       </div>
@@ -409,7 +409,7 @@ export function StudentSupportChat() {
         </div>
       </DemoHeader>
 
-      <div className="mx-auto grid w-full max-w-295 flex-1 grid-cols-1 gap-4 overflow-hidden px-4 py-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="mx-auto grid min-h-0 w-full max-w-295 flex-1 grid-cols-1 gap-4 overflow-hidden px-3 py-3 sm:px-4 sm:py-4 lg:grid-cols-[minmax(0,1fr)_300px]">
         <Card className="flex min-h-0 flex-col overflow-hidden p-0">
           <div
             className="border-b px-5 py-4"
@@ -473,7 +473,7 @@ export function StudentSupportChat() {
                     onClick={() =>
                       void sendText(prompt, { wantsSuggestedReplies: false })
                     }
-                    className="rounded-full border bg-[#FCFAF6] px-3 py-1.5 text-[12px] font-bold transition hover:-translate-y-0.5"
+                    className="rounded-full border bg-[#FCFAF6] px-3 py-1.5 text-left text-[12px] font-bold leading-5 transition hover:-translate-y-0.5"
                     style={{ borderColor: "var(--line)" }}
                   >
                     {prompt}

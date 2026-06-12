@@ -23,9 +23,9 @@ export function DepartmentDropdown() {
 					<span className="grid size-7 place-items-center rounded-xl" style={{ background: accent.soft, color: accent.text }}>
 						<Icon name="building" size={15} />
 					</span>
-					<span className="flex flex-col leading-tight">
+					<span className="flex min-w-0 flex-col leading-tight">
 						<span className="font-['DM_Mono'] text-[8.5px] uppercase tracking-[0.16em]" style={{ color: "var(--muted)" }}>Department</span>
-						<span className="text-[12.5px] font-[800]" style={{ color: "var(--ink)" }}>{DEPARTMENT_LABELS[active]}</span>
+						<span className="max-w-[104px] truncate text-[12.5px] font-[800] sm:max-w-[150px]" style={{ color: "var(--ink)" }}>{DEPARTMENT_LABELS[active]}</span>
 					</span>
 					<Icon name="chevronD" size={14} className={`transition-transform ${open ? "rotate-180" : ""}`} />
 				</span>
