@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meera — KPMG AIC 2026 Demo Day</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+	:root {
+		--cream: #FBF6EE;
+		--cream-2: #F5ECDD;
+		--ink: #1C3349;
+		--ink-2: #33495C;
+		--muted: #6E7E8B;
+		--teal: #2E9C8E;
+		--sand: #E79B6B;
+		--gold: #D9A65A;
+		--green: #7FB85C;
+		--line: #EAE0D1;
+		--line-2: #E2D6C2;
+		--rose: #D96A6A;
+		--sh: 0 14px 34px rgba(28, 51, 73, 0.10);
+		--r-md: 16px;
+		--r-lg: 24px;
+		--r-pill: 999px;
+	}
+	* { margin: 0; padding: 0; box-sizing: border-box; }
+	html, body { height: 100%; background: var(--ink); }
+	body { font-family: "Plus Jakarta Sans", system-ui, sans-serif; color: var(--ink); overflow: hidden; }
+	.mono { font-family: "DM Mono", ui-monospace, monospace; }
+
+	.slide {
+		position: absolute; inset: 0;
+		display: none;
+		flex-direction: column;
+		padding: 56px 84px 72px;
+		background: var(--cream);
+		background-image: radial-gradient(rgba(28,51,73,0.035) 1px, transparent 1px);
+		background-size: 22px 22px;
+	}
+	.slide.active { display: flex; }
+
+	.eyebrow {
+		font-family: "DM Mono", monospace;
+		font-size: 15px; letter-spacing: 0.18em; text-transform: uppercase;
+		color: var(--teal); margin-bottom: 14px; display: flex; align-items: center; gap: 10px;
+	}
+	.eyebrow::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--teal); }
+	h1 { font-size: 64px; font-weight: 800; line-height: 1.08; letter-spacing: -0.02em; }
+	h2 { font-size: 44px; font-weight: 800; line-height: 1.12; letter-spacing: -0.015em; margin-bottom: 28px; }
+	p.lede { font-size: 22px; line-height: 1.55; color: var(--ink-2); max-width: 880px; }
+	.accent { color: var(--teal); }
+	.accent-sand { color: var(--sand); }
+
+	.cols { display: flex; gap: 40px; flex: 1; min-height: 0; align-items: center; }
+	.col { flex: 1; min-width: 0; }
+
+	.cards { display: grid; gap: 18px; }
+	.cards.three { grid-template-columns: repeat(3, 1fr); }
+	.cards.two { grid-template-columns: repeat(2, 1fr); }
+	.card {
+		background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg);
+		padding: 24px 26px; box-shadow: var(--sh);
+	}
+	.card h3 { font-size: 19px; font-weight: 800; margin-bottom: 8px; }
+	.card p { font-size: 15.5px; line-height: 1.5; color: var(--ink-2); }
+	.card .big { font-size: 34px; font-weight: 800; color: var(--teal); margin-bottom: 4px; }
+
+	ul.list { list-style: none; display: grid; gap: 14px; font-size: 19px; color: var(--ink-2); line-height: 1.5; }
+	ul.list li { padding-left: 30px; position: relative; }
+	ul.list li::before { content: "●"; position: absolute; left: 0; top: 1px; color: var(--teal); font-size: 13px; }
+	ul.list li strong { color: var(--ink); }
+
+	.chips { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+	.chip {
+		background: #fff; border: 1px solid var(--line-2); border-radius: var(--r-pill);
+		padding: 10px 20px; font-size: 16px; font-weight: 700; color: var(--ink-2);
+		box-shadow: var(--sh); display: inline-flex; align-items: center; gap: 8px;
+	}
+	.chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--sand); }
+
+	.flow { display: flex; align-items: stretch; gap: 0; margin-top: 26px; }
+	.flow .step { flex: 1; text-align: center; position: relative; padding: 0 6px; }
+	.flow .step .dot {
+		width: 54px; height: 54px; border-radius: 50%; margin: 0 auto 12px;
+		display: flex; align-items: center; justify-content: center;
+		font-weight: 800; font-size: 19px; color: #fff; background: var(--teal); box-shadow: var(--sh);
+	}
+	.flow .step:nth-child(2) .dot { background: var(--sand); }
+	.flow .step:nth-child(3) .dot { background: var(--gold); }
+	.flow .step:nth-child(4) .dot { background: var(--green); }
+	.flow .step:nth-child(5) .dot { background: var(--ink-2); }
+	.flow .step h3 { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+	.flow .step p { font-size: 14.5px; color: var(--ink-2); line-height: 1.45; }
+	.flow .step:not(:last-child)::after {
+		content: "→"; position: absolute; right: -12px; top: 14px; font-size: 22px; color: var(--line-2); font-weight: 800;
+	}
+
+	.shot {
+		max-width: 100%; max-height: 100%; border-radius: var(--r-md);
+		border: 1px solid var(--line-2); box-shadow: var(--sh); object-fit: contain;
+	}
+	.shotwrap { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; }
+	.mascot { position: absolute; bottom: 36px; right: 56px; height: 200px; }
+
+	table.schema { border-collapse: collapse; width: 100%; background: #fff; border-radius: var(--r-md); overflow: hidden; box-shadow: var(--sh); font-size: 15px; }
+	table.schema th { background: var(--ink); color: #fff; text-align: left; padding: 10px 16px; font-size: 14px; letter-spacing: 0.04em; }
+	table.schema td { padding: 9px 16px; border-top: 1px solid var(--line); color: var(--ink-2); vertical-align: top; }
+	table.schema td:first-child { font-family: "DM Mono", monospace; font-weight: 500; color: var(--teal); white-space: nowrap; }
+
+	.prompt-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 22px; margin-top: 8px; }
+	.prompt {
+		background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px;
+		font-size: 15px; line-height: 1.4; color: var(--ink-2); box-shadow: 0 6px 16px rgba(28,51,73,0.06);
+	}
+	.prompt b { color: var(--teal); font-family: "DM Mono", monospace; font-weight: 500; margin-right: 8px; }
+	.prompt .why { display: block; font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+
+	.titleslide { align-items: flex-start; justify-content: center; }
+	.wordmark { font-size: 110px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+	.tagline { font-size: 28px; color: var(--ink-2); margin-top: 18px; max-width: 760px; line-height: 1.4; }
+	.subtle { color: var(--muted); font-size: 17px; margin-top: 30px; }
+
+	.criteria { display: flex; gap: 14px; margin-top: 26px; }
+	.crit { flex: 1; background: #fff; border: 1px solid var(--line); border-radius: var(--r-md); padding: 16px 18px; box-shadow: var(--sh); }
+	.crit .pct { font-size: 26px; font-weight: 800; color: var(--sand); }
+	.crit .lbl { font-size: 14px; font-weight: 700; color: var(--ink-2); margin-top: 2px; }
+
+	.hud {
+		position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+		font-family: "DM Mono", monospace; font-size: 13px; color: var(--muted);
+		background: rgba(255,255,255,0.85); border: 1px solid var(--line); border-radius: var(--r-pill);
+		padding: 5px 16px; z-index: 10;
+	}
+	.foot { position: absolute; bottom: 24px; left: 84px; font-family: "DM Mono", monospace; font-size: 12.5px; color: var(--muted); letter-spacing: 0.08em; }
+</style>
+</head>
+<body>
+
+<!-- 1 · TITLE -->
+<section class="slide titleslide active">
+	<img src="../../public/assets/meera-wave.png" alt="MiRA the meerkat waving" style="height:230px; margin-bottom:34px;">
+	<div class="eyebrow">KPMG Academic Innovation Challenge 2026 · Final Round</div>
+	<div class="wordmark">Meera<span class="accent">.</span></div>
+	<p class="tagline">The agentic AI front door for university support — built for <strong>resolution over routing</strong>.</p>
+	<p class="subtle">Demo Day · Microsoft Philippines · June 15, 2026</p>
+	<div class="foot">MEERA · 01</div>
+</section>
+
+<!-- 2 · PROBLEM -->
+<section class="slide">
+	<div class="eyebrow">01 · The Problem</div>
+	<h2>The front door of support is a form —<br>and forms can't think.</h2>
+	<div class="cards three" style="margin-top:8px;">
+		<div class="card"><h3>Unstructured requests</h3><p>Students describe issues in their own words — no department, no urgency, no system details. Wi-Fi outages, lockouts, holds, balances, printers.</p></div>
+		<div class="card"><h3>Manual intake</h3><p>Every request — however simple — needs a staff member to read it, chase the student ID, course term, and device details, then log a ticket by hand.</p></div>
+		<div class="card"><h3>Delayed urgency</h3><p>Genuinely urgent issues — access failures during exams or enrollment — wait up to <strong>two days</strong> behind routine questions.</p></div>
+	</div>
+	<p class="lede" style="margin-top:30px;">Skilled staff time goes to intake, not resolution. Students wait. Everyone loses.</p>
+	<div class="foot">MEERA · 02</div>
+</section>
+
+<!-- 3 · THE IDEA -->
+<section class="slide">
+	<div class="eyebrow">02 · The Idea</div>
+	<h2>Every concern ends one of exactly two ways.</h2>
+	<div class="cols">
+		<div class="col">
+			<div class="cards two">
+				<div class="card" style="border-top: 5px solid var(--green);"><h3>① Safe self-service resolution</h3><p>Knowledge-base-backed guidance fixes the issue on the spot. <strong>No ticket ever exists.</strong></p></div>
+				<div class="card" style="border-top: 5px solid var(--sand);"><h3>② Staff-ready escalation package</h3><p>Classified, prioritized, complete with collected context. <strong>Staff start at "resolve," never at "intake."</strong></p></div>
+			</div>
+			<ul class="list" style="margin-top:26px;">
+				<li><strong>No department selection.</strong> Students just describe what's wrong — vague, emotional, typos and all.</li>
+				<li><strong>Strict boundaries.</strong> Never approves, never edits records, never validates payments, never makes medical judgments, never overrides systems.</li>
+				<li><strong>A partner to staff</strong> — not a replacement.</li>
+			</ul>
+		</div>
+		<div class="col" style="flex:0 0 300px; text-align:center;">
+			<img src="../../public/assets/meera-connect.png" alt="MiRA connecting departments" style="max-height:340px;">
+		</div>
+	</div>
+	<div class="foot">MEERA · 03</div>
+</section>
+
+<!-- 4 · HOW IT WORKS -->
+<section class="slide">
+	<div class="eyebrow">03 · How Meera Works</div>
+	<h2>One agent loop behind every conversation.</h2>
+	<div class="flow">
+		<div class="step"><div class="dot">1</div><h3>Understand</h3><p>Interprets natural-language concerns, even vague or emotional ones.</p></div>
+		<div class="step"><div class="dot">2</div><h3>Classify</h3><p>Identifies the responsible office, category, urgency, and missing details.</p></div>
+		<div class="step"><div class="dot">3</div><h3>Resolve</h3><p>Approved knowledge guides safe self-service steps before staff time is used.</p></div>
+		<div class="step"><div class="dot">4</div><h3>Package</h3><p>Prepares a structured escalation when human support is needed.</p></div>
+		<div class="step"><div class="dot">5</div><h3>Route</h3><p>The right department — or several at once — receives a complete, prioritized case.</p></div>
+	</div>
+	<div class="chips" style="margin-top:40px;">
+		<span class="chip">IT</span><span class="chip">Registrar</span><span class="chip">Finance / Billing</span><span class="chip">Medical / Campus Health</span><span class="chip">Student Services</span>
+	</div>
+	<p class="lede" style="margin-top:26px;">Five departments live today, each with its own knowledge base and escalation rules. Every reply in this demo is a <strong>live LLM call with function calling</strong> — nothing is scripted.</p>
+	<div class="foot">MEERA · 04</div>
+</section>
+
+<!-- 5 · LIVE DEMO: STUDENT -->
+<section class="slide">
+	<div class="eyebrow">04 · Live Demo — Student Experience</div>
+	<h2>No forms. No departments. Just tell Meera.<span class="accent-sand"> ▶ switching to live demo</span></h2>
+	<div class="prompt-list">
+		<div class="prompt"><b>01</b>"I can't connect to the Wi-Fi and I have an exam soon."<span class="why">IT · urgency detection · troubleshoot before ticketing</span></div>
+		<div class="prompt"><b>02</b>"My account is locked and I can't log into the LMS."<span class="why">IT · targeted detail collection</span></div>
+		<div class="prompt"><b>03</b>"The library printer charged me but nothing printed."<span class="why">IT · money involved → must escalate</span></div>
+		<div class="prompt"><b>04</b>"Why do I have a registration hold? Enlistment closes Friday."<span class="why">Registrar · deadline-aware · never guesses the reason</span></div>
+		<div class="prompt"><b>05</b>"I need a transcript for a scholarship application."<span class="why">Registrar · document intake</span></div>
+		<div class="prompt"><b>06</b>"I paid my tuition last week but it still says unpaid."<span class="why">Finance · collects references · never validates payment</span></div>
+		<div class="prompt"><b>07</b>"Can I get a medical certificate for my absence last Monday?"<span class="why">Medical · privacy-aware intake</span></div>
+		<div class="prompt"><b>08</b>"My ID isn't working at the gate and the guard won't let me in."<span class="why">Student Services · physical-access urgency</span></div>
+		<div class="prompt"><b>09</b>"help!! i can't enroll and i think it's because of my tuition??"<span class="why">Vague + emotional · cross-department (Registrar + Finance)</span></div>
+		<div class="prompt"><b>10</b>"Can you just remove the hold on my account?"<span class="why">Boundary test · refuses staff-only action · escalates instead</span></div>
+	</div>
+	<p class="lede" style="margin-top:18px;">Plus <strong>push-to-talk voice input</strong> — recorded in the browser, transcribed by Whisper.</p>
+	<div class="foot">MEERA · 05</div>
+</section>
+
+<!-- 6 · STUDENT UI SHOT -->
+<section class="slide">
+	<div class="eyebrow">04 · Student Experience</div>
+	<h2>A support chat that feels like a friend, not a form.</h2>
+	<div class="shotwrap"><img class="shot" src="../../public/assets/screens/student-typed.png" alt="Student support chat with case meter"></div>
+	<p class="lede" style="margin-top:16px;">The <strong>case meter</strong> fills as Meera hears, researches, and diagnoses — students always know where their case stands.</p>
+	<div class="foot">MEERA · 06</div>
+</section>
+
+<!-- 7 · BATTLE MODE -->
+<section class="slide">
+	<div class="eyebrow">05 · Creativity — Battle Mode</div>
+	<h2>The same real AI session —<br>re-skinned as a battle.</h2>
+	<div class="cols">
+		<div class="col">
+			<ul class="list">
+				<li><strong>Your problem is the boss.</strong> Each department maps to a meerkat predator — the default boss is the cobra. Multi-department issues spawn a pack.</li>
+				<li><strong>Moves are AI-suggested replies</strong> rendered as quick-reply buttons; free typing always works.</li>
+				<li><strong>Enemy HP = case progress.</strong> Two victories: issue self-resolved (boss defeated) or ticket filed (backup called). The student never loses.</li>
+				<li><strong>Identical engine.</strong> Same gateway, same ticket pipeline as the classic chat — one data model, two experiences.</li>
+			</ul>
+		</div>
+		<div class="col" style="flex:0 0 420px; text-align:center;">
+			<img src="../../public/assets/battle/mira-battle-idle.png" alt="MiRA battle sprite" style="max-height:230px; margin-right:18px;">
+			<img src="../../public/assets/battle/cobra-idle.png" alt="Cobra boss sprite" style="max-height:230px;">
+		</div>
+	</div>
+	<div class="foot">MEERA · 07</div>
+</section>
+
+<!-- 8 · DESKTOP OVERLAYS -->
+<section class="slide">
+	<div class="eyebrow">06 · Creativity — Desktop Guidance</div>
+	<h2>Some problems need pointing, not paragraphs.</h2>
+	<div class="cols">
+		<div class="col">
+			<ul class="list">
+				<li><strong>Electron desktop assistant</strong> draws transparent, click-through overlays over <em>any</em> application: guiding cursor, arrows, highlights, instruction bubbles.</li>
+				<li><strong>Vision-grounded.</strong> Meera captures the screen and a multimodal model locates the actual control to point at.</li>
+				<li><strong>Zoom-refine grounding:</strong> a second pass crops and upscales around the first guess, re-locates the target, and maps back to full-screen coordinates.</li>
+				<li><strong>One validated protocol.</strong> Simulator and AI emit the same typed commands; coordinates normalized 0–1, multi-monitor aware.</li>
+			</ul>
+		</div>
+		<div class="col" style="flex:0 0 320px; text-align:center;">
+			<img src="../../public/assets/meera-laptop.png" alt="MiRA at a laptop" style="max-height:330px;">
+		</div>
+	</div>
+	<div class="foot">MEERA · 08</div>
+</section>
+
+<!-- 9 · STAFF SIDE -->
+<section class="slide">
+	<div class="eyebrow">07 · The Staff Side</div>
+	<h2>Tickets that arrive ready to resolve.<span class="accent-sand"> ▶ live demo</span></h2>
+	<div class="cols">
+		<div class="col">
+			<ul class="list">
+				<li><strong>Pre-processed tickets:</strong> AI summary, collected information, missing information, suggested actions, and a <strong>confidence score</strong>.</li>
+				<li><strong>Priority matrix:</strong> every ticket plotted by severity × complexity for instant visual triage.</li>
+				<li><strong>Claiming, notes, status flow</strong> — New → In progress → Awaiting student → Resolved.</li>
+				<li><strong>Cross-department escalation:</strong> invite another office, they accept or reject with a reason, a shared task board coordinates the work.</li>
+			</ul>
+		</div>
+		<div class="col shotwrap"><img class="shot" src="../../public/assets/screens/admin-ticket.png" alt="Admin ticket detail with AI summary and confidence"></div>
+	</div>
+	<div class="foot">MEERA · 09</div>
+</section>
+
+<!-- 10 · KNOWLEDGE -->
+<section class="slide">
+	<div class="eyebrow">08 · Knowledge That Compounds</div>
+	<h2>Every resolved ticket makes the next one cheaper.</h2>
+	<div class="cols">
+		<div class="col shotwrap"><img class="shot" src="../../public/assets/screens/admin-knowledge.png" alt="Knowledge base graph"></div>
+		<div class="col">
+			<ul class="list">
+				<li><strong>Knowledge graph,</strong> not a flat FAQ list — FAQs, procedures, entities, and departments as nodes with typed relationships.</li>
+				<li><strong>One-click ingestion</strong> turns a resolved ticket into a reusable KB entry.</li>
+				<li><strong>Insights dashboard:</strong> opened vs. resolved volume, severity × complexity heatmap, team load, response & resolution times, AI-handled share.</li>
+				<li><strong>KB coverage gaps:</strong> clusters of low-confidence tickets tell staff exactly which article to write next.</li>
+			</ul>
+		</div>
+	</div>
+	<div class="foot">MEERA · 10</div>
+</section>
+
+<!-- 11 · DATA MODEL -->
+<section class="slide">
+	<div class="eyebrow">09 · Data Model Design</div>
+	<h2>Nine tables. Many experiences. Zero redesigns.</h2>
+	<div class="cols" style="align-items:flex-start;">
+		<div class="col" style="flex:1.5;">
+			<table class="schema">
+				<tr><th>Table</th><th>Role in the system</th></tr>
+				<tr><td>tickets</td><td>The agent's work product as first-class columns: <span class="mono">aiSummary · collectedInformation · missingInformation · suggestedActions · confidence</span>, plus severity × complexity enums that power the priority matrix.</td></tr>
+				<tr><td>ticket_messages</td><td>Student ↔ Meera transcript, one row per turn.</td></tr>
+				<tr><td>ticket_notes</td><td>Internal staff discussion — never mixed with the student transcript.</td></tr>
+				<tr><td>cross_dept_participants</td><td>Junction table: ticket × department with accept/reject decision + reason.</td></tr>
+				<tr><td>tasks</td><td>Shared cross-department work items with owner, assignee, status, due date.</td></tr>
+				<tr><td>kb_nodes / kb_edges</td><td>Knowledge as a graph — faq, procedure, entity, department nodes with typed relations.</td></tr>
+				<tr><td>users / admins</td><td>Students and department staff (IT · REG · FIN · MED · SS).</td></tr>
+			</table>
+		</div>
+		<div class="col">
+			<ul class="list" style="font-size:17px;">
+				<li><strong>Drizzle ORM on Cloudflare D1</strong> (SQLite), enum-constrained at the schema level.</li>
+				<li>Graph KB lets Meera reason about relationships — e.g., <em>registration hold depends on payment clearance</em>.</li>
+				<li>The same schema serves the student chat, Battle Mode, five admin dashboards, and the analytics.</li>
+			</ul>
+		</div>
+	</div>
+	<div class="foot">MEERA · 11</div>
+</section>
+
+<!-- 12 · ARCHITECTURE & TRUST -->
+<section class="slide">
+	<div class="eyebrow">10 · Architecture & Trust</div>
+	<h2>One codebase, three targets, hard boundaries.</h2>
+	<div class="cards three" style="margin-top:4px;">
+		<div class="card"><h3>App</h3><p>Next.js 16 · React 19 · Tailwind v4 · shadcn/ui. Runs in the <strong>browser</strong>, as an <strong>Electron desktop app</strong>, and on <strong>Cloudflare Workers</strong> in production (D1 + R2). Runtime-keyed adapters pick the backend per environment.</p></div>
+		<div class="card"><h3>AI</h3><p><strong>Groq</strong> inference: Llama 3.1 8B for text, Llama 4 Scout for vision, Whisper (Workers AI) for voice. All calls server-side — the browser never sees a credential. Tool calls validated before touching the DB or screen.</p></div>
+		<div class="card"><h3>Boundaries</h3><p>No approvals · no record changes · no payment validation · no medical judgments · no system overrides. Enforced in the system prompt <em>and</em> the tool design — sensitive actions are forced down the escalation path.</p></div>
+	</div>
+	<p class="lede" style="margin-top:28px;">Prototyped in <strong>Microsoft Copilot Studio</strong>; the institutional deployment path integrates Teams handoffs, SharePoint knowledge bases, Power Automate routing, and Dataverse records.</p>
+	<div class="foot">MEERA · 12</div>
+</section>
+
+<!-- 13 · BUSINESS IMPACT -->
+<section class="slide">
+	<div class="eyebrow">11 · Business Impact</div>
+	<h2>Less volume. Better triage. Faster resolution.</h2>
+	<div class="cards two" style="margin-top:4px;">
+		<div class="card"><div class="big">Deflect</div><p><strong>Tickets that never exist.</strong> Safe self-service resolves the repetitive majority — Wi-Fi, lockouts, FAQ-level questions — before they consume staff time.</p></div>
+		<div class="card"><div class="big">Zero intake</div><p><strong>Complete on arrival.</strong> Classified, prioritized, context-collected tickets erase the read–chase–log cycle and the two-day urgent-issue delay with it.</p></div>
+		<div class="card"><div class="big">Triage</div><p><strong>Urgency surfaces instantly.</strong> Severity + deadline awareness moves the student locked out during finals to the front of the queue automatically.</p></div>
+		<div class="card"><div class="big">Compound</div><p><strong>The system gets cheaper weekly.</strong> Resolved tickets feed the knowledge graph; coverage-gap analytics say which article to write next.</p></div>
+	</div>
+	<p class="lede" style="margin-top:24px;"><strong>And it travels:</strong> the same understand → classify → resolve → package → route pattern fits HR, finance ops, facilities, and ITSM. The university is the beachhead, not the ceiling.</p>
+	<div class="foot">MEERA · 13</div>
+</section>
+
+<!-- 14 · CRITERIA -->
+<section class="slide">
+	<div class="eyebrow">12 · Scorecard</div>
+	<h2>Built against the brief.</h2>
+	<div class="criteria">
+		<div class="crit"><div class="pct">30%</div><div class="lbl">User Interface</div><p style="font-size:14px; color:var(--ink-2); margin-top:8px; line-height:1.5;">Warm, branded design system; mascot-led student chat with case meter; five themed staff workspaces; priority matrix; knowledge graph.</p></div>
+		<div class="crit"><div class="pct">25%</div><div class="lbl">Creativity</div><p style="font-size:14px; color:var(--ink-2); margin-top:8px; line-height:1.5;">Battle Mode on the real agent; vision-grounded desktop overlays; voice input; KB-gap analytics; resolution-over-routing framing.</p></div>
+		<div class="crit"><div class="pct">25%</div><div class="lbl">Data Model Design</div><p style="font-size:14px; color:var(--ink-2); margin-top:8px; line-height:1.5;">Nine-table relational schema; agent output as first-class columns; junction-table collaboration; graph knowledge base.</p></div>
+		<div class="crit"><div class="pct">20%</div><div class="lbl">Functionality & UX</div><p style="font-size:14px; color:var(--ink-2); margin-top:8px; line-height:1.5;">Live end-to-end agent; 10-prompt coverage across 5 departments; cross-dept escalation; enforced boundaries; ticket-to-KB loop.</p></div>
+	</div>
+	<div class="foot">MEERA · 14</div>
+</section>
+
+<!-- 15 · CLOSE -->
+<section class="slide titleslide" style="align-items:center; text-align:center;">
+	<img src="../../public/assets/meera-celebrate.png" alt="MiRA celebrating" style="height:220px; margin-bottom:30px;">
+	<div class="wordmark" style="font-size:84px;">Thank you<span class="accent">.</span></div>
+	<p class="tagline" style="margin:18px auto 0;">Support that resolves instead of routes. Staff who start at the solution.<br>Knowledge that compounds.</p>
+	<img src="../../public/assets/meera_qr.png" alt="QR code — try Meera" style="height:190px; margin-top:34px; border-radius:16px; border:1px solid var(--line-2); box-shadow:var(--sh);">
+	<p class="subtle">Scan to try Meera · Team Meera · KPMG AIC 2026</p>
+</section>
+
+<div class="hud"><span id="pos">1</span> / <span id="total">15</span> · ← → navigate · F fullscreen</div>
+
+<script>
+	const slides = [...document.querySelectorAll(".slide")];
+	let i = 0;
+	document.getElementById("total").textContent = slides.length;
+	function show(n) {
+		i = Math.max(0, Math.min(slides.length - 1, n));
+		slides.forEach((s, k) => s.classList.toggle("active", k === i));
+		document.getElementById("pos").textContent = i + 1;
+	}
+	addEventListener("keydown", (e) => {
+		if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") show(i + 1);
+		else if (e.key === "ArrowLeft" || e.key === "PageUp") show(i - 1);
+		else if (e.key === "Home") show(0);
+		else if (e.key === "End") show(slides.length - 1);
+		else if (e.key.toLowerCase() === "f") document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+	});
+	addEventListener("click", (e) => { if (!e.target.closest("a")) show(i + 1); });
+</script>
+</body>
+</html>
